@@ -1,7 +1,9 @@
-# 推 main 就是发布（HANDOFF.md「运行现状」），所以 main 上的每一个提交都要在三个系统上
+# 推 main 就是发布（CLAUDE.md「部署」），所以 main 上的每一个提交都要在三个系统上
 # 跑过全部判据。docs/24 §2.3。
 # ⚠️ 只要 main 没开分支保护，这里对「推 main」就只是**事后**告警——用户那时已经能 update 了。
-# 要在发布之前拦住：先推功能分支、等这里全绿，再合进 main 推送（HANDOFF.md「常用命令」）。
+# 要在发布之前拦住：先推功能分支、等这里全绿，再合进 main 推送（CLAUDE.md「部署」）。
+# 每个作业都设 timeout-minutes：测试运行器偶发卡死（CLAUDE.md「坑」）时，不设就挂到平台默认的 6 小时上限。
+# tests/hygiene.test.mjs 钉着「每个作业都有」。
 name: ci
 
 # 只认分支：不写 branches，推 tag 也会触发。（CI 自己打的 tag 用 GITHUB_TOKEN 推，本来就不触发任何工作流；这一条管的是手工推的 tag。）
@@ -24,12 +26,14 @@ jobs:
         # 仍在维护期的两条 LTS 线。
         node: [22, 24]
     runs-on: ${{ matrix.os }}
+    # 平时最慢的是 Windows，十分钟出头。
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
-      # 裸跑，不带路径参数（HANDOFF.md「注意事项」：带路径参数会报出一个假的 pass 0 / fail 1）。
+      # 裸跑，不带路径参数（CLAUDE.md「测试」：带路径参数会报出一个假的 pass 0 / fail 1）。
       - run: node --test
 
   # 发布纪律（docs/24 §2.3，改判 docs/19 §9.2）：推 main、或向 main 提 PR 时，version 必须往前挪；
@@ -37,6 +41,7 @@ jobs:
   version-bump:
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
         with:
@@ -58,6 +63,8 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [test, version-bump]
     runs-on: ubuntu-latest
+    # 平时不到一分钟；一个新仓库第一次补打全部 tag、建全部 Release 时最久，也只要一两分钟。
+    timeout-minutes: 10
     permissions:
       contents: write
     steps:
