@@ -1,6 +1,6 @@
 # 一段该交哪些产物
 
-`/agent-team:at-resume` 与 `/agent-team:at-status` 要回答「某一段的产物齐没齐」时照这里展开。规则的单一真源是
+`/poundlock:at-resume` 与 `/poundlock:at-status` 要回答「某一段的产物齐没齐」时照这里展开。规则的单一真源是
 `${CLAUDE_PLUGIN_ROOT}/hooks/lib/stages.mjs` 的 `expandProduces`，这里写的是它做什么；两边对不上时以代码为准。
 
 ## `produces` 的三种写法
@@ -31,5 +31,5 @@
 
 ## 微调这一趟
 
-`state.json` 的 `mode` 是 `"tweak"` 的一趟（`/agent-team:at-tweak` 起），阶段链是 `${CLAUDE_PLUGIN_ROOT}/stages.tweak.json`：只有 S1、S4、S5、S6、S8 五段，
+`state.json` 的 `mode` 是 `"tweak"` 的一趟（`/poundlock:at-tweak` 起），阶段链是 `${CLAUDE_PLUGIN_ROOT}/stages.tweak.json`：只有 S1、S4、S5、S6、S8 五段，
 段号与产物名与正常链相同；S4 的派发、S6 的测试报告都由项目经理写，S5 照样按叫到的开发角色各一份实现记录。展开规则同上，只是换这一份阶段链。

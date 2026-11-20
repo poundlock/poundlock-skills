@@ -26,10 +26,10 @@ import { makeRun } from './fixtures/make-run.mjs'
 import { reworkFromHistory } from '../hooks/lib/state.mjs'
 
 test('readiness：ctx.ok 为 false 时 fail open 且在 stderr 留痕说明（不是静默放行）', () => {
-  // 干净的临时目录当 cwd：这里必然没有 .agent-team，readRunContext 必然
+  // 干净的临时目录当 cwd：这里必然没有 .poundlock，readRunContext 必然
   // 返回 ok:false——不依赖仓库根此刻是否恰好有/没有进行中的 run，那是
   // 环境状态，不该决定这条分支的测试结果。
-  const cwd = mkdtempSync(join(tmpdir(), 'agent-team-h2-cwd-'))
+  const cwd = mkdtempSync(join(tmpdir(), 'poundlock-h2-cwd-'))
   try {
     const input = { tool_name: 'Agent', tool_input: { subagent_type: 'at-product' } }
     const { stdout, stderr, status } = run('readiness', input, undefined, cwd)
@@ -40,7 +40,7 @@ test('readiness：ctx.ok 为 false 时 fail open 且在 stderr 留痕说明（�
       stderr.trim().length > 0,
       '必须往 stderr 留痕；只断言 exit code 是 0 抓不住"退回静默放行"这个真实发生过的回归',
     )
-    assert.match(stderr, /agent-team/, 'stderr 里应表明这是 agent-team 发出的')
+    assert.match(stderr, /poundlock/, 'stderr 里应表明这是 poundlock 发出的')
     assert.match(stderr, /(H2|就绪)/, 'stderr 里应指明是就绪门禁本身，不能是一句认不出出处的泛泛之词')
     assert.match(
       stderr,
@@ -74,7 +74,7 @@ test('readiness：ctx.ok 为 true 时，deny 判定真的经 denyAndExit 传到 
   // 形状）在子进程门禁层端到端过一遍 deny"这件事由下面新增的兄弟测试覆盖。
   const dirs = makeRun({ runId: 'r1', roster: ['at-product'] })
   try {
-    const input = { tool_name: 'Agent', tool_input: { subagent_type: 'agent-team:at-product' } }
+    const input = { tool_name: 'Agent', tool_input: { subagent_type: 'poundlock:at-product' } }
     const { stdout, status } = run('readiness', input, undefined, dirs.projectDir)
     const out = decisionOf(stdout)
 
@@ -103,7 +103,7 @@ test('readiness：ctx.ok 为 true 时，deny 判定真的经 denyAndExit 传到 
 test('readiness：makeRun() 缺省 roster（与 templates/state.json 逐字相同的形状）时，S2 前置缺失仍然 deny——修复 1 的端到端覆盖', () => {
   const dirs = makeRun({ runId: 'r1' })
   try {
-    const input = { tool_name: 'Agent', tool_input: { subagent_type: 'agent-team:at-product' } }
+    const input = { tool_name: 'Agent', tool_input: { subagent_type: 'poundlock:at-product' } }
     const { stdout, status } = run('readiness', input, undefined, dirs.projectDir)
     const out = decisionOf(stdout)
 
@@ -125,7 +125,7 @@ test('readiness：ctx.ok 为 true 但没有可判定的目标角色时，同样�
     assert.equal(status, 0)
     assert.equal(stdout.trim(), '', '没有目标角色不该 deny')
     assert.ok(stderr.trim().length > 0, '这也是一次 fail open，必须留痕，不能悄悄退出')
-    assert.match(stderr, /agent-team/)
+    assert.match(stderr, /poundlock/)
     assert.match(stderr, /(H2|就绪)/)
   } finally {
     rmSync(dirs.projectDir, { recursive: true, force: true })
@@ -153,8 +153,8 @@ test('readiness：ctx.ok 为 true 但没有可判定的目标角色时，同样�
 test('readiness：丢指针时仍然 fail open，措辞同样说「读不到运行上下文」', () => {
   const dirs = makeRun({ runId: 'r1' })
   try {
-    rmSync(join(dirs.projectDir, '.agent-team', 'current-run'), { force: true })
-    const input = { tool_name: 'Agent', tool_input: { subagent_type: 'agent-team:at-product' } }
+    rmSync(join(dirs.projectDir, '.poundlock', 'current-run'), { force: true })
+    const input = { tool_name: 'Agent', tool_input: { subagent_type: 'poundlock:at-product' } }
     const { stdout, stderr, status } = run('readiness', input, undefined, dirs.projectDir)
 
     assert.equal(status, 0, 'H2 是 fail open：收窄改的是 H3/H4，不该把 H2 也变成拦截')
@@ -172,8 +172,8 @@ test('readiness：丢指针时仍然 fail open，措辞同样说「读不到运�
 test('readiness：坏指针时仍然 fail open，但措辞说「读不到运行上下文」——H2 的行为不随 kind 变，措辞随', () => {
   const dirs = makeRun({ runId: 'r1' })
   try {
-    rmSync(join(dirs.projectDir, '.agent-team', 'runs', 'r1'), { recursive: true, force: true })
-    const input = { tool_name: 'Agent', tool_input: { subagent_type: 'agent-team:at-product' } }
+    rmSync(join(dirs.projectDir, '.poundlock', 'runs', 'r1'), { recursive: true, force: true })
+    const input = { tool_name: 'Agent', tool_input: { subagent_type: 'poundlock:at-product' } }
     const { stdout, stderr, status } = run('readiness', input, undefined, dirs.projectDir)
 
     assert.equal(status, 0, 'H2 是 fail open：收窄改的是 H3/H4，不该把 H2 也变成拦截')
@@ -195,7 +195,7 @@ test('readiness：坏指针时仍然 fail open，但措辞说「读不到运行�
 // 纯函数那一层在 tests/readiness.test.mjs。这里钉的是门禁把派发者（hook 输入的 agent_type）与花名册的触达接进去了：
 // 忘了传派发者或触达时，第一格会退回老规则、按 S5 拒。
 const dispatchUi = (caller) => ({
-  hook_event_name: 'PreToolUse', tool_name: 'Agent', agent_type: caller, tool_input: { subagent_type: 'agent-team:at-ui', prompt: 'x' },
+  hook_event_name: 'PreToolUse', tool_name: 'Agent', agent_type: caller, tool_input: { subagent_type: 'poundlock:at-ui', prompt: 'x' },
 })
 const S2_DONE = ['00-contract.md', '01-prd.md', '02-ui-spec.md', '02-wireframe.html']
 const withRun = (opts, body) => {
@@ -210,14 +210,14 @@ const withRun = (opts, body) => {
 
 test('readiness（M3w）：S2 已齐之后 at-product 让 at-ui 返修——放行（此前按 S5 的前置拒）', () => {
   withRun({ stage: 'S2', roster: ['at-product', 'at-ui'], artifacts: S2_DONE }, (dirs) => {
-    const { stdout } = run('readiness', dispatchUi('agent-team:at-product'), undefined, dirs.projectDir)
+    const { stdout } = run('readiness', dispatchUi('poundlock:at-product'), undefined, dirs.projectDir)
     assert.equal(stdout, '', stdout)
   })
 })
 
 test('readiness（M3w）：S2 被裁、stage 是 S5、04-dispatch.md 缺，架构师派 at-ui——拒，理由点名 04-dispatch.md（此前放行）', () => {
   withRun({ stage: 'S5', roster: ['at-product', 'at-architect'], trimmed: { 'at-ui': 'S2' }, artifacts: ['00-contract.md', '01-prd.md', '03-arch.md', '03-alignment.md'] }, (dirs) => {
-    const out = decisionOf(run('readiness', dispatchUi('agent-team:at-architect'), undefined, dirs.projectDir).stdout)
+    const out = decisionOf(run('readiness', dispatchUi('poundlock:at-architect'), undefined, dirs.projectDir).stdout)
     assert.equal(out?.permissionDecision, 'deny')
     assert.match(out.permissionDecisionReason, /04-dispatch\.md/)
   })
@@ -225,10 +225,10 @@ test('readiness（M3w）：S2 被裁、stage 是 S5、04-dispatch.md 缺，架�
 
 test('readiness（M3w）：S2 只交了一半、stage 是 S3——架构师派 at-ui 拒（S5 的前置），at-product 派它补 S2 放行', () => {
   withRun({ stage: 'S3', roster: ['at-product'], artifacts: ['00-contract.md', '01-prd.md', '02-ui-spec.md'] }, (dirs) => {
-    const arch = decisionOf(run('readiness', dispatchUi('agent-team:at-architect'), undefined, dirs.projectDir).stdout)
+    const arch = decisionOf(run('readiness', dispatchUi('poundlock:at-architect'), undefined, dirs.projectDir).stdout)
     assert.equal(arch?.permissionDecision, 'deny')
     assert.match(arch.permissionDecisionReason, /S5/)
-    assert.equal(run('readiness', dispatchUi('agent-team:at-product'), undefined, dirs.projectDir).stdout, '')
+    assert.equal(run('readiness', dispatchUi('poundlock:at-product'), undefined, dirs.projectDir).stdout, '')
   })
 })
 
@@ -236,7 +236,7 @@ test('readiness（M3w）：S2 只交了一半、stage 是 S3——架构师派 a
 // 两格：前置缺照样拒；派多段角色时退回老规则，那一段前置齐了就放行（R3 那一行在门禁层就是这里走得到），stderr 为空。
 test('readiness（M3w）：派发者不在花名册里——前置缺照样拒；派 at-ui、只有契约时按老规则放行，不崩', () => {
   withRun({ stage: 'S5', artifacts: ['00-contract.md', '01-prd.md', '03-arch.md'] }, (dirs) => {
-    const be = { ...dispatchUi('other-plugin:helper'), tool_input: { subagent_type: 'agent-team:at-backend', prompt: 'x' } }
+    const be = { ...dispatchUi('other-plugin:helper'), tool_input: { subagent_type: 'poundlock:at-backend', prompt: 'x' } }
     const out = decisionOf(run('readiness', be, undefined, dirs.projectDir).stdout)
     assert.equal(out?.permissionDecision, 'deny')
     assert.match(out.permissionDecisionReason, /04-dispatch\.md/)
@@ -251,7 +251,7 @@ test('readiness（M3w）：派发者不在花名册里——前置缺照样拒�
 // 花名册里某条派发边的元素不是字符串（{"toString":1} 这种）：M3w 起 H2 每次派发都要算触达，computeReach 在这个形状上抛过
 // 异常、H2 对所有派发 fail open（H1 照常放行合法的边）。reach.mjs 现在跳过不是字符串的元素。插件副本里改 roster.json。
 test('readiness（M3w）：花名册的派发边里混进一个不是字符串的元素——H2 照常判，不崩', () => {
-  const plugin = realpathSync(mkdtempSync(join(tmpdir(), 'agent-team-h2-roster-')))
+  const plugin = realpathSync(mkdtempSync(join(tmpdir(), 'poundlock-h2-roster-')))
   try {
     const repo = new URL('../', import.meta.url)
     cpSync(new URL('hooks', repo), join(plugin, 'hooks'), { recursive: true })
@@ -260,7 +260,7 @@ test('readiness（M3w）：花名册的派发边里混进一个不是字符串�
     roster['at-pm'].can_delegate_to.push({ toString: 1 })
     writeFileSync(join(plugin, 'roster.json'), JSON.stringify(roster), 'utf8')
     withRun({ stage: 'S4', artifacts: ['00-contract.md', '01-prd.md'] }, (dirs) => {
-      const be = { ...dispatchUi('agent-team:at-architect'), tool_input: { subagent_type: 'agent-team:at-backend', prompt: 'x' } }
+      const be = { ...dispatchUi('poundlock:at-architect'), tool_input: { subagent_type: 'poundlock:at-backend', prompt: 'x' } }
       const r = run('readiness', be, join(plugin, 'hooks', 'boot.mjs'), dirs.projectDir)
       assert.equal(decisionOf(r.stdout)?.permissionDecision, 'deny', r.stderr)
       assert.doesNotMatch(r.stderr, /异常崩溃/)
@@ -272,8 +272,8 @@ test('readiness（M3w）：花名册的派发边里混进一个不是字符串�
 
 test('readiness（M3w）：stage 没推进（停在 S2）、S2 已齐、03/04 缺——架构师派 at-ui 拒，与 at-backend 一致', () => {
   withRun({ stage: 'S2', roster: ['at-product', 'at-ui'], artifacts: S2_DONE }, (dirs) => {
-    for (const target of ['agent-team:at-ui', 'agent-team:at-backend']) {
-      const input = { ...dispatchUi('agent-team:at-architect'), tool_input: { subagent_type: target, prompt: 'x' } }
+    for (const target of ['poundlock:at-ui', 'poundlock:at-backend']) {
+      const input = { ...dispatchUi('poundlock:at-architect'), tool_input: { subagent_type: target, prompt: 'x' } }
       assert.equal(decisionOf(run('readiness', input, undefined, dirs.projectDir).stdout)?.permissionDecision, 'deny', target)
     }
   })
@@ -290,7 +290,7 @@ test('readiness（M3x）：S5 还没记账、at-ui 在 S2 干过、at-backend �
     stage_roles: { S2: ['at-product', 'at-ui'], S3: ['at-architect'] },
     artifacts: [...S2_DONE, '03-arch.md', '05-impl/at-backend.md', '05-impl/at-frontend.md'],
   }, (dirs) => {
-    const input = { ...dispatchUi('agent-team:at-architect'), tool_input: { subagent_type: 'agent-team:at-backend', prompt: 'x' } }
+    const input = { ...dispatchUi('poundlock:at-architect'), tool_input: { subagent_type: 'poundlock:at-backend', prompt: 'x' } }
     const { stdout } = run('readiness', input, undefined, dirs.projectDir)
     assert.equal(decisionOf(stdout)?.permissionDecision, 'deny', stdout)
   })
@@ -304,12 +304,12 @@ test('M4h 第 38 条：门禁子进程——S2 整段裁掉之后在 S3 派架�
     trimmed: { 'at-product': 'S2', 'at-ui': 'S2' }, stage_roles: { S2: [] },
   })
   try {
-    const input = { tool_name: 'Agent', tool_input: { subagent_type: 'agent-team:at-architect' } }
+    const input = { tool_name: 'Agent', tool_input: { subagent_type: 'poundlock:at-architect' } }
     const d = decisionOf(run('readiness', input, undefined, dirs.projectDir).stdout)
     assert.equal(d?.permissionDecision, 'deny', JSON.stringify(d))
     assert.ok(d.permissionDecisionReason.includes('S2 整段裁掉了（那一段的产者都记在 trimmed 里、这一趟在那一段谁都没叫过）'), d.permissionDecisionReason)
     // 门禁的派发记录里有人在 S2 被派出去过：不算整段裁掉（与推进、收口同一个口径），照旧那一句。
-    const runDir = join(dirs.projectDir, '.agent-team', 'runs', 'r1')
+    const runDir = join(dirs.projectDir, '.poundlock', 'runs', 'r1')
     writeFileSync(join(runDir, 'dispatches.jsonl'), JSON.stringify({ kind: 'dispatch', at: 't', agent_id: 'a0000000000000b01', tool_use_id: null, role: 'at-product', stage: 'S2', caller: 'at-pm', caller_id: null, mode: 'background' }) + '\n')
     const again = decisionOf(run('readiness', input, undefined, dirs.projectDir).stdout)
     assert.equal(again?.permissionDecision, 'deny')
@@ -330,10 +330,10 @@ test('M4h 复核：整段裁掉之后照 H2 给的第一条路回退到那一段
     trimmed: { 'at-product': 'S2', 'at-ui': 'S2' }, stage_roles: { S2: [] },
   })
   try {
-    const runDir = join(dirs.projectDir, '.agent-team', 'runs', 'r1')
+    const runDir = join(dirs.projectDir, '.poundlock', 'runs', 'r1')
     const statePath = join(runDir, 'state.json')
-    const first = decisionOf(run('readiness', { tool_name: 'Agent', tool_input: { subagent_type: 'agent-team:at-architect' } }, undefined, dirs.projectDir).stdout)
-    assert.ok(first?.permissionDecisionReason.includes('要么回退到要补的那一段把它补回来（照 /agent-team:at 第 3 节的「回退」记'), first?.permissionDecisionReason)
+    const first = decisionOf(run('readiness', { tool_name: 'Agent', tool_input: { subagent_type: 'poundlock:at-architect' } }, undefined, dirs.projectDir).stdout)
+    assert.ok(first?.permissionDecisionReason.includes('要么回退到要补的那一段把它补回来（照 /poundlock:at 第 3 节的「回退」记'), first?.permissionDecisionReason)
     const before = JSON.parse(readFileSync(statePath, 'utf8'))
     const history = [...before.history, { stage: 'S2', at: 't' }]
     const after = { ...before, stage: 'S2', history, rework: reworkFromHistory(history), rework_base: {}, trimmed: { 'at-ui': 'S2' } }
@@ -341,13 +341,13 @@ test('M4h 复核：整段裁掉之后照 H2 给的第一条路回退到那一段
     const h6 = run('rework', write, undefined, dirs.projectDir)
     assert.notEqual(decisionOf(h6.stdout)?.permissionDecision, 'deny', h6.stdout)
     writeFileSync(statePath, JSON.stringify(after, null, 2))
-    const h2 = decisionOf(run('readiness', { tool_name: 'Agent', tool_input: { subagent_type: 'agent-team:at-product' } }, undefined, dirs.projectDir).stdout)
+    const h2 = decisionOf(run('readiness', { tool_name: 'Agent', tool_input: { subagent_type: 'poundlock:at-product' } }, undefined, dirs.projectDir).stdout)
     assert.notEqual(h2?.permissionDecision, 'deny', JSON.stringify(h2))
     writeFileSync(join(runDir, '01-prd.md'), '# PRD 产品需求')
     const done = {
       hook_event_name: 'PostToolUse', tool_name: 'Agent', tool_use_id: 'toolu_01M4HR', agent_type: 'at-pm',
-      tool_input: { subagent_type: 'agent-team:at-product', description: 'x', prompt: 'y' },
-      tool_response: { status: 'completed', prompt: 'y', agentId: 'a00000000000000f1', agentType: 'agent-team:at-product', content: [{ type: 'text', text: '交了。' }], totalDurationMs: 1 },
+      tool_input: { subagent_type: 'poundlock:at-product', description: 'x', prompt: 'y' },
+      tool_response: { status: 'completed', prompt: 'y', agentId: 'a00000000000000f1', agentType: 'poundlock:at-product', content: [{ type: 'text', text: '交了。' }], totalDurationMs: 1 },
     }
     const h5a = run('deliverable', done, undefined, dirs.projectDir)
     const ctx = h5a.stdout ? JSON.parse(h5a.stdout).hookSpecificOutput?.additionalContext ?? '' : ''

@@ -10,8 +10,8 @@ import { makeRun } from './fixtures/make-run.mjs'
 import { BUBBLE_MARK } from '../hooks/lib/deliverable.mjs'
 import { coordinatorProgress } from '../hooks/lib/completion.mjs'
 
-const PRODUCT = 'agent-team:at-product'
-const UI = 'agent-team:at-ui'
+const PRODUCT = 'poundlock:at-product'
+const UI = 'poundlock:at-ui'
 const launched = (agentId) => ({ isAsync: true, status: 'async_launched', agentId, description: 'x', prompt: 'y' })
 const completed = (agentId) => ({ status: 'completed', prompt: 'y', agentId, agentType: PRODUCT, content: [{ type: 'text', text: '回报。' }], totalDurationMs: 1 })
 const post = (target, response, { caller, callerId, toolUseId }) => ({
@@ -72,7 +72,7 @@ test('H5a（docs/80）：前台派发的 at-product 跑完、自己那份没交�
 // 复核（docs/80 §8，中 1）：另两种情形的收尾——at-ui 交齐停下（正路）、at-ui 交了一半冒泡。
 function finished(uiFiles, uiBubble) {
   return inS2((dirs) => {
-    const runDir = join(dirs.projectDir, '.agent-team', 'runs', 'r1')
+    const runDir = join(dirs.projectDir, '.poundlock', 'runs', 'r1')
     run('deliverable', post(PRODUCT, launched('a00000000000000c5'), { toolUseId: 'toolu_01C5' }), GATE, dirs.projectDir)
     run('deliverable', post(UI, launched('a00000000000000d5'), { caller: PRODUCT, callerId: 'a00000000000000c5', toolUseId: 'toolu_01D5' }), GATE, dirs.projectDir)
     for (const name of uiFiles) writeFileSync(join(runDir, name), '# 界面\n')
@@ -128,7 +128,7 @@ test('完成核验（docs/80）：at-product 派它那一段已经不是当前�
     run('deliverable', post(UI, launched('a00000000000000d4'), { caller: PRODUCT, callerId: 'a00000000000000c4', toolUseId: 'toolu_01D4' }), GATE, dirs.projectDir)
     run('stop-gate', stopped(PRODUCT, 'a00000000000000c4', false, '写不了。'), GATE, dirs.projectDir)
     run('stop-gate', stopped(PRODUCT, 'a00000000000000c4', true, `${BUBBLE_MARK}缺用户确认。`), GATE, dirs.projectDir)
-    const statePath = join(dirs.projectDir, '.agent-team', 'runs', 'r1', 'state.json')
+    const statePath = join(dirs.projectDir, '.poundlock', 'runs', 'r1', 'state.json')
     writeFileSync(statePath, JSON.stringify({ ...JSON.parse(readFileSync(statePath, 'utf8')), stage: 'S1', history: [{ stage: 'S1', at: '2026-09-17T14:30:00Z' }] }))
     return ctxOf(run('completion', { hook_event_name: 'UserPromptSubmit', prompt: note('a00000000000000c4', 'toolu_01C4') }, GATE, dirs.projectDir))
   })

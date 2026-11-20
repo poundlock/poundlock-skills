@@ -181,7 +181,7 @@ const redo = ({ role, stageId, produces, isDelivered = allDelivered }) => {
     stageId,
     role,
     owner: { stageId: ownerStage, produces },
-    filePath: `/p/.agent-team/runs/r1/${produces}`,
+    filePath: `/p/.poundlock/runs/r1/${produces}`,
     isDelivered,
     reachableRoles: reachOf(role),
   })

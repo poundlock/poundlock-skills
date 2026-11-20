@@ -10,7 +10,7 @@ import { run, GATE } from './helpers/gate-runner.mjs'
 import { makeRun } from './fixtures/make-run.mjs'
 import { readDispatchLog, toldLine } from '../hooks/lib/completion.mjs'
 
-const PRODUCT = 'agent-team:at-product'
+const PRODUCT = 'poundlock:at-product'
 const launched = (agentId) => ({ isAsync: true, status: 'async_launched', agentId, description: 'x', prompt: 'y' })
 const post = (target, response, toolUseId) => ({
   hook_event_name: 'PostToolUse',
@@ -44,7 +44,7 @@ test('readDispatchLog（docs/82）：认 told 行——每个 agent_id 记最后
 function inS2(body) {
   const dirs = makeRun({ runId: 'r1', stage: 'S2', artifacts: ['00-contract.md'], roster: ['at-product'], stage_roles: {} })
   try {
-    return body(dirs, join(dirs.projectDir, '.agent-team', 'runs', 'r1'))
+    return body(dirs, join(dirs.projectDir, '.poundlock', 'runs', 'r1'))
   } finally {
     rmSync(dirs.projectDir, { recursive: true, force: true })
     rmSync(dirs.pluginDir, { recursive: true, force: true })
@@ -105,23 +105,23 @@ test('完成核验（docs/82）：一条消息里有两个子代理的通知—�
   })
 })
 
-test('完成核验（docs/82 §8）：那一句短话给出看不到上一次时的出路——读它的回报、照 /agent-team:at 第 3 节去 run 目录核实', () => {
+test('完成核验（docs/82 §8）：那一句短话给出看不到上一次时的出路——读它的回报、照 /poundlock:at 第 3 节去 run 目录核实', () => {
   inS2((dirs) => {
     run('deliverable', post(PRODUCT, launched('a00000000000000c6'), 'toolu_01C6'), GATE, dirs.projectDir)
     const notify = () => ctxOf(run('completion', { hook_event_name: 'UserPromptSubmit', prompt: note('a00000000000000c6', 'toolu_01C6') }, GATE, dirs.projectDir))
     notify()
-    assert.ok(notify().includes('那一次的回传已经不在上下文里的，读它的回报、照 /agent-team:at 第 3 节「核实」去 run 目录核实'))
+    assert.ok(notify().includes('那一次的回传已经不在上下文里的，读它的回报、照 /poundlock:at 第 3 节「核实」去 run 目录核实'))
   })
 })
 
 // 复核（docs/82 §8）补的几格。
-const UI = 'agent-team:at-ui'
+const UI = 'poundlock:at-ui'
 const postBy = (target, agentId, callerId, toolUseId) => ({ ...post(target, launched(agentId), toolUseId), agent_type: PRODUCT, agent_id: callerId })
 
 test('完成核验（docs/82 §8）：多段回传（缺产物那一段加进度）——第二回整段只说一句；它派出去的人之后交齐停下，第三回结论变了照常整段报', () => {
   const dirs = makeRun({ runId: 'r1', stage: 'S2', artifacts: ['00-contract.md'], roster: ['at-product', 'at-ui'], stage_roles: {} })
   try {
-    const runDir = join(dirs.projectDir, '.agent-team', 'runs', 'r1')
+    const runDir = join(dirs.projectDir, '.poundlock', 'runs', 'r1')
     run('deliverable', post(PRODUCT, launched('a00000000000000e1'), 'toolu_01E1'), GATE, dirs.projectDir)
     run('deliverable', postBy(UI, 'a00000000000000e2', 'a00000000000000e1', 'toolu_01E2'), GATE, dirs.projectDir)
     run('stop-gate', stopped(PRODUCT, 'a00000000000000e1', false, '写不了。'), GATE, dirs.projectDir)
@@ -157,7 +157,7 @@ test('完成核验（docs/82 §8）：收口之后才完成的那一句照旧每
   const H = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8'].map((stage) => ({ stage, at: '2026-10-11T10:00:00Z' }))
   const dirs = makeRun({ runId: 'r1', stage: 'S8', roster: [], history: H })
   try {
-    const runDir = join(dirs.projectDir, '.agent-team', 'runs', 'r1')
+    const runDir = join(dirs.projectDir, '.poundlock', 'runs', 'r1')
     run('deliverable', post(PRODUCT, launched('a00000000000000e4'), 'toolu_01E4'), GATE, dirs.projectDir)
     const statePath = join(runDir, 'state.json')
     writeFileSync(statePath, JSON.stringify({ ...JSON.parse(readFileSync(statePath, 'utf8')), closed_at: '2026-10-11T12:00:00Z' }))
@@ -176,12 +176,12 @@ test('完成核验（docs/82 §8）：收口之后才完成的那一句照旧每
 test('完成核验（docs/82 §8）：别的一趟派出去的人的通知来两回——那一句照旧每次说', () => {
   const dirs = makeRun({ runId: 'r1', stage: 'S2', artifacts: ['00-contract.md'], roster: ['at-product'], stage_roles: {} })
   try {
-    const r2 = join(dirs.projectDir, '.agent-team', 'runs', 'r2')
+    const r2 = join(dirs.projectDir, '.poundlock', 'runs', 'r2')
     mkdirSync(r2, { recursive: true })
-    const state = JSON.parse(readFileSync(join(dirs.projectDir, '.agent-team', 'runs', 'r1', 'state.json'), 'utf8'))
+    const state = JSON.parse(readFileSync(join(dirs.projectDir, '.poundlock', 'runs', 'r1', 'state.json'), 'utf8'))
     writeFileSync(join(r2, 'state.json'), JSON.stringify({ ...state, run_id: 'r2' }))
     run('deliverable', post(PRODUCT, launched('a00000000000000e5'), 'toolu_01E5'), GATE, dirs.projectDir)
-    writeFileSync(join(dirs.projectDir, '.agent-team', 'current-run'), 'r2')
+    writeFileSync(join(dirs.projectDir, '.poundlock', 'current-run'), 'r2')
     const notify = () => ctxOf(run('completion', { hook_event_name: 'UserPromptSubmit', prompt: note('a00000000000000e5', 'toolu_01E5') }, GATE, dirs.projectDir))
     for (let i = 0; i < 2; i++) {
       const c = notify()
@@ -194,7 +194,7 @@ test('完成核验（docs/82 §8）：别的一趟派出去的人的通知来两
   }
 })
 
-test('正文（docs/82 §8）：/agent-team:at 第 3 节说了同一条通知再来、结论没变时回传只说一句、照那一次办', () => {
+test('正文（docs/82 §8）：/poundlock:at 第 3 节说了同一条通知再来、结论没变时回传只说一句、照那一次办', () => {
   const at = readFileSync(new URL('../commands/at.md', import.meta.url), 'utf8').split(String.fromCharCode(13)).join('')
   assert.ok(at.includes('同一个子代理的完成通知平台会送不止一条：再来一条、结论没变时，回传只说一句「之前已经核过一次、结论没变」——\n   照那一次的回传办。'))
 })

@@ -30,7 +30,7 @@ const FUTURE = '2099-01-01T00:00:00.000Z'
 
 function withRun(opts, body) {
   const dirs = makeRun({ runId: 'r1', ...opts })
-  const runDir = join(dirs.projectDir, '.agent-team', 'runs', 'r1')
+  const runDir = join(dirs.projectDir, '.poundlock', 'runs', 'r1')
   try {
     return body({ ...dirs, runDir })
   } finally {
@@ -38,7 +38,7 @@ function withRun(opts, body) {
     rmSync(dirs.pluginDir, { recursive: true, force: true })
   }
 }
-const posted = (file) => ({ hook_event_name: 'PostToolUse', tool_name: 'Write', agent_type: 'agent-team:at-pm', tool_input: { file_path: file } })
+const posted = (file) => ({ hook_event_name: 'PostToolUse', tool_name: 'Write', agent_type: 'poundlock:at-pm', tool_input: { file_path: file } })
 const baseOf = (runDir) => JSON.parse(readFileSync(join(runDir, 'contract-base.json'), 'utf8'))
 const putBase = (runDir, over = {}) =>
   writeFileSync(join(runDir, 'contract-base.json'), JSON.stringify({ section1: '> 做一个待办清单。', body_sha: bodyShaOf(V1), revisions: [], verify_base: {}, revised_at: null, ...over }))
@@ -88,7 +88,7 @@ test('M4j 账本：改需求的修订——重拍快照、说哪几份对着上�
     const c = ctxOf(run('ledger', posted(join(runDir, '00-contract.md')), GATE, projectDir).stdout)
     assert.ok(
       c.includes('【契约】契约改了：验证段已经写成的 06-test.md、07-acceptance.md 对着的是上一版契约（门禁记下了它们这一刻的样子）。' +
-        '推进出验证段与收口之前，它们要对着这一版重出——照 /agent-team:at 第 3 节的「回退」记回到 S6，让产者对着这一版重出。'),
+        '推进出验证段与收口之前，它们要对着这一版重出——照 /poundlock:at 第 3 节的「回退」记回到 S6，让产者对着这一版重出。'),
       c,
     )
     const b = baseOf(runDir)
@@ -256,7 +256,7 @@ function advanceS6(runDir) {
   const statePath = join(runDir, 'state.json')
   const now = JSON.parse(readFileSync(statePath, 'utf8'))
   const next = [...upTo('S6'), ...H('S7')]
-  return { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'agent-team:at-pm', tool_input: { file_path: statePath, content: JSON.stringify({ ...now, stage: 'S7', history: next, rework: reworkFromHistory(next) }, null, 2) } }
+  return { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'poundlock:at-pm', tool_input: { file_path: statePath, content: JSON.stringify({ ...now, stage: 'S7', history: next, rework: reworkFromHistory(next) }, null, 2) } }
 }
 const s6Run = { stage: 'S6', history: upTo('S6'), roster: ['at-qa'], stage_roles: { S6: ['at-qa'] } }
 
@@ -303,7 +303,7 @@ test('M4j H6（复核 K01）：返工轮里推进出 S6，测试报告既是上�
     putBase(runDir, { verify_base: { '06-test.md': t1 }, revised_at: '2026-10-06T10:30:00.000Z' })
     const now = JSON.parse(readFileSync(statePath, 'utf8'))
     const next = [...history, ...H('S7')]
-    const write = { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'agent-team:at-pm', tool_input: { file_path: statePath, content: JSON.stringify({ ...now, stage: 'S7', history: next, rework: reworkFromHistory(next) }, null, 2) } }
+    const write = { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'poundlock:at-pm', tool_input: { file_path: statePath, content: JSON.stringify({ ...now, stage: 'S7', history: next, rework: reworkFromHistory(next) }, null, 2) } }
     const d = decisionOf(run('rework', write, GATE, projectDir).stdout)
     assert.equal(d?.permissionDecision, 'deny', JSON.stringify(d))
     assert.ok(d.permissionDecisionReason.includes('rework_base') && !d.permissionDecisionReason.includes('契约在'), d.permissionDecisionReason)
@@ -334,13 +334,13 @@ test('M4j 【阶段】（复核 F6）：S8 齐了、却有对着上一版契约�
     for (const [f, t] of [['06-test.md', '结论：通过' + NL + 'test v1'], ['07-acceptance.md', 'acc v2'], ['08-delivery.md', 'del v2']]) writeFileSync(join(runDir, f), t + NL)
     putBase(runDir, { body_sha: bodyShaOf(USER), revisions: ['### 2026-10-06 · 用户主动提出'], verify_base: { '06-test.md': sha('结论：通过' + NL + 'test v1' + NL) }, revised_at: '2026-10-06T10:30:00.000Z' })
     const c = ctxOf(run('ledger', posted(join(runDir, 'state.json')), GATE, projectDir).stdout)
-    assert.ok(c.includes('06-test.md（对着上一版契约：契约在它写成之后改过——照 /agent-team:at 第 3 节的「回退」记回到 S6，让产者对着这一版重出）'), c)
+    assert.ok(c.includes('06-test.md（对着上一版契约：契约在它写成之后改过——照 /poundlock:at 第 3 节的「回退」记回到 S6，让产者对着这一版重出）'), c)
   })
 })
 
 test('M4j H3：契约基线是门禁专属文件——项目经理写它也拒，理由说它是契约基线', () => {
   withRun({ stage: 'S3', history: upTo('S3') }, ({ projectDir, runDir }) => {
-    const write = { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'agent-team:at-pm', tool_input: { file_path: join(runDir, 'contract-base.json'), content: '{}' } }
+    const write = { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'poundlock:at-pm', tool_input: { file_path: join(runDir, 'contract-base.json'), content: '{}' } }
     const d = decisionOf(run('writepath', write, GATE, projectDir).stdout)
     assert.equal(d?.permissionDecision, 'deny', JSON.stringify(d))
     assert.ok(d.permissionDecisionReason.includes('这是门禁记下的契约基线'), d.permissionDecisionReason)

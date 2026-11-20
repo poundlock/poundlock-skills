@@ -191,7 +191,7 @@ test('trimmed 合法时通过——键是某阶段的产者，值是 stages 里�
   assert.deepEqual(r.problems, [], r.problems.join('\n'))
 })
 
-// 向后兼容：M3a 之前落盘的 state.json 里根本没有这个字段，而 /agent-team:at-resume
+// 向后兼容：M3a 之前落盘的 state.json 里根本没有这个字段，而 /poundlock:at-resume
 // 会去读它们。缺失必须**不**报错——这一条红了就意味着老 run 一打开就被判成状态不合法。
 test('trimmed 缺失时不报错——M3a 之前落盘的 state.json 没有这个字段', () => {
   assert.ok(!Object.hasOwn(good(), 'trimmed'), 'good() 夹具里不该有 trimmed，否则下面那句断的不是「缺失」')
@@ -614,26 +614,26 @@ test('M4a 复核二 closed_at：形状不对时引出原值', () => {
   assert.ok(r.problems.some((m) => m.includes('"2026-10-01 15:00:00"')), r.problems.join('\n'))
 })
 
-// M4i（docs/44，审查第 36 条）：state.json 里的角色名写裸名。带插件前缀的（agent-team:at-backend）对不上 stages.json 的产者名——按段的判据
+// M4i（docs/44，审查第 36 条）：state.json 里的角色名写裸名。带插件前缀的（poundlock:at-backend）对不上 stages.json 的产者名——按段的判据
 // 认不出它，没有派发记录时缺产物的推进会被放过、【阶段】哑掉。roster、stage_roles、trimmed 的键、never_invoked 里的都报，同一个名字只报一次。
 test('M4i 第 36 条：state.json 里带插件前缀的角色名——四处都报、同一个名字只报一次，说写裸名', () => {
   const r = validateState(
-    good({ roster: ['agent-team:at-product'], stage_roles: { S2: ['agent-team:at-product'] }, trimmed: { 'agent-team:at-architect': 'S3' }, never_invoked: ['agent-team:at-qa'] }),
+    good({ roster: ['poundlock:at-product'], stage_roles: { S2: ['poundlock:at-product'] }, trimmed: { 'poundlock:at-architect': 'S3' }, never_invoked: ['poundlock:at-qa'] }),
     { stages: STAGES },
   )
   const pre = (n) => r.problems.filter((x) => x.startsWith(`"${n}" 带着插件前缀`))
-  for (const n of ['agent-team:at-product', 'agent-team:at-architect', 'agent-team:at-qa']) assert.equal(pre(n).length, 1, r.problems.join(' / '))
-  assert.ok(pre('agent-team:at-product')[0].includes('写裸名 "at-product"'), pre('agent-team:at-product')[0])
-  assert.ok(!r.problems.some((x) => x.includes('trimmed 里有 "agent-team:at-architect"')), '前缀那一条说清了，不再说它不是任何阶段的产者')
+  for (const n of ['poundlock:at-product', 'poundlock:at-architect', 'poundlock:at-qa']) assert.equal(pre(n).length, 1, r.problems.join(' / '))
+  assert.ok(pre('poundlock:at-product')[0].includes('写裸名 "at-product"'), pre('poundlock:at-product')[0])
+  assert.ok(!r.problems.some((x) => x.includes('trimmed 里有 "poundlock:at-architect"')), '前缀那一条说清了，不再说它不是任何阶段的产者')
   assert.ok(!validateState(good(), { stages: STAGES }).problems.some((x) => x.includes('插件前缀')))
 })
 
-// M4i（docs/44，审查第 36 条）：roster 与 never_invoked 的交集——同一个角色不能既算叫到了、又算没被叫过；/agent-team:at 第 6 节叫 PM 写完自查，
+// M4i（docs/44，审查第 36 条）：roster 与 never_invoked 的交集——同一个角色不能既算叫到了、又算没被叫过；/poundlock:at 第 6 节叫 PM 写完自查，
 // 门禁此前不核。
 test('M4i 第 36 条：roster 与 never_invoked 有交集——报出来，说 never_invoked 收口时才算', () => {
   const r = validateState(good({ roster: ['at-product'], never_invoked: ['at-product', 'at-frontend'] }), { stages: STAGES })
   assert.ok(
-    r.problems.includes('roster 与 never_invoked 都有 "at-product"：同一个角色不能既算叫到了、又算没被叫过——never_invoked 收口时才算（/agent-team:at 第 6 节）'),
+    r.problems.includes('roster 与 never_invoked 都有 "at-product"：同一个角色不能既算叫到了、又算没被叫过——never_invoked 收口时才算（/poundlock:at 第 6 节）'),
     r.problems.join(' / '),
   )
   assert.ok(!validateState(good(), { stages: STAGES }).problems.some((x) => x.includes('never_invoked 都有')))
@@ -643,30 +643,30 @@ test('M4i 第 36 条：roster 与 never_invoked 有交集——报出来，说 n
 test('M4i 第 36 条：带前缀的名字只出现在某一处也报（roster、stage_roles、trimmed、never_invoked 各自一个）', () => {
   const r = validateState(
     good({
-      roster: ['agent-team:at-product', 'at-architect'],
-      stage_roles: { S2: ['agent-team:at-product'], S3: ['at-architect', 'agent-team:at-frontend'] },
-      trimmed: { 'agent-team:at-ui': 'S2' },
-      never_invoked: ['agent-team:at-ios'],
+      roster: ['poundlock:at-product', 'at-architect'],
+      stage_roles: { S2: ['poundlock:at-product'], S3: ['at-architect', 'poundlock:at-frontend'] },
+      trimmed: { 'poundlock:at-ui': 'S2' },
+      never_invoked: ['poundlock:at-ios'],
     }),
     { stages: STAGES },
   )
-  for (const n of ['agent-team:at-product', 'agent-team:at-frontend', 'agent-team:at-ui', 'agent-team:at-ios']) {
+  for (const n of ['poundlock:at-product', 'poundlock:at-frontend', 'poundlock:at-ui', 'poundlock:at-ios']) {
     assert.ok(r.problems.some((x) => x.startsWith(`"${n}" 带着插件前缀`)), `${n}：${r.problems.join(' / ')}`)
   }
 })
 
 // M4i 复核（docs/44 §8）：交集里重复的名字只列一次（M05）；trimmed 的键带前缀、裸名也不是产者的，照旧说它不是产者（M10）；项目经理被记进
-// roster 或 stage_roles 报出来（低-9：M5f 里 haiku 版 PM 这样记过）；只剩插件前缀的退化名不说「写裸名 "agent-team:"」。
+// roster 或 stage_roles 报出来（低-9：M5f 里 haiku 版 PM 这样记过）；只剩插件前缀的退化名不说「写裸名 "poundlock:"」。
 test('M4i 复核：交集去重；trimmed 带前缀的非产者照旧报；at-pm 进了 roster 或 stage_roles 报；退化名不自相矛盾', () => {
   const dup = validateState(good({ roster: ['at-product'], never_invoked: ['at-product', 'at-product'] }), { stages: STAGES })
-  assert.ok(dup.problems.includes('roster 与 never_invoked 都有 "at-product"：同一个角色不能既算叫到了、又算没被叫过——never_invoked 收口时才算（/agent-team:at 第 6 节）'), dup.problems.join(' / '))
-  const nr = validateState(good({ trimmed: { 'agent-team:not-a-role': 'S2' } }), { stages: STAGES })
-  assert.ok(nr.problems.some((x) => x.startsWith('trimmed 里有 "agent-team:not-a-role"，但它不是任何阶段的产者')), nr.problems.join(' / '))
+  assert.ok(dup.problems.includes('roster 与 never_invoked 都有 "at-product"：同一个角色不能既算叫到了、又算没被叫过——never_invoked 收口时才算（/poundlock:at 第 6 节）'), dup.problems.join(' / '))
+  const nr = validateState(good({ trimmed: { 'poundlock:not-a-role': 'S2' } }), { stages: STAGES })
+  assert.ok(nr.problems.some((x) => x.startsWith('trimmed 里有 "poundlock:not-a-role"，但它不是任何阶段的产者')), nr.problems.join(' / '))
   const pm = validateState(good({ roster: ['at-product', 'at-pm'], stage_roles: { S2: ['at-product'], S1: ['at-pm'] } }), { stages: STAGES })
   assert.ok(pm.problems.includes('项目经理（"at-pm"）不进 roster 与 stage_roles：它们记的是叫到的角色，你自己做的那几段不写'), pm.problems.join(' / '))
   assert.equal(pm.problems.filter((x) => x.startsWith('项目经理（')).length, 1, pm.problems.join(' / '))
-  const onlyStage = validateState(good({ roster: ['at-product'], stage_roles: { S2: ['at-product'], S1: ['agent-team:at-pm'] } }), { stages: STAGES })
-  assert.ok(onlyStage.problems.includes('项目经理（"agent-team:at-pm"）不进 roster 与 stage_roles：它们记的是叫到的角色，你自己做的那几段不写'), onlyStage.problems.join(' / '))
-  const degenerate = validateState(good({ roster: ['at-product', 'agent-team:'] }), { stages: STAGES })
-  assert.ok(!degenerate.problems.some((x) => x.includes('写裸名 "agent-team:"')), degenerate.problems.join(' / '))
+  const onlyStage = validateState(good({ roster: ['at-product'], stage_roles: { S2: ['at-product'], S1: ['poundlock:at-pm'] } }), { stages: STAGES })
+  assert.ok(onlyStage.problems.includes('项目经理（"poundlock:at-pm"）不进 roster 与 stage_roles：它们记的是叫到的角色，你自己做的那几段不写'), onlyStage.problems.join(' / '))
+  const degenerate = validateState(good({ roster: ['at-product', 'poundlock:'] }), { stages: STAGES })
+  assert.ok(!degenerate.problems.some((x) => x.includes('写裸名 "poundlock:"')), degenerate.problems.join(' / '))
 })

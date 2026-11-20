@@ -29,7 +29,7 @@
 //
 // 字面量与 M1b 的 emitLedger 保持一致，没有改：commands/at.md 与 commands/at-init.md
 // 的正文都引用了这个字符串，改它是不必要的连带改动。
-export const TRUSTED_PREFIX = 'agent-team 账本回传'
+export const TRUSTED_PREFIX = 'poundlock 账本回传'
 
 export function trustedBlock(body) {
   return `${TRUSTED_PREFIX}：\n${body}`

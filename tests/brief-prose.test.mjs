@@ -1,4 +1,4 @@
-// 需求稿（docs/95）的正文这一层：/agent-team:at 第 1 节「先把需求问清楚」（建 run 之前；什么时候做、问什么不问什么、需求稿的样子、怎么问批准）、
+// 需求稿（docs/95）的正文这一层：/poundlock:at 第 1 节「先把需求问清楚」（建 run 之前；什么时候做、问什么不问什么、需求稿的样子、怎么问批准）、
 // 第 2 节第 1 节照抄需求稿与门禁记下它、第 6 节另起一趟；项目经理的角色正文、续跑、契约格式与模板各一句；README 两半一段；门禁出错时的那一段点名这个标签。
 // 规范标签只从 user-words.mjs 的 BRIEF_LABEL 取：正文写的与门禁认的不是同一个字，就是用户点了、门禁不记。
 import { test } from 'node:test'
@@ -17,10 +17,10 @@ const has = (text, k) => squash(text).includes(squash(k))
 const at = read('commands/at.md')
 const section = (from, to) => at.slice(at.indexOf(from), at.indexOf(to))
 
-test('/agent-team:at 第 1 节：「先把需求问清楚」在上一趟那一问之后、建 run 之前', () => {
+test('/poundlock:at 第 1 节：「先把需求问清楚」在上一趟那一问之后、建 run 之前', () => {
   const s1 = section('## 1. 建 run', '## 2.')
   const i = s1.indexOf('**先把需求问清楚**')
-  assert.ok(i > s1.indexOf('先看 `.agent-team/current-run` 指着的那一趟') && i < s1.indexOf('- run id：'), '位置不对')
+  assert.ok(i > s1.indexOf('先看 `.poundlock/current-run` 指着的那一趟') && i < s1.indexOf('- run id：'), '位置不对')
   const block = s1.slice(i, s1.indexOf('- run id：'))
   for (const k of [
     '**先把需求问清楚**（建 run 之前做；上面那一问里用户选了续跑的，不做）',
@@ -28,8 +28,8 @@ test('/agent-team:at 第 1 节：「先把需求问清楚」在上一趟那一�
     '话里有几处怎么猜都可能白做的，先用 `AskUserQuestion` 单选问一次「先把需求问清楚」还是「照原话直接开始」，题面列出没说清的那几处',
     '别的、以及用户选了照原话直接开始的，不做这一段，契约第 1 节照抄原话',
     '「话」是 `$ARGUMENTS`；收口之后照第 6 节自己另起一趟时，是用户提出这次改动的那几条消息',
-    '问不了用户（工具面里没有 `AskUserQuestion`）也不做：有话的照抄原话；命令没带参数的，停下，请用户把需求写在 `/agent-team:at` 后面重发',
-    '代码里答得出的不问。这时还没有 run，不往 `.agent-team/` 下写任何东西',
+    '问不了用户（工具面里没有 `AskUserQuestion`）也不做：有话的照抄原话；命令没带参数的，停下，请用户把需求写在 `/poundlock:at` 后面重发',
+    '代码里答得出的不问。这时还没有 run，不往 `.poundlock/` 下写任何东西',
     '这几问发生在建 run 之前：不记 escalation、不动契约，也不受第 4 节「禁止开放式提问」的限制',
     '架构、模块怎么拆、文件怎么放、技术选型，用户没有要求的不问——那是后面各段的事',
     '要不要自动化测试、项目里本来就没过的测试算不算，不主动问：用户自己提了才写进需求稿',
@@ -52,7 +52,7 @@ test('/agent-team:at 第 1 节：「先把需求问清楚」在上一趟那一�
   assert.ok(!block.includes('```'), '需求稿的样子不用代码块')
 })
 
-test('/agent-team:at 第 2 节与第 6 节：第 1 节照抄批准的需求稿（并进加粗那一句）、门禁在批准那一刻记下它、几种不核的情形里批准过的除外；另起一趟同样', () => {
+test('/poundlock:at 第 2 节与第 6 节：第 1 节照抄批准的需求稿（并进加粗那一句）、门禁在批准那一刻记下它、几种不核的情形里批准过的除外；另起一趟同样', () => {
   const s2 = section('## 2. S1 录入', '## 3.')
   for (const k of [
     `**第 1 节「用户原话」必须逐字照抄上面 \`$ARGUMENTS\` 的内容；照第 1 节问过需求、用户选了「${BRIEF_LABEL}」的，逐字照抄那份需求稿（那道题的题面）——它就是这一趟的原话。**`,
@@ -66,7 +66,7 @@ test('/agent-team:at 第 2 节与第 6 节：第 1 节照抄批准的需求稿�
 test('项目经理的角色正文、续跑、契约格式与契约模板各一句：批准的需求稿就是原话；那几问不记 escalation、可以直接问', () => {
   const pm = read('agents/at-pm.md')
   assert.ok(has(pm, `建 run 之前问过需求、用户选了「${BRIEF_LABEL}」的，用户原话就是那份需求稿（门禁同样记下、同样核）`), 'at-pm 第 1 节那一句')
-  assert.ok(has(pm, '`/agent-team:at` 第 1 节「先把需求问清楚」那几问也另算：发生在新 run 建出来之前，不记 escalation、不动契约，给不出选项的可以直接问'), 'at-pm 打断用户')
+  assert.ok(has(pm, '`/poundlock:at` 第 1 节「先把需求问清楚」那几问也另算：发生在新 run 建出来之前，不记 escalation、不动契约，给不出选项的可以直接问'), 'at-pm 打断用户')
   assert.ok(has(read('commands/at-resume.md'), '拒绝理由说的是「对不上用户批准的需求稿」的，同一个办法：那份需求稿就是 args 那一项'), 'at-resume')
   assert.ok(has(read('skills/at-contract-format/SKILL.md'), `建 run 之前问过需求、用户选了「${BRIEF_LABEL}」的，第 1 节照抄那份需求稿：门禁在那一刻记下的是它，同样核`), '契约格式')
   const tpl = read('templates/00-contract.md')
@@ -79,16 +79,16 @@ test('README 两半：命令表之后一段说没想清楚也可以直接发、�
   const zh = readme.slice(0, cut)
   const en = readme.slice(cut)
   assert.ok(
-    has(zh, `需求还没想清楚也可以直接发。\`/agent-team:at\` 不带需求，或者话里还有几处没说清时，项目经理先问你几个问题（一次一个），整理成一份需求稿给你过目；你选「${BRIEF_LABEL}」，就照它起这一趟，契约里记的是这份需求稿。话已经说清楚的，直接开始。`),
+    has(zh, `需求还没想清楚也可以直接发。\`/poundlock:at\` 不带需求，或者话里还有几处没说清时，项目经理先问你几个问题（一次一个），整理成一份需求稿给你过目；你选「${BRIEF_LABEL}」，就照它起这一趟，契约里记的是这份需求稿。话已经说清楚的，直接开始。`),
     '中文',
   )
   assert.ok(
-    has(en, `When \`/agent-team:at\` comes without a request, or the request leaves things open, the project manager first asks you a few questions (one at a time) and writes up the request for you to review; pick 「${BRIEF_LABEL}」 (start with this request) and the run starts from it, with that write-up recorded in the contract.`),
+    has(en, `When \`/poundlock:at\` comes without a request, or the request leaves things open, the project manager first asks you a few questions (one at a time) and writes up the request for you to review; pick 「${BRIEF_LABEL}」 (start with this request) and the run starts from it, with that write-up recorded in the contract.`),
     'English',
   )
   for (const [half, text, next] of [['中文', zh, '### 一趟 run 怎么走'], ['English', en, '### How a run flows']]) {
     const i = text.indexOf(BRIEF_LABEL)
-    assert.ok(i > text.indexOf('/agent-team:at-resume') && i < text.indexOf(next), `${half}：那一段在命令表之后、流程图之前`)
+    assert.ok(i > text.indexOf('/poundlock:at-resume') && i < text.indexOf(next), `${half}：那一段在命令表之后、流程图之前`)
   }
 })
 

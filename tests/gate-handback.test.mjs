@@ -21,9 +21,9 @@ import { DISPATCHES_FILE } from '../hooks/lib/control-files.mjs'
 import { TRUSTED_PREFIX } from '../hooks/lib/trusted.mjs'
 import { HANDBACK_FRAME, endedByHandback, lastStop, parseHandbacks, readDispatchLog, stopLine } from '../hooks/lib/completion.mjs'
 
-const QA = 'agent-team:at-qa'
-const ARCH = 'agent-team:at-architect'
-const BACKEND = 'agent-team:at-backend'
+const QA = 'poundlock:at-qa'
+const ARCH = 'poundlock:at-architect'
+const BACKEND = 'poundlock:at-backend'
 
 // 实测的框那一行（CLI 2.1.301 原文）。
 const FRAME_LINE =
@@ -31,7 +31,7 @@ const FRAME_LINE =
 
 function inRun(opts, body) {
   const dirs = makeRun({ runId: 'r1', ...opts })
-  dirs.runDir = join(dirs.projectDir, '.agent-team', 'runs', 'r1')
+  dirs.runDir = join(dirs.projectDir, '.poundlock', 'runs', 'r1')
   try {
     return body(dirs)
   } finally {
@@ -102,7 +102,7 @@ const launched = (target, agentId, { caller, callerId } = {}) => ({
 const indent = (text) => text.split('\n').map((l) => `  ${l}`).join('\n')
 const handbackPrompt = (agentId, report, { note = null } = {}) =>
   `<agent-message from="${agentId}">\n${note === null ? '' : `${indent(note)}\n`}${FRAME_LINE}\n${indent(report)}\n</agent-message>`
-const userPrompt = (text, dirs) => ({ ...common('agent-team:at-pm', 'unused', dirs), agent_id: undefined, hook_event_name: 'UserPromptSubmit', prompt: text })
+const userPrompt = (text, dirs) => ({ ...common('poundlock:at-pm', 'unused', dirs), agent_id: undefined, hook_event_name: 'UserPromptSubmit', prompt: text })
 const contextOf = (r) => (r.stdout ? JSON.parse(r.stdout).hookSpecificOutput?.additionalContext ?? '' : '')
 const denyReasonOf = (r) => (r.stdout ? JSON.parse(r.stdout).hookSpecificOutput?.permissionDecisionReason ?? '' : '')
 const logOf = (dirs) => readDispatchLog(existsSync(join(dirs.runDir, DISPATCHES_FILE)) ? readFileSync(join(dirs.runDir, DISPATCHES_FILE), 'utf8') : null)
@@ -320,8 +320,8 @@ test('派发记录：不带 via 的旧停下行照旧读（不算交回结束）
 
 test('别的一趟派出去的：交回之前不按这一趟核、放它交回；送达记回那一趟（via 交回）；接着那一回停下照交回的结果记回那一趟，这一趟一行都不记', () => {
   const dirs = makeRun({ runId: 'r1', stage: 'S5', roster: ['at-architect'], stage_roles: {}, artifacts: ['03-arch.md', '04-dispatch.md'] })
-  const r1 = join(dirs.projectDir, '.agent-team', 'runs', 'r1')
-  const r2 = join(dirs.projectDir, '.agent-team', 'runs', 'r2')
+  const r1 = join(dirs.projectDir, '.poundlock', 'runs', 'r1')
+  const r2 = join(dirs.projectDir, '.poundlock', 'runs', 'r2')
   try {
     mkdirSync(r2, { recursive: true })
     const state = JSON.parse(readFileSync(join(r1, 'state.json'), 'utf8'))
@@ -330,7 +330,7 @@ test('别的一趟派出去的：交回之前不按这一趟核、放它交回�
     const at = { ...dirs, runDir: r1 }
     run('deliverable', launched(BACKEND, id), GATE, dirs.projectDir)
     assert.equal(logOf(at).dispatches.length, 1, '前置：派发记在 r1')
-    writeFileSync(join(dirs.projectDir, '.agent-team', 'current-run'), 'r2')
+    writeFileSync(join(dirs.projectDir, '.poundlock', 'current-run'), 'r2')
     const report = '写不出来，我先交回。'
     const pre = run('handback', preHandback(BACKEND, id, report, dirs), GATE, dirs.projectDir)
     assert.equal(pre.status, 0)
@@ -386,7 +386,7 @@ test('复核：拦截行记不下（派发记录写不进）→ 带冒泡的交�
 
 test('复核：带着项目经理身份交回（内部分叉）→ 不归它管、放行；不在当前段的角色、不是团队角色的子代理交回 → 放行、送达不记', () => {
   inRun({ stage: 'S4', roster: ['at-product', 'at-architect'], artifacts: ['01-prd.md', '03-arch.md'] }, (dirs) => {
-    const pm = run('handback', preHandback('agent-team:at-pm', 'a0000000000000017', '写好了。', dirs), GATE, dirs.projectDir)
+    const pm = run('handback', preHandback('poundlock:at-pm', 'a0000000000000017', '写好了。', dirs), GATE, dirs.projectDir)
     assert.equal(pm.status, 0)
     assert.equal(pm.stdout, '', '04-dispatch.md 不在，原来会按 at-pm 的 S4 拒')
   })
@@ -406,15 +406,15 @@ test('复核：带着项目经理身份交回（内部分叉）→ 不归它管�
 
 test('复核：别的一趟派出去的——没送达不记；送达时报告第一行是冒泡记 bubble（via 交回），接着那一回停下照它记 bubble', () => {
   const dirs = makeRun({ runId: 'r1', stage: 'S5', roster: ['at-architect'], stage_roles: {}, artifacts: ['03-arch.md', '04-dispatch.md'] })
-  const r1 = join(dirs.projectDir, '.agent-team', 'runs', 'r1')
-  const r2 = join(dirs.projectDir, '.agent-team', 'runs', 'r2')
+  const r1 = join(dirs.projectDir, '.poundlock', 'runs', 'r1')
+  const r2 = join(dirs.projectDir, '.poundlock', 'runs', 'r2')
   try {
     mkdirSync(r2, { recursive: true })
     const state = JSON.parse(readFileSync(join(r1, 'state.json'), 'utf8'))
     writeFileSync(join(r2, 'state.json'), JSON.stringify({ ...state, run_id: 'r2', history: [{ stage: 'S5', at: '2026-10-06T12:00:00Z' }] }))
     const id = 'a0000000000000020'
     run('deliverable', launched(BACKEND, id), GATE, dirs.projectDir)
-    writeFileSync(join(dirs.projectDir, '.agent-team', 'current-run'), 'r2')
+    writeFileSync(join(dirs.projectDir, '.poundlock', 'current-run'), 'r2')
     const report = `${BUBBLE_MARK}契约第 3 条读得出两种意思`
     run('handback-sent', postHandback(BACKEND, id, report, dirs, { success: false }), GATE, dirs.projectDir)
     assert.deepEqual(stopLines({ runDir: r1 }), [], '没送达不记')

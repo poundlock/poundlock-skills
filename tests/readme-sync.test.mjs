@@ -89,7 +89,7 @@ const STAGE_IDS = Object.keys(STAGES)
 // 所以这里把**配对本身**写成一张表——它就是那条对应关系的真源，两份 README 是
 // 它的两半。改任何一份而不改另一份，这条当场红。
 const HEADING_PAIRS = [
-  ['# agent-team', '# agent-team'],
+  ['# poundlock', '# poundlock'],
   ['## Features', '## 特性'],
   ['## Installation', '## 安装'],
   ['## Usage', '## 使用'],
@@ -337,7 +337,7 @@ test('自检：atPmParagraph() + toolTokensIn() 只从提到 at-pm 的那段引�
     '',
     '> 另一段边界，提到 `NotebookEdit` 与 `at-qa`，但不提那个主会话角色。',
     '',
-    '> 加载本插件会把主会话交给 `at-pm`，它的工具面是 `Bash`、`Read` 与 `Agent(agent-team:at-qa)`。',
+    '> 加载本插件会把主会话交给 `at-pm`，它的工具面是 `Bash`、`Read` 与 `Agent(poundlock:at-qa)`。',
     '',
     '不在引用块里的一行，提到 `Grep`。',
   ].join('\n')
@@ -729,7 +729,7 @@ for (const f of [README_EN, README_ZH]) {
 // 套测试（包括本文件）再跑一遍，而本文件会再起一个子进程。环境变量把这条链在第
 // 一层掐断。`docs/16` §3.8 的那条判据（「我造的这个东西会不会进某个判据的输入
 // 集合」）在这里是「我起的这个进程会不会把我自己再起一遍」。
-const SELFTEST_CHILD = 'AGENT_TEAM_README_SELFTEST_CHILD'
+const SELFTEST_CHILD = 'POUNDLOCK_README_SELFTEST_CHILD'
 const REPO_ROOT = fileURLToPath(new URL('../', import.meta.url))
 
 test('Development 那一节的前提今天仍然成立：node --test tests/ 发现不了 tests/ 下的测试', (t) => {
@@ -1340,7 +1340,7 @@ function commandLinesOf(text) {
 // 归一化：丢掉**操作数**，留下**子命令与参数**。
 //
 // 为什么要丢：两份里合法地写着不同的操作数——英文 `<plugin>@<marketplace>`，
-// 中文 `<插件>@<市场>`；路径两份都写 `/path/to/agent-team`，但它是示例、不是断言。
+// 中文 `<插件>@<市场>`；路径两份都写 `/path/to/poundlock`，但它是示例、不是断言。
 // **它们的不同是翻译，不是矛盾。**
 //
 // 为什么参数值要留：`--scope local` 与 `--scope user` 的差别**不是翻译**，
@@ -1396,7 +1396,7 @@ test('自检：normalizeCommand() 丢掉占位符与路径操作数，保留子�
     'claude plugin uninstall --scope local',
   )
   assert.equal(normalizeCommand('claude plugin uninstall <插件>@<市场> --scope local'), 'claude plugin uninstall --scope local')
-  assert.equal(normalizeCommand('claude --plugin-dir /path/to/agent-team'), 'claude --plugin-dir')
+  assert.equal(normalizeCommand('claude --plugin-dir /path/to/poundlock'), 'claude --plugin-dir')
 })
 
 // ⭐ 已知违规样本：判据必须**判不通过**。样本取的就是评审那一刀的形状。
@@ -1444,7 +1444,7 @@ test('README 中英两半的命令行互为镜像——同一组命令、同一�
 // 形状与本轮 F1 同族：**结论对、范例假**，而范例比结论传得远。
 //
 // **今天还站得住的例子**（下面那条黑名单上线之后重测过）：两份**同时**把
-// `agent-team@agent-team-marketplace` 写成一个并不存在的市场名——仍然镜像、
+// `poundlock@poundlock` 写成一个并不存在的市场名——仍然镜像、
 // 不是禁用作用域，**全绿**。那正是「两份一致 ≠ 两份对」。
 // 而当年用来说明这一点的那一刀（两份只把 install 那条改成 `--scope project`）
 // **今天已经红了**——下面那条禁用作用域黑名单把它接住了。**盖不住的那一半被啃掉了一块，
@@ -1542,19 +1542,19 @@ for (const f of [README_EN, README_ZH]) {
 // ---------------------------------------------------------------------------
 //
 // 2026-09-27 补这一节之前，两份 README 一条命令都没列过（只在跟 `claude --resume`
-// 作区分时提过一次 `/agent-team:at-resume`）。列出来之后，这一节就是命令清单的第二份：
+// 作区分时提过一次 `/poundlock:at-resume`）。列出来之后，这一节就是命令清单的第二份：
 // 加一条命令、改一个名字、删一条，它都不会自己跟上。所以双向钉：`commands/` 下的每一条
 // 都在这一节里出现，这一节里出现的每一条都在 `commands/` 下。
 //
-// ⚠️ 只看这一节，不看整份文件：「安装」那一节合法地提到 `/agent-team:at-resume`，按整份
+// ⚠️ 只看这一节，不看整份文件：「安装」那一节合法地提到 `/poundlock:at-resume`，按整份
 // 文件取并集，它会顶替「使用」里漏掉的那一条——第四节记过的那个形状（一处的真话把另一处
 // 的缺口顶绿）。取节用的是第七节的 `installSectionOf`：它按标题取节，名字是历史原因。
-const slashCommandsIn = (text) => [...text.matchAll(/`\/agent-team:([a-z][a-z0-9-]*)/g)].map((m) => m[1])
+const slashCommandsIn = (text) => [...text.matchAll(/`\/poundlock:([a-z][a-z0-9-]*)/g)].map((m) => m[1])
 
 // ⭐ 正向自检锚：抽取器认得出带参数的写法，不收没有命名空间的裸名。
 test('自检：slashCommandsIn() 抠得出带参数与不带参数的命令名，不收裸名', () => {
   assert.deepEqual(
-    slashCommandsIn('先 `/agent-team:at-init`，再 `/agent-team:at <需求>`；裸的 `/at-status` 不算'),
+    slashCommandsIn('先 `/poundlock:at-init`，再 `/poundlock:at <需求>`；裸的 `/at-status` 不算'),
     ['at-init', 'at'],
   )
 })
@@ -1668,12 +1668,12 @@ test('Claude Code 的下限：两半的安装一节、at-pm.md 的排查清单�
   }
 })
 
-test('两半的安装一节都讲了门禁自检，并点名只读的 /agent-team:at-status 不做', () => {
+test('两半的安装一节都讲了门禁自检，并点名只读的 /poundlock:at-status 不做', () => {
   const en = installSectionOf(read(README_EN), pairOf('## Installation')[0]) ?? ''
   const zh = installSectionOf(read(README_ZH), pairOf('## Installation')[1]) ?? ''
   assert.match(en, /self-check/)
   assert.match(zh, /门禁自检/)
-  for (const s of [en, zh]) assert.ok(s.includes('/agent-team:at-status'), s.slice(0, 80))
+  for (const s of [en, zh]) assert.ok(s.includes('/poundlock:at-status'), s.slice(0, 80))
 })
 
 // 「零运行时依赖」在门禁要靠 PATH 上的 node 的那一刻起就不成立。
@@ -1690,11 +1690,11 @@ test('两半的安装一节都说清是「Claude Code 启动时」的 PATH——
 })
 
 // 自检那段话点名的命令，要与 commands/ 对得上：三条做自检的开头都做，只读的那条点名不做。
-test('两半的安装一节点名的 /agent-team:* 命令，恰好是 commands/ 下的全部命令；说的是每条消息、不是只一次', () => {
+test('两半的安装一节点名的 /poundlock:* 命令，恰好是 commands/ 下的全部命令；说的是每条消息、不是只一次', () => {
   const all = readdirSync(new URL('../commands/', import.meta.url)).filter((f) => f.endsWith('.md')).map((f) => f.replace(/\.md$/, '')).sort()
   for (const [half, heading, each] of [[README_EN, pairOf('## Installation')[0], /each message/], [README_ZH, pairOf('## Installation')[1], /每发一条消息/]]) {
     const s = installSectionOf(read(half), heading) ?? ''
-    const named = [...new Set([...s.matchAll(/\/agent-team:(at[\w-]*)/g)].map((m) => m[1]))].sort()
+    const named = [...new Set([...s.matchAll(/\/poundlock:(at[\w-]*)/g)].map((m) => m[1]))].sort()
     assert.deepEqual(named, all, half)
     assert.match(s, each, half)
     assert.doesNotMatch(s, /one blocked write/, half)
@@ -1724,7 +1724,7 @@ test('M4c README 两半「什么时候会问你」：每个升级类别各有一
   assert.ok(!/\bfive kinds\b/.test(en), '英文部分还在报总数')
 })
 
-// M4e（docs/40，审查第 23、43、39、25、49 条）：README 两半的安装警告与前提、`.agent-team/` 与 git、git 仓库里的后台会话、英文那一半的
+// M4e（docs/40，审查第 23、43、39、25、49 条）：README 两半的安装警告与前提、`.poundlock/` 与 git、git 仓库里的后台会话、英文那一半的
 // 语言说明。复核（docs/40 §3）：承重的句子整句钉、按小节取——只认关键词的判据挡不住「把话说反」，在整半份里找挡不住「挪到别处」。
 // 误装之后的卸载命令不带 `--scope`：CLI 的 `plugin uninstall` 默认就是 user 作用域，而第十节不许命令行里出现 `--scope user`。
 const stripWs = (t) => t.replace(/\s+/g, '')
@@ -1757,24 +1757,24 @@ function fencedPluginCommands(text) {
 
 const README_M4E = {
   warning: [
-    '> **Install with `--scope local`.** If `install` runs without it, or you pick the default first option in the `/plugin` panel, you get a user-scope install: every new session on this machine, in every project, starts with the project manager as its main session. If that happened, run `claude plugin uninstall agent-team@agent-team-marketplace` (no `--scope` — that removes the user-scope copy) and reinstall as above. `marketplace add` without it only registers the marketplace at user level and takes over no session.',
-    '> **安装命令要带 `--scope local`。** `install` 不带它、或者在 `/plugin` 面板里选了默认的第一项，装的是 user 作用域：这台机器上此后开的每一个新会话、不分项目，主会话都会变成项目经理。装错了就执行 `claude plugin uninstall agent-team@agent-team-marketplace`（不带 `--scope`，卸的就是 user 作用域那一份），再照上面重装。`marketplace add` 不带它，只是把市场登记在 user 一层，不接管会话。',
+    '> **Install with `--scope local`.** If `install` runs without it, or you pick the default first option in the `/plugin` panel, you get a user-scope install: every new session on this machine, in every project, starts with the project manager as its main session. If that happened, run `claude plugin uninstall poundlock@poundlock` (no `--scope` — that removes the user-scope copy) and reinstall as above. `marketplace add` without it only registers the marketplace at user level and takes over no session.',
+    '> **安装命令要带 `--scope local`。** `install` 不带它、或者在 `/plugin` 面板里选了默认的第一项，装的是 user 作用域：这台机器上此后开的每一个新会话、不分项目，主会话都会变成项目经理。装错了就执行 `claude plugin uninstall poundlock@poundlock`（不带 `--scope`，卸的就是 user 作用域那一份），再照上面重装。`marketplace add` 不带它，只是把市场登记在 user 一层，不接管会话。',
   ],
   git4win: [
     '- **On native Windows, Git for Windows.** The roles run commands only through `Bash` (Git Bash); without it Claude Code offers only PowerShell, so the roles cannot install, build or test, and the project manager stops and tells you.',
     '- **原生 Windows 上要装 Git for Windows**。团队角色跑命令只用 `Bash`（Git Bash）；没装的话 Claude Code 只给 PowerShell，角色装依赖、编译、跑测试都做不了，项目经理会停下来告诉你。',
   ],
   gitignore: [
-    'We suggest adding `.agent-team/` to `.gitignore` (the project manager asks you first during setup): left untracked and unignored, `git clean -fd` or `git stash -u` sweeps away or stashes the run in progress and the gates lose it; committed, `git stash` or `git checkout -- .` rolls `state.json` back to the committed version, rework counts included.',
-    '`.agent-team/` 建议加进 `.gitignore`（初始化时项目经理会先问你）：既不进版本库也不忽略的话，`git clean -fd`、`git stash -u` 会把进行中的 run 一起清掉或藏起，门禁随之失效；提交进了版本库的话，`git stash`、`git checkout -- .` 会把 `state.json` 倒回提交时那一版，返工计数一起清零。',
+    'We suggest adding `.poundlock/` to `.gitignore` (the project manager asks you first during setup): left untracked and unignored, `git clean -fd` or `git stash -u` sweeps away or stashes the run in progress and the gates lose it; committed, `git stash` or `git checkout -- .` rolls `state.json` back to the committed version, rework counts included.',
+    '`.poundlock/` 建议加进 `.gitignore`（初始化时项目经理会先问你）：既不进版本库也不忽略的话，`git clean -fd`、`git stash -u` 会把进行中的 run 一起清掉或藏起，门禁随之失效；提交进了版本库的话，`git stash`、`git checkout -- .` 会把 `state.json` 倒回提交时那一版，返工计数一起清零。',
   ],
   background: [
     '> **Background sessions in a git repository** (`claude --bg`, agent view): set `"worktree": {"bgIsolation": "none"}` in the project\'s `.claude/settings.local.json` first (it applies to you only; putting it in `.claude/settings.json` changes it for every collaborator). Otherwise the platform blocks the background session\'s writes to the project directory, and the project manager stops at its first self-check and tells you. Foreground sessions and the desktop app are unaffected; the team does not work in worktrees.',
     '> **在 git 仓库里用后台会话**（`claude --bg`、agent view）跑团队，先在项目的 `.claude/settings.local.json` 里设 `"worktree": {"bgIsolation": "none"}`（只对你自己生效；写进 `.claude/settings.json` 会改到所有协作者）。不设的话，平台会拦下后台会话对项目目录的写入，项目经理第一步自检就停下来告诉你。前台会话与桌面端不受影响；团队不进 worktree。',
   ],
   setupAsk: [
-    'in a git repository, setup also asks once whether to add `.agent-team/` to `.gitignore`.',
-    '项目在 git 仓库里时，初始化还会问一次要不要把 `.agent-team/` 加进 `.gitignore`。',
+    'in a git repository, setup also asks once whether to add `.poundlock/` to `.gitignore`.',
+    '项目在 git 仓库里时，初始化还会问一次要不要把 `.poundlock/` 加进 `.gitignore`。',
   ],
 }
 const HALVES = [
@@ -1816,7 +1816,7 @@ test('M4e 第 25 条：两半的已知边界一节里都写了 git 仓库里的�
   }
 })
 
-test('M4e 第 39 条：两半的「产物在哪」一节都建议把 .agent-team/ 加进 .gitignore，并说清不加与入库各会怎样（整句、在那一节里）', () => {
+test('M4e 第 39 条：两半的「产物在哪」一节都建议把 .poundlock/ 加进 .gitignore，并说清不加与入库各会怎样（整句、在那一节里）', () => {
   for (const [half, k] of HALVES) {
     const s = blockUnder(read(half), pairOf('### Where things land')[k])
     assert.ok(s, `${half} 找不到产物在哪那一节`)
@@ -1858,8 +1858,8 @@ test('M4f 第 34 条：两半的「这不是沙箱」都写明 at-qa、at-accept
 
 // M4f 复核（docs/41 §8）：「这不是沙箱」那一条整条钉——只钉其中一句时，复核在那一句后面追加「at-qa 仍可写测试文件」，全套不红。
 const NOT_SANDBOX_WHOLE = [
-  "> **This is not a sandbox.** Write-path isolation governs every team role except the project manager by the `paths` in `project.json`: outside the run directory a role may write only its own prefixes, and nothing at all without an entry — including `at-qa` and `at-acceptance`, which claim no directories by design and write only their own deliverable in the run directory. A claimed directory does not carry the `CLAUDE.md`, `CLAUDE.local.md`, `.claude/` or `.git` below it — those have to be claimed by name (after asking you) — and no role may create an `.agent-team/` inside it. `Bash` is not watched by any gate, and implementation roles keep it to build and test. Before implementation (and during it, when a role is refused) the project manager adds prefixes to `paths` from the architecture plan (it only adds; it asks you first for `.claude/`, CI/CD or credential locations; it tells you what it added); they stay for later runs.",
-  "> **这不是沙箱。** 写路径隔离按 `project.json` 的 `paths` 管项目经理以外的各个角色：在 run 目录之外，只能写划给自己的前缀，没有条目就哪都写不了——按设计不认领目录的 `at-qa` 与 `at-acceptance` 也一样，它们只写 run 目录里自己那份产物。划给一个角色的目录不连带它下面的 `CLAUDE.md`、`CLAUDE.local.md`、`.claude/`、`.git`——要写这几处，得把它们本身划过去（先问你）；目录下面另建 `.agent-team/` 谁都不行。`Bash` 没有任何门禁看着，而执行角色保留它来构建和测试。项目经理在实现之前（实现中有角色被拒时也会）照架构方案往 `paths` 里补前缀（只加不删；落在 `.claude/`、CI/CD、凭据这类位置的先问你；补了什么会告诉你），这些前缀留给以后各趟。",
+  "> **This is not a sandbox.** Write-path isolation governs every team role except the project manager by the `paths` in `project.json`: outside the run directory a role may write only its own prefixes, and nothing at all without an entry — including `at-qa` and `at-acceptance`, which claim no directories by design and write only their own deliverable in the run directory. A claimed directory does not carry the `CLAUDE.md`, `CLAUDE.local.md`, `.claude/` or `.git` below it — those have to be claimed by name (after asking you) — and no role may create an `.poundlock/` inside it. `Bash` is not watched by any gate, and implementation roles keep it to build and test. Before implementation (and during it, when a role is refused) the project manager adds prefixes to `paths` from the architecture plan (it only adds; it asks you first for `.claude/`, CI/CD or credential locations; it tells you what it added); they stay for later runs.",
+  "> **这不是沙箱。** 写路径隔离按 `project.json` 的 `paths` 管项目经理以外的各个角色：在 run 目录之外，只能写划给自己的前缀，没有条目就哪都写不了——按设计不认领目录的 `at-qa` 与 `at-acceptance` 也一样，它们只写 run 目录里自己那份产物。划给一个角色的目录不连带它下面的 `CLAUDE.md`、`CLAUDE.local.md`、`.claude/`、`.git`——要写这几处，得把它们本身划过去（先问你）；目录下面另建 `.poundlock/` 谁都不行。`Bash` 没有任何门禁看着，而执行角色保留它来构建和测试。项目经理在实现之前（实现中有角色被拒时也会）照架构方案往 `paths` 里补前缀（只加不删；落在 `.claude/`、CI/CD、凭据这类位置的先问你；补了什么会告诉你），这些前缀留给以后各趟。",
 ]
 test('M4f 复核：两半「这不是沙箱」那一条整条就是这样，不多不少', () => {
   for (const [half, k] of HALVES) {

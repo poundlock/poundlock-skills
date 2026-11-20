@@ -72,7 +72,7 @@ export function decideAbandon({ before, after, approved }) {
     return {
       ok: false,
       reason:
-        `放弃这一趟要用户批准：照 /agent-team:at 第 1 节「放弃这一趟」用 AskUserQuestion 单独问一道单选题，题面原样写着这一趟的 run id，标签逐字「${ABANDON_LABEL}」；` +
+        `放弃这一趟要用户批准：照 /poundlock:at 第 1 节「放弃这一趟」用 AskUserQuestion 单独问一道单选题，题面原样写着这一趟的 run id，标签逐字「${ABANDON_LABEL}」；` +
         '门禁记下之后（回传【放弃】）再写这一次。',
     }
   }

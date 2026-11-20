@@ -107,7 +107,7 @@ const CHECK = process.argv[2]
 const HERE = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(HERE, '..')
 // 门禁读的运行状态在**用户项目**里，不在插件目录里。项目根是从 cwd 往上最近的那个
-// .agent-team，cwd 在启动项目（CLAUDE_PROJECT_DIR）里时不越过它——hook 进程的 cwd 是会话
+// .poundlock，cwd 在启动项目（CLAUDE_PROJECT_DIR）里时不越过它——hook 进程的 cwd 是会话
 // **当前**的 cwd，主线程 Bash 做过 cd 就停在子目录里，直接拿它当项目根会让 H2–H6 全部
 // fail open；只拿 CLAUDE_PROJECT_DIR 又会在用户 /cd 到别的项目后看丢那边的 run
 // （M3p，docs/24 §2.1；口径与理由在 hooks/lib/runctx.mjs 的 projectRootFrom）。
@@ -172,7 +172,7 @@ function loadRoster() {
     return JSON.parse(readFileSync(join(ROOT, 'roster.json'), 'utf8'))
   } catch (e) {
     process.stderr.write(
-      `agent-team：roster.json 读不出来（${quote(e?.message ?? e, { max: 120 })}），本次按空花名册处理——` +
+      `poundlock：roster.json 读不出来（${quote(e?.message ?? e, { max: 120 })}），本次按空花名册处理——` +
         `派发白名单与协调者判定都会失效，请检查插件安装。\n`,
     )
     return {}
@@ -205,7 +205,7 @@ let DECIDED = null
 // 这次的 hook 输入。只有最外层 catch 读它：崩溃时按「收件人是不是 PM」选措辞。
 let INPUT = null
 
-// 「这次写的是不是 .agent-team/project.json」。抽成一个谓词是因为 ledger 分支现在
+// 「这次写的是不是 .poundlock/project.json」。抽成一个谓词是因为 ledger 分支现在
 // 要在两条路径上问同一个问题（ctx.ok 的正常路径，以及 ctx 读不出来时那条只为触达表
 // 留的通道），而它对 filePath 的类型防御也只该写一遍：norm() 内部是 resolve()，
 // 传非字符串会同步抛。
@@ -215,7 +215,7 @@ function isProjectJson(filePath, agentTeamDir) {
   return norm(filePath) === norm(`${agentTeamDir}/project.json`)
 }
 
-// 「这次写的是不是 .agent-team/reach.json」（M4g）。与上面那个谓词同一个理由：ledger 的两条路径（ctx.ok、没有 run 的那条缝）问同一个问题。
+// 「这次写的是不是 .poundlock/reach.json」（M4g）。与上面那个谓词同一个理由：ledger 的两条路径（ctx.ok、没有 run 的那条缝）问同一个问题。
 function isReachJson(filePath, agentTeamDir) {
   if (typeof filePath !== 'string' || !filePath) return false
   if (typeof agentTeamDir !== 'string' || !agentTeamDir) return false
@@ -264,7 +264,7 @@ function runStateOf(dir) {
   }
 }
 
-// M4g（docs/42，审查第 28 条）：PM 写完 .agent-team/reach.json，按当前 project.json 与花名册重算一遍、与写进去的比（措辞在
+// M4g（docs/42，审查第 28 条）：PM 写完 .poundlock/reach.json，按当前 project.json 与花名册重算一遍、与写进去的比（措辞在
 // hooks/lib/ledger.mjs 的 reachCheckNotice）。project.json 不在、有阻断或插件问题（花名册读不出）时不核：那时【触达表】本来就叫 PM
 // 先别写，「正确的那一份」也算不准。这几种与写进去的文件读不出来（被删、被占用）时说「这一次没有核」（docs/83）。
 // M4h（docs/43，审查第 24-1 条）：PM 写 current-run 时，别的、没收口的 run 里「派出去了、门禁还没见它停下」的派发——指针一改，那一趟的产物
@@ -340,12 +340,12 @@ function inflightNotice(list) {
 }
 
 // 写的人不是 PM（没有 run 时 H3 对谁都放行）：那一段改成叫它原样冒泡——reach.json 是控制文件，只有 PM 该改它（M4g 复核，低-8）。
-// docs/83（docs/42 §4「不核的几种时候一声不吭」）：核不了时也说一段——这一次没有核、为什么、怎么办。/agent-team:at-init 说「没再收到【触达表】就是
+// docs/83（docs/42 §4「不核的几种时候一声不吭」）：核不了时也说一段——这一次没有核、为什么、怎么办。/poundlock:at-init 说「没再收到【触达表】就是
 // 对上了」，一声不吭会被读成对上。核不了的原因：project.json 不在、这一刻读不出（调用方认）、读得到却解析不出（调用方认，docs/87）、有阻断、
 // 花名册读不出（插件问题）、刚写的 reach.json 读不出。
 // 复核（docs/83 §8）：有阻断、花名册读不出的说法与写 project.json 那一次的【触达表】看齐（不说「算得不对」；插件问题给「重装、新开会话再跑 at-init」）；
 // 写的人不是项目经理的，这几种都归项目经理（它写不了 project.json 也写不了 reach.json）。
-const REACH_UNCHECKED = '【触达表】这一次没有核刚写进 .agent-team/reach.json 的那一份：'
+const REACH_UNCHECKED = '【触达表】这一次没有核刚写进 .poundlock/reach.json 的那一份：'
 const REACH_NOT_MATCHED = '没收到核对结果不等于对上了。'
 const REACH_FOR_OTHERS = '\n这件事归项目经理：把这一段原样冒泡给派你的人，不要自己写 project.json 或 reach.json。'
 // docs/87 §8：后面接着【project.json】那一段的（解析不出），两段都归项目经理——叫它把这两段一起冒泡，只冒泡这一段，上去的是悬空的「下一段说怎么改」。
@@ -354,20 +354,20 @@ function reachUnchecked(body, writerIsPm, both = false) {
   return REACH_UNCHECKED + body + REACH_NOT_MATCHED + (writerIsPm ? '' : both ? REACH_FOR_OTHERS_BOTH : REACH_FOR_OTHERS)
 }
 const REACH_PROJECT_MISSING =
-  '.agent-team/project.json 不在——触达表是照它算的。先跑 /agent-team:at-init 写好它，写它那一次的【触达表】给出正确的那一份，照它重写 reach.json；'
+  '.poundlock/project.json 不在——触达表是照它算的。先跑 /poundlock:at-init 写好它，写它那一次的【触达表】给出正确的那一份，照它重写 reach.json；'
 const REACH_PROJECT_UNREADABLE =
-  '.agent-team/project.json 这一刻读不出来（多半是被别的程序短暂占用）——触达表是照它算的。过一会儿原样再写一次 reach.json；'
+  '.poundlock/project.json 这一刻读不出来（多半是被别的程序短暂占用）——触达表是照它算的。过一会儿原样再写一次 reach.json；'
 const REACH_PROJECT_BROKEN =
-  '.agent-team/project.json 解析不出（下一段说怎么改）——触达表是照它算的。改好之后，写它那一次的【触达表】给出正确的那一份，照它重写 reach.json；'
+  '.poundlock/project.json 解析不出（下一段说怎么改）——触达表是照它算的。改好之后，写它那一次的【触达表】给出正确的那一份，照它重写 reach.json；'
 function reachNoticeFor(filePath, project, writerIsPm = true) {
   if (project === null || project === undefined) return reachUnchecked(REACH_PROJECT_MISSING, writerIsPm)
   // 两个调用方只传对象或 null（readJson、ctx.project 都拒非对象），这一支是防御。
-  if (!isPlainObject(project)) return reachUnchecked('.agent-team/project.json 不是一个 JSON 对象，照它算不出触达表。先改好 project.json；', writerIsPm)
+  if (!isPlainObject(project)) return reachUnchecked('.poundlock/project.json 不是一个 JSON 对象，照它算不出触达表。先改好 project.json；', writerIsPm)
   const roster = loadRoster()
   const report = validateProject(project, { roster })
   if (report.plugin.length) {
     return reachUnchecked(
-      '插件的花名册读不出，门禁算不出触达表。不要照着改 reach.json；插件重装（或有新版本时更新）之后，新开一个会话再跑 /agent-team:at-init 落盘——' +
+      '插件的花名册读不出，门禁算不出触达表。不要照着改 reach.json；插件重装（或有新版本时更新）之后，新开一个会话再跑 /poundlock:at-init 落盘——' +
         '刚写进去的这一份没核过，不要把它当成上一份配置；',
       writerIsPm,
     )
@@ -412,9 +412,9 @@ function staleReachFor(ctx, writerIsPm = true) {
 
 // ledger 那两处「project.json 是不是写坏了」要读它的原文（M3u）。最多读 3 次，两次之间停 25ms：Windows 上杀毒软件、
 // 索引器的短暂占用，以及读到别人正写到一半的内容，停一下再读多半就好了——只读一次的话，一次占用就会让合法的文件
-// 被说成「写坏了」，两次连着占用就退成只留痕（/agent-team:at-init 会按「门禁没在跑」叫停）。读到能解析成对象的
+// 被说成「写坏了」，两次连着占用就退成只留痕（/poundlock:at-init 会按「门禁没在跑」叫停）。读到能解析成对象的
 // 就返回它（剥 BOM、要普通对象，与 runctx 的 readJson 同一口径）；3 次都解析不出，返回最后读到的原文；都读不到，
-// text 为 null。文件不在（ENOENT）不重读：没有收益，只会在 project.json 缺失时让每次写 .agent-team 多停约 50ms。
+// text 为 null。文件不在（ENOENT）不重读：没有收益，只会在 project.json 缺失时让每次写 .poundlock 多停约 50ms。
 function readProjectText(file) {
   let text = null
   for (let i = 0; i < 3; i++) {
@@ -552,7 +552,7 @@ function emitHookJson(event, parts) {
 // 进模型上下文（hookOutput 对这两种事件有东西要发就报 BUG）。
 function inputUnreadable(spec, what) {
   const outcome = spec.recorder === true ? (spec.records === 'user-words' ? '这次的原话没有记下' : '这次的回答没有记下') : '没有做校验、放行'
-  process.stderr.write(`agent-team ${CHECK}：读不出这次的 hook 输入（${what}），${outcome}。\n`)
+  process.stderr.write(`poundlock ${CHECK}：读不出这次的 hook 输入（${what}），${outcome}。\n`)
   emitHookJson(spec.event, userFacing(spec.event) ? { systemMessage: systemMessage('input', { check: CHECK }) } : {})
 }
 
@@ -560,8 +560,8 @@ function userFacing(event) {
   return event === 'PreToolUse' || event === 'PostToolUse'
 }
 
-// 门禁自检理由末尾的追加句（M3v）：只在调用者是 PM、自检写在门禁认的项目根下时追加——丢指针时 PM 在 /agent-team:at-resume
-// 里只读不写、/agent-team:at 建新 run 只写控制文件，别处都开不了口（措辞与理由在 hooks/lib/fail-open.mjs 的
+// 门禁自检理由末尾的追加句（M3v）：只在调用者是 PM、自检写在门禁认的项目根下时追加——丢指针时 PM 在 /poundlock:at-resume
+// 里只读不写、/poundlock:at 建新 run 只写控制文件，别处都开不了口（措辞与理由在 hooks/lib/fail-open.mjs 的
 // selfCheckAppendix）。多读一次运行上下文；出任何意外都只是不追加——自检本身的「在线」不能因为它丢掉。
 function selfCheckTail(input, checked) {
   try {
@@ -592,8 +592,8 @@ function selfCheckTail(input, checked) {
 function failOpenNotice(label, ctx) {
   const what = ctx.kind === 'no-run' ? '当前没有进行中的 run' : '读不到运行上下文'
   return (
-    `agent-team ${label}：${what}（${ctx.reason}），本次放行、不拦截。` +
-    `若你以为有进行中的 run，检查 .agent-team/current-run。\n`
+    `poundlock ${label}：${what}（${ctx.reason}），本次放行、不拦截。` +
+    `若你以为有进行中的 run，检查 .poundlock/current-run。\n`
   )
 }
 
@@ -615,7 +615,7 @@ function failOpenNotice(label, ctx) {
 // M4c：holds 说「它要动的东西在哪、谁拦」——契约那一条要动的可能是 contract_sha，也可能是契约本身（H4）。
 function misroutedNotice(label, channel, recipient, holds = '它要动的东西住在 state.json 里，H3 写路径门禁在 PreToolUse 上把非 PM 对控制文件的 Edit/Write 拒掉') {
   return (
-    `agent-team ${label}：这次的回传落在 ${inline(recipient)} 手里——${channel} 只发给这次工具调用` +
+    `poundlock ${label}：这次的回传落在 ${inline(recipient)} 手里——${channel} 只发给这次工具调用` +
     `所属的那个上下文，而${holds}。告警照发、判据没有放行任何东西，发错的是收件人` +
     `不是判定；这一条要被处理，得靠 ${inline(recipient)} 把那段回传原样冒泡上去，一路带到 PM。\n`
   )
@@ -769,7 +769,7 @@ function outdatedSetOf(ctx, who = null) {
     const base = readContractBase(ctx.artifactBytes(CONTRACT_BASE_FILE))
     if (!base) {
       if (who && ctx.artifactExists(CONTRACT_BASE_FILE)) {
-        process.stderr.write(`agent-team ${who}：契约基线在却读不出来，这一次不认对着上一版契约的结论。\n`)
+        process.stderr.write(`poundlock ${who}：契约基线在却读不出来，这一次不认对着上一版契约的结论。\n`)
       }
       return new Set()
     }
@@ -838,7 +838,7 @@ function verdictBubbleTail(stageId) {
 // ⚠️ 这里要防的错误修法很具体：**把名字写进 roster 让提示消失**。roster 记的是「这一趟
 // 真的叫到过谁」，只写名字不派人，产物照样不存在——提示没了，洞还在，而且门禁不会再报它。
 // （M3x 订正：这里原来写的是「下一次账本比对会把它报成 missing」——从 M3a 写下起就不成立：compareArtifacts 只比对
-// 记过账的产物，没记账的名字直接跳过。还看得见它的只剩 at-qa 对 S5 的自查与 /agent-team:at-status，文案照实说。）本仓库为「失败文案把人
+// 记过账的产物，没记账的名字直接跳过。还看得见它的只剩 at-qa 对 S5 的自查与 /poundlock:at-status，文案照实说。）本仓库为「失败文案把人
 // 指向错误修法」栽过一次（ledger 的【阶段】那条：提示让一个做不到这件事的角色去做
 // 它），这条是同一族的第二种形状：能做到，但做的是错的那件事。
 // 同理，trimmed 那一条给的是**形状**、用当前第一条 gap 举例，不是一份可以整批粘贴的
@@ -894,7 +894,7 @@ function verdictBubbleTail(stageId) {
 // （「静默的放行和门禁彻底坏掉长得一模一样」）。stderr 那一行痕迹是另一半，在调用点。
 // ⚠️ **修复轮 F1**：护栏原来挂在「没收窄」那一支上，那是挂错了地方——
 // `{"at-pm": "S1"}` 这个错示例**恰恰只在收窄成功时才产生**。实跑过整条链：
-// 真实 project.json 的 available_roles 里写了 at-pm（/agent-team:at-init 明令不要写，
+// 真实 project.json 的 available_roles 里写了 at-pm（/poundlock:at-init 明令不要写，
 // 但**没有任何运行时判据拦它**）→ 收窄成功（stderr 无痕、文案里那段「口径比平时宽」
 // 与它带的护栏全都不出现）→ S1 是每趟 history 的第一段、而 at-pm 做自己那几段时没有
 // 「派发」这个动作所以不在 roster → gaps[0] 就是 {S1, at-pm} → 文案逐字给出
@@ -979,15 +979,15 @@ function buildCoverageNotice({ gaps, narrowed, perStage } = {}, recipientCanWrit
     ? `⚠️ 上面点名的 ${drivers.join('、')} 是**这一趟的驱动者本人**，它不参与「有没有被叫到」` +
       `的统计，**不要把它写进 trimmed**——state.json 的校验会放它过去（它确实是那几段的产者，` +
       `形状挑不出毛病），写进去等于声明这一趟把自己的驱动者裁掉了。它被点到名只有两种原因：` +
-      `.agent-team/project.json 的 available_roles 里写了它（/agent-team:at-init 明令不要写` +
+      `.poundlock/project.json 的 available_roles 里写了它（/poundlock:at-init 明令不要写` +
       `——去把它删掉），或者这一批根本没能按 available_roles 收窄。\n`
     : ''
   const widened = narrowed
     ? ''
-    : `⚠️ 这一批**没能按「这个项目用得上哪些角色」收窄**（读不到 .agent-team/project.json ` +
+    : `⚠️ 这一批**没能按「这个项目用得上哪些角色」收窄**（读不到 .poundlock/project.json ` +
       `的 available_roles），所以口径比平时宽：这个项目根本用不上的角色、以及 PM 自己做的` +
       `那几段（S1/S4/S8 那一类），都会算进来。**先把 available_roles 补上再判这批名字**` +
-      `——它是 /agent-team:at-init 写的那一份；在补上之前不要照着下面${perStage ? '几' : '两'}条出路动手。\n`
+      `——它是 /poundlock:at-init 写的那一份；在补上之前不要照着下面${perStage ? '几' : '两'}条出路动手。\n`
   // 出路按触发列举：①真裁了、②真漏了，带 stage_roles 的 run 再加 ③那一段真被叫到过、只是漏记。**两支都要保留它们**
   // （③ 在两支里都有）：判据分辨不了这几种触发而读的人分辨得了，
   // 这件事不随收件人变（那正是这几条出路存在的全部理由，见上面那段）。变的只是
@@ -1009,7 +1009,7 @@ function buildCoverageNotice({ gaps, narrowed, perStage } = {}, recipientCanWrit
                 `  ② 不是裁剪，是漏了：` +
                 (direct.length ? `把它派出去（${direct.join('、')}），让它自己写出那一段的产物；` : '') +
                 `${viaCoordinator.join('、')} 在最后一段派不出去（协调者不再派，它又是协调者、或者只能经协调者派）：真漏了，` +
-                `就记一次回退、回到那一段补派（照 /agent-team:at 第 3 节「回退」），或者照实告诉用户。\n`
+                `就记一次回退、回到那一段补派（照 /poundlock:at 第 3 节「回退」），或者照实告诉用户。\n`
               )
             })()
           : `  ② 不是裁剪，是漏了：把它派出去，让它自己写出那一段的产物。\n`) +
@@ -1019,7 +1019,7 @@ function buildCoverageNotice({ gaps, narrowed, perStage } = {}, recipientCanWrit
         : '') +
       `⚠️ 不要为了让这条提示消失就把名字写进 roster${listed}：${perStage ? '它们' : 'roster '}记的是这一趟真的叫到过谁，` +
       `只写名字不派人，产物照样不存在——提示没了，洞还在，而且门禁不会再报它：账本比对只比对已经记过账的产物，` +
-      `还看得见它的只剩 at-qa 开工前对 S5 实现记录的自查（只管 S5）与 /agent-team:at-status 的 ✗。同样，没真裁就别写进 trimmed。\n` +
+      `还看得见它的只剩 at-qa 开工前对 S5 实现记录的自查（只管 S5）与 /poundlock:at-status 的 ✗。同样，没真裁就别写进 trimmed。\n` +
       `这条只报不拦：选哪条都不会卡住你往下走，不选也不会。`
     : `⚠️ **这一条你改不了**：trimmed 与 roster 都住在 state.json 里，它是编排层的控制` +
       `文件，H3 写路径门禁在 PreToolUse 上把非 PM 对它的 Edit/Write 拒掉。而这条回传只` +
@@ -1038,7 +1038,7 @@ function buildCoverageNotice({ gaps, narrowed, perStage } = {}, recipientCanWrit
         : '') +
       `⚠️ 往上带的时候不要把它说成「把名字写进 roster${listed} 就行」：只写名字不派人，产物照样` +
       `不存在——提示没了，洞还在，而且门禁不会再报它：账本比对只比对已经记过账的产物，` +
-      `还看得见它的只剩 at-qa 开工前对 S5 实现记录的自查（只管 S5）与 /agent-team:at-status 的 ✗。同样，没真裁就别建议写进 trimmed。\n` +
+      `还看得见它的只剩 at-qa 开工前对 S5 实现记录的自查（只管 S5）与 /poundlock:at-status 的 ✗。同样，没真裁就别建议写进 trimmed。\n` +
       `**把上面这几行原样冒泡给派你的人**，让它继续往上带到 PM；` +
       `**不要自己把它咽掉**——咽掉之后没有任何人会再看见它。\n` +
       `这条只报不拦：它没有卡住你往下走。`
@@ -1087,7 +1087,7 @@ function writeDeliveredSnapshot(ctx) {
     if (!snapshot) return
     writeFileSync(join(ctx.runDir, DELIVERED_FILE), `${JSON.stringify({ stage: ctx.state.stage, products: snapshot }, null, 2)}\n`)
   } catch (err) {
-    process.stderr.write(`agent-team ledger 回传：交付快照没有写成（${quote(err?.message ?? err, { max: 120 })}），不记回退的重做这次少拦。\n`)
+    process.stderr.write(`poundlock ledger 回传：交付快照没有写成（${quote(err?.message ?? err, { max: 120 })}），不记回退的重做这次少拦。\n`)
   }
 }
 
@@ -1101,7 +1101,7 @@ function ensureContractBase(ctx) {
     if (Object.keys(ctx.stages).indexOf(ctx.state.stage) <= 0) return []
     if (ctx.artifactExists(CONTRACT_BASE_FILE)) {
       if (!readContractBase(ctx.artifactBytes(CONTRACT_BASE_FILE))) {
-        process.stderr.write('agent-team ledger：契约基线在却读不出来，这一趟第 1 节与对着上一版契约的结论不核（不重记，免得把改过的第 1 节记成基线）。\n')
+        process.stderr.write('poundlock ledger：契约基线在却读不出来，这一趟第 1 节与对着上一版契约的结论不核（不重记，免得把改过的第 1 节记成基线）。\n')
       }
       return []
     }
@@ -1116,7 +1116,7 @@ function ensureContractBase(ctx) {
           '契约的格式见 at-contract-format：第 1 节逐字照抄用户原话。']
       : []
   } catch (e) {
-    process.stderr.write(`agent-team ledger：契约基线写不进（${quote(e?.message ?? e, { max: 120 })}），这一次不记，下一次写 state.json 时再试。\n`)
+    process.stderr.write(`poundlock ledger：契约基线写不进（${quote(e?.message ?? e, { max: 120 })}），这一次不记，下一次写 state.json 时再试。\n`)
     return []
   }
 }
@@ -1178,14 +1178,14 @@ function contractBaseNotices(ctx) {
     const raw = ctx.artifactBytes(CONTRACT_BASE_FILE)
     const base = readContractBase(raw)
     if (raw && !base) {
-      process.stderr.write('agent-team ledger：契约基线在却读不出来，这一次不核第 1 节与修订。\n')
+      process.stderr.write('poundlock ledger：契约基线在却读不出来，这一次不核第 1 节与修订。\n')
       return out
     }
     const bytes = ctx.artifactBytes(CONTRACT_FILE)
     if (!base || !bytes) return out
     if (closedAt(ctx.state) !== null) {
       if (section1Drift(base, bytes) || bodyShaOf(bytes.toString('utf8'), base.deliver_blocks, isLegacyBase(base), anchorOf(base)) !== base.body_sha) {
-        out.push('【契约】这一趟已经收口：收口之后改契约，验证段的结论不再重出、门禁也不再核——交付之后的新改动另起一趟（/agent-team:at）。')
+        out.push('【契约】这一趟已经收口：收口之后改契约，验证段的结论不再重出、门禁也不再核——交付之后的新改动另起一趟（/poundlock:at）。')
       }
       return out
     }
@@ -1216,14 +1216,14 @@ function contractBaseNotices(ctx) {
       if (parts.length) out.push(`【契约】契约改了：${parts.join('')}`)
     }
   } catch (e) {
-    process.stderr.write(`agent-team ledger：契约基线读写出错（${quote(e?.message ?? e, { max: 120 })}），这一次不核第 1 节与验证段的新旧。\n`)
+    process.stderr.write(`poundlock ledger：契约基线读写出错（${quote(e?.message ?? e, { max: 120 })}），这一次不核第 1 节与验证段的新旧。\n`)
   }
   return out
 }
 
 // M4p（docs/51，docs/30 §4「第二趟起漏切指针、契约写在当前 run 之外」）：这次写的是 runs/ 下另一趟（不是 current-run 那一趟）的契约或阶段产物吗——
 // 是就回 { id（那一趟的目录名，照这次给的路径原样）, dir, name（契约或产物名，插件自己的名字）, role（产者；契约算项目经理的）, valid（目录名当得了
-// run id）}，否则 null。收窄到契约与产物：写 state.json（建新 run 时它本来就先于指针，/agent-team:at 第 1 节）、写别的文件都不算。currentRunDir 是
+// run id）}，否则 null。收窄到契约与产物：写 state.json（建新 run 时它本来就先于指针，/poundlock:at 第 1 节）、写别的文件都不算。currentRunDir 是
 // 指针指着的那一趟的目录（那一趟读不出来时由调用方按 current-run 的原文拼）；stages 读不出时只认契约。
 function otherRunWrite({ agentTeamDir, currentRunDir, stages }, filePath) {
   if (typeof filePath !== 'string' || typeof agentTeamDir !== 'string' || typeof currentRunDir !== 'string') return null
@@ -1282,7 +1282,7 @@ function ownerInfoOf(agentTeamDir) {
         bytes = readFileSync(join(dir, OWNER_FILE))
       } catch {}
       const owner = bytes === null ? null : readOwner(bytes)
-      if (bytes !== null && !owner) process.stderr.write(`agent-team 会话归属：${quote(id)} 那一趟的归属记录在却读不出来，这一次不按会话管它。\n`)
+      if (bytes !== null && !owner) process.stderr.write(`poundlock 会话归属：${quote(id)} 那一趟的归属记录在却读不出来，这一次不按会话管它。\n`)
       info = { closed: runClosed(dir), owner, tweak: isTweakRun({ state: runStateOf(dir), words: quietWords(dir) }) }
     }
     seen.set(id, info)
@@ -1386,10 +1386,10 @@ function pickedRunOf(input, agentId = input?.agent_id) {
     const isAgent = typeof agentId === 'string' && agentId !== ''
     const mainThread = !isAgent && !malformedCaller(input) && isContractWriter(callerOf(input))
     if (!isAgent && !mainThread) return null
-    const tweaks = tweaksAt(join(ROOT_PROJECT, '.agent-team'))
+    const tweaks = tweaksAt(join(ROOT_PROJECT, '.poundlock'))
     if (!tweaks.length) return null
     const sid = input?.session_id
-    const agentTeamDir = join(ROOT_PROJECT, '.agent-team')
+    const agentTeamDir = join(ROOT_PROJECT, '.poundlock')
     const tweakDirs = new Set(tweaks.map((t) => norm(t.dir)))
     const pid = pointerIdOf(agentTeamDir)
     const pointerDir = pid ? join(agentTeamDir, 'runs', pid) : null
@@ -1408,7 +1408,7 @@ function pickedRunOf(input, agentId = input?.agent_id) {
       },
     })
     if (!picked && mainThread && !(typeof sid === 'string' && sid !== '') && tweaks.some((t) => t.open)) {
-      process.stderr.write('agent-team 挑这一趟：hook 输入里读不到会话 id，认不出这个会话名下的微调，这一次按 current-run 判。\n')
+      process.stderr.write('poundlock 挑这一趟：hook 输入里读不到会话 id，认不出这个会话名下的微调，这一次按 current-run 判。\n')
     }
     return picked
   } catch {
@@ -1427,7 +1427,7 @@ function runCtxFor(input, agentId = input?.agent_id) {
       ok: false,
       kind: 'unreadable',
       cause: 'agent',
-      agentTeamDir: join(ROOT_PROJECT, '.agent-team'),
+      agentTeamDir: join(ROOT_PROJECT, '.poundlock'),
       reason: '项目里开着微调，门禁认不出你是哪一趟派的（哪一趟的派发记录里都没有你）。以「冒泡：」停下，把这一句原样回报派你的项目经理',
     }
   }
@@ -1441,7 +1441,7 @@ function unclaimedTeamAgent(input, agentId) {
     if (typeof agentId !== 'string' || agentId === '' || malformedCaller(input)) return false
     const role = callerOf(input)
     if (isContractWriter(role) || !Object.hasOwn(loadRoster() ?? {}, role)) return false
-    const agentTeamDir = join(ROOT_PROJECT, '.agent-team')
+    const agentTeamDir = join(ROOT_PROJECT, '.poundlock')
     if (!tweaksAt(agentTeamDir).some((t) => t.open)) return false
     const pid = pointerIdOf(agentTeamDir)
     return !(pid && agentIdsAt(join(agentTeamDir, 'runs', pid)).includes(agentId))
@@ -1450,7 +1450,7 @@ function unclaimedTeamAgent(input, agentId) {
   }
 }
 
-// 并行微调（安全审查第二轮）：非项目经理写 .agent-team/runs/ 下、不是这一趟的 run 目录里的文件（别的一趟的契约、产物）。几趟微调并行之后
+// 并行微调（安全审查第二轮）：非项目经理写 .poundlock/runs/ 下、不是这一趟的 run 目录里的文件（别的一趟的契约、产物）。几趟微调并行之后
 // 「别的一趟」随时都在跑；执行角色本来就被写路径隔离挡在那里之外，花名册外的调用者原来只挡控制文件。
 function otherRunDirWrite(ctx, role, filePath) {
   try {
@@ -1461,7 +1461,7 @@ function otherRunDirWrite(ctx, role, filePath) {
   }
 }
 
-// 并行微调（安全审查）：只有微调、判「没有 run」时，非项目经理写 .agent-team/ 下的文件（微调的 state.json、契约、产物都在那里）——H3、H4 拒。
+// 并行微调（安全审查）：只有微调、判「没有 run」时，非项目经理写 .poundlock/ 下的文件（微调的 state.json、契约、产物都在那里）——H3、H4 拒。
 // 没有微调的项目不归这一条（自举不变）。
 function tweakDirsUnguarded(ctx, role, filePath) {
   try {
@@ -1485,7 +1485,7 @@ function startedAtOf(state) {
 }
 
 // 并行微调（hooks/lib/claims.mjs）：这一次写入要不要按认领管——挑出来的这一趟是一趟没收尾、门禁记过的微调，调用者是它派出去的子代理（带 agent_id、
-// 不是项目经理），写的是项目文件（项目根之下、.agent-team/ 之外）。要管回 { key（norm 之后的绝对路径）, path（相对项目根的显示路径） }，不管回 null。
+// 不是项目经理），写的是项目文件（项目根之下、.poundlock/ 之外）。要管回 { key（norm 之后的绝对路径）, path（相对项目根的显示路径） }，不管回 null。
 function claimTargetOf(ctx, role, input, filePath) {
   try {
     const claim = claimCheckOf(ctx, role, input, filePath)
@@ -1538,13 +1538,13 @@ function recordClaim(ctx, role, input, filePath) {
       appendFileSync(file, `${sep}${claimLine({ at: new Date().toISOString(), key: claim.key, path: claim.path, role })}\n`)
     })
   } catch (err) {
-    process.stderr.write(`agent-team 认领：没有记下 ${inline(claim.path)}（${quote(err?.message ?? String(err), { max: 120 })}），这一趟下一次写它时再记。\n`)
+    process.stderr.write(`poundlock 认领：没有记下 ${inline(claim.path)}（${quote(err?.message ?? String(err), { max: 120 })}），这一趟下一次写它时再记。\n`)
   }
 }
 
 // 一趟只归一个会话：主线程这次写的是什么——
 //   - current-run：{ kind: 'pointer' }。两路都认：规范化之后的路径就是它（经链接、8.3 短名写进去的），或者叶名是它、所在目录就是
-//     .agent-team（剥掉流后缀、结尾的点与空格：那些写法在 Windows 上落到的正是指针）。改成指向哪一趟不看（ownerWriteBlock 只判切走）；
+//     .poundlock（剥掉流后缀、结尾的点与空格：那些写法在 Windows 上落到的正是指针）。改成指向哪一趟不看（ownerWriteBlock 只判切走）；
 //   - 某一趟 run 目录里的文件：{ kind: 'run-file', runId, creatingState }。runId 取规范化之后的那一段（解析过链接、目录联接与别名，Windows、macOS 上折成
 //     小写）：照字面取的话，经一个名字不合 run id 格式的链接写进去，就查不到那一趟的归属。creatingState：写的是那一趟的 state.json、写之前它不在；
 //   - 别的：null。
@@ -1597,7 +1597,7 @@ function ownerUnjudged(input, agentTeamDir, target = null) {
   for (const id of [target && target.kind === 'run-file' ? target.runId : null, pointerIdOf(agentTeamDir)]) {
     const info = typeof id === 'string' ? infoOf(id) : null
     if (info && info.owner && !info.closed) {
-      process.stderr.write(`agent-team 会话归属：hook 输入里读不到会话 id，判不出这一次是不是 ${quote(id)} 那一趟的会话，不按会话拦、放行。\n`)
+      process.stderr.write(`poundlock 会话归属：hook 输入里读不到会话 id，判不出这一次是不是 ${quote(id)} 那一趟的会话，不按会话拦、放行。\n`)
       return
     }
   }
@@ -1611,12 +1611,12 @@ function delegationRoster(input) {
   const plain = { roster, tweak: false }
   try {
     if (malformedCaller(input) || !isContractWriter(callerOf(input)) || typeof input?.agent_id === 'string') return plain
-    const agentTeamDir = join(ROOT_PROJECT, '.agent-team')
+    const agentTeamDir = join(ROOT_PROJECT, '.poundlock')
     const pid = pickedRunOf(input)?.runId ?? pointerIdOf(agentTeamDir)
     if (!pid) return plain
     const runDir = join(agentTeamDir, 'runs', pid)
     const st = runStateOf(runDir)
-    // 只认门禁记过的微调：state 写着 tweak、run 目录里绑着 /agent-team:at-tweak 的原话记录、还没收口。读原话记录不经 runWords（它读不出时的留痕
+    // 只认门禁记过的微调：state 写着 tweak、run 目录里绑着 /poundlock:at-tweak 的原话记录、还没收口。读原话记录不经 runWords（它读不出时的留痕
     // 说的是契约第 1 节，放在派发这里不对）。
     if (modeOf(st) !== TWEAK_MODE || closedAt(st) !== null) return plain
     let words = null
@@ -1635,7 +1635,7 @@ function delegationRoster(input) {
 // M4p：【指针】那一段。两个 run id 都是磁盘上的值（目录名、current-run 的内容），过 quote；文件名与角色名是插件自己的名字。复核（docs/51 §8）：
 // 出路按情形给——新建的就是那一趟（指针指过去；契约与项目经理自己的产物原样重写拿回传，别的角色的产物指过去之后 H3 拒项目经理写它，派它的产者
 // 重交）；写错了目录（照原样写进指针指着的那一趟，那一趟读不出来时不给）；要接着做那一趟（用户定过放弃的、拿不准的先问用户，它已经收口就不能接着做）。
-// 目录名当不了 run id 的，不给「指过去」「接着做」。指针指着的那一趟读不出来（currentBroken）：叫它别去修那一趟（/agent-team:at 第 1 节）。
+// 目录名当不了 run id 的，不给「指过去」「接着做」。指针指着的那一趟读不出来（currentBroken）：叫它别去修那一趟（/poundlock:at 第 1 节）。
 // 并行微调：这个 run 目录是不是一趟门禁记过的微调（tweaksAt 里的那一项，不是回 null）。
 function tweakOfDir(agentTeamDir, dir) {
   try {
@@ -1663,21 +1663,21 @@ function pointerNotice(other, currentId, { currentBroken = false } = {}) {
     ? `【指针】这次写的是 ${X} 那一趟 run 目录里的 ${other.name}，current-run 指着 ${C}`
     : `【指针】这次写进的 ${X} 不是一趟 run 的目录（这个名字当不了 run id），current-run 指着 ${C}`
   const judged = currentBroken
-    ? '——那一趟的 state.json 读不出来，门禁这一次什么都没核，这次写入也没有 sha 回传。别去修那一趟（/agent-team:at 第 1 节：原来那一趟坏了就另起一趟，' +
+    ? '——那一趟的 state.json 读不出来，门禁这一次什么都没核，这次写入也没有 sha 回传。别去修那一趟（/poundlock:at 第 1 节：原来那一趟坏了就另起一趟，' +
       '不写它的任何文件）。'
     : `——门禁按 ${C} 判，这次写入没有 sha 回传、不进账本比对。`
   const redo = isContractWriter(other.role)
     ? '再原样重写一次这份文件拿回传'
     : `再派 ${other.role} 重交一次（这一份是你写的，不算它交的；它重交之前，别拿这一份当这一段交齐了）`
   const lines = []
-  if (other.valid) lines.push(`新建的就是 ${X}、忘了改指针：照 /agent-team:at 第 1 节把 current-run 指到它，${redo}`)
-  else lines.push(`这个目录当不了 run：照 /agent-team:at 第 1 节用合法的 run id 另建一趟，写进那一趟；${X} 里这一份告诉用户`)
+  if (other.valid) lines.push(`新建的就是 ${X}、忘了改指针：照 /poundlock:at 第 1 节把 current-run 指到它，${redo}`)
+  else lines.push(`这个目录当不了 run：照 /poundlock:at 第 1 节用合法的 run id 另建一趟，写进那一趟；${X} 里这一份告诉用户`)
   if (!currentBroken) lines.push(`写错了目录、要写的是 ${C} 那一趟：照原样写进 ${C}；${X} 里这一份已经被这次写入改了，告诉用户`)
   if (other.valid) {
     lines.push(
       other.closed
         ? `要接着做的是 ${X} 那一趟：它已经收口，不能再接着做——交付之后的新改动另起一趟`
-        : `要接着做的是 ${X} 那一趟：那一趟是用户定过放弃的、或者拿不准，先问用户；用户要接着做，再把 current-run 指到它、跑 /agent-team:at-resume`,
+        : `要接着做的是 ${X} 那一趟：那一趟是用户定过放弃的、或者拿不准，先问用户；用户要接着做，再把 current-run 指到它、跑 /poundlock:at-resume`,
     )
   }
   return `${where}${judged}看是哪一种：\n${lines.map((l) => `  - ${l}`).join('\n')}`
@@ -1689,7 +1689,7 @@ function runClosed(dir) {
   return isPlainObject(st) && closedAt(st) !== null
 }
 
-// M4o（docs/50，审查第 20 条修法 A）：项目一级那份原话记录（记录器在 /agent-team:at 展开时写的）这一次怎么办——bindDecision 说作废就标上 dropped
+// M4o（docs/50，审查第 20 条修法 A）：项目一级那份原话记录（记录器在 /poundlock:at 展开时写的）这一次怎么办——bindDecision 说作废就标上 dropped
 // （记下之前就有的这一趟没收口却被写了：续跑了它，这条命令的需求被搁下了）；说绑，就只记下打算绑到哪一趟（binding），落盘之后由账本绑上
 // （finishWordsBinding，docs/58 §8）。creating：这一次是这个会话用 Write 建出这一趟的
 // state.json（H6 里写之前文件还不在）——只有那一次绑。账本（项目经理在当前这一趟写 state.json、契约）只作废，H6（任何一趟的 state.json）作废与绑都做。
@@ -1720,7 +1720,7 @@ function settleWords({ runDir, agentTeamDir, sessionId, state, stages, creating 
   try {
     if (decision === 'drop') {
       patchMine({ dropped: runId })
-      process.stderr.write(`agent-team user-words：${quote(runId)} 是记下原话之前就有的一趟、这次被续跑了，那份原话记录（命令带的参数或批准的需求稿）作废。\n`)
+      process.stderr.write(`poundlock user-words：${quote(runId)} 是记下原话之前就有的一趟、这次被续跑了，那份原话记录（命令带的参数或批准的需求稿）作废。\n`)
       return
     }
     // 实测（docs/58，§8 是复核）：这里是 PreToolUse——run 目录还不在（项目经理直接 Write runs/<id>/state.json，落盘时才建），这次写入也还可能被
@@ -1728,11 +1728,11 @@ function settleWords({ runDir, agentTeamDir, sessionId, state, stages, creating 
     // 先建目录再写，写入被拒时又留下一个只有原话记录的空壳。现在只记 binding（打算绑到哪一趟），落盘之后由账本完成（finishWordsBinding）。
     patchMine({ binding: runId })
   } catch (e) {
-    process.stderr.write(`agent-team user-words：原话记录写不进（${quote(e?.message ?? e, { max: 120 })}），这一趟可能不核契约第 1 节。\n`)
+    process.stderr.write(`poundlock user-words：原话记录写不进（${quote(e?.message ?? e, { max: 120 })}），这一趟可能不核契约第 1 节。\n`)
   }
 }
 
-// 写的是不是某个 .agent-team/runs/<id>/state.json（按字面认三段名字，Windows、macOS 上不分大小写）：是就给 { runDir, runsDir, agentTeamDir }，否则 null。
+// 写的是不是某个 .poundlock/runs/<id>/state.json（按字面认三段名字，Windows、macOS 上不分大小写）：是就给 { runDir, runsDir, agentTeamDir }，否则 null。
 // 不经运行上下文：建 run 的那一刻 current-run 多半还没写。
 function runStateFileOf(filePath) {
   if (typeof filePath !== 'string') return null
@@ -1740,12 +1740,12 @@ function runStateFileOf(filePath) {
   const runsDir = dirname(runDir)
   const agentTeamDir = dirname(runsDir)
   const same = (a, b) => (process.platform === 'linux' ? a === b : a.toLowerCase() === b.toLowerCase())
-  if (!same(basename(filePath), 'state.json') || !same(basename(runsDir), 'runs') || !same(basename(agentTeamDir), '.agent-team')) return null
+  if (!same(basename(filePath), 'state.json') || !same(basename(runsDir), 'runs') || !same(basename(agentTeamDir), '.poundlock')) return null
   return { runDir, runsDir, agentTeamDir }
 }
 
 // 一趟只归一个会话（hooks/lib/owner.mjs）：建 run 的那一次由账本记下归哪个会话（runs/<id>/owner.json，门禁专属）。只认主线程（项目经理、不带
-// agent_type 的主会话；不带 agent_id）用 Write 写 .agent-team/runs/<id>/state.json、已经落盘。「建 run」与 H6 认 stage_roles 的口径相同：run 目录里还没有
+// agent_type 的主会话；不带 agent_id）用 Write 写 .poundlock/runs/<id>/state.json、已经落盘。「建 run」与 H6 认 stage_roles 的口径相同：run 目录里还没有
 // 任何一份门禁专属文件——所以排在 finishWordsBinding 之前（它会往 run 目录写原话记录）。升级之前建的、跑过一阵的 run（目录里有派发记录之类）不补；
 // hook 输入里读不到会话 id 的不记（这一趟没有归属，行为照旧），留痕；写不进留痕。
 function recordOwnerOnCreate(input, filePath) {
@@ -1756,20 +1756,20 @@ function recordOwnerOnCreate(input, filePath) {
   if (GATE_FILES.map((p) => p.split('/').pop()).some((n) => existsSync(join(runDir, n)))) return
   const sid = input.session_id
   if (typeof sid !== 'string' || sid === '') {
-    process.stderr.write('agent-team 会话归属：hook 输入里读不到会话 id，这一趟不记归属（别的会话写它、以它的名义派人不会被拦）。\n')
+    process.stderr.write('poundlock 会话归属：hook 输入里读不到会话 id，这一趟不记归属（别的会话写它、以它的名义派人不会被拦）。\n')
     return
   }
   try {
     writeFileSync(join(runDir, OWNER_FILE), `${JSON.stringify(ownerRecord({ sessionId: sid, at: new Date().toISOString(), via: 'create' }), null, 2)}\n`)
     forgetRuns()
   } catch (e) {
-    process.stderr.write(`agent-team 会话归属：归属记录写不进（${quote(e?.message ?? e, { max: 120 })}），这一趟不按会话管。\n`)
+    process.stderr.write(`poundlock 会话归属：归属记录写不进（${quote(e?.message ?? e, { max: 120 })}），这一趟不按会话管。\n`)
   }
 }
 
-// M4w（docs/58 §8）：绑的第二步。项目经理 Write 的正是 .agent-team/runs/<id>/state.json、已经落盘，项目一级那份的 binding 指着这一趟、同一个会话、
+// M4w（docs/58 §8）：绑的第二步。项目经理 Write 的正是 .poundlock/runs/<id>/state.json、已经落盘，项目一级那份的 binding 指着这一趟、同一个会话、
 // 还没绑也没作废（finishBinding）——标上 bound，再写 run 目录那份（前一步先做：后一步写不进时，记录不会一直挂着被下一趟绑上，这一趟只是不核）。
-// 按路径认，不经运行上下文：这一刻 current-run 多半还没写（/agent-team:at 第 1 节先写 state.json、再写指针）。
+// 按路径认，不经运行上下文：这一刻 current-run 多半还没写（/poundlock:at 第 1 节先写 state.json、再写指针）。
 function finishWordsBinding(input, filePath) {
   if (!isContractWriter(input?.agent_type) || typeof filePath !== 'string') return
   const parts = runStateFileOf(filePath)
@@ -1789,37 +1789,37 @@ function finishWordsBinding(input, filePath) {
     if (!existsSync(own)) writeFileSync(own, `${JSON.stringify({ ...pending, binding: null, bound: runId, bound_at: new Date().toISOString() }, null, 2)}\n`)
     forgetRuns()
   } catch (e) {
-    process.stderr.write(`agent-team user-words：原话记录写不进（${quote(e?.message ?? e, { max: 120 })}），这一趟可能不核契约第 1 节。\n`)
+    process.stderr.write(`poundlock user-words：原话记录写不进（${quote(e?.message ?? e, { max: 120 })}），这一趟可能不核契约第 1 节。\n`)
   }
 }
 
 // docs/95：需求稿的批准。用户在 AskUserQuestion 里选了「照这份需求开始」，把那道题的题面当作这一次的原话，整份重写项目一级的原话记录（source: 'ask'）——
-// 与 /agent-team:at 带参数展开时同一个文件、同一个形状，之后的绑定（H6 建 run 那一次）与核对一样走。不靠运行上下文：这一刻这一趟的 run 还没建。
-// .agent-team 不在不建；记不下时回传叫项目经理请用户把需求稿贴在命令后面重发（照现在这样往下建，命令那一次记下的旧原话会被绑上、第 1 节对不上）。
+// 与 /poundlock:at 带参数展开时同一个文件、同一个形状，之后的绑定（H6 建 run 那一次）与核对一样走。不靠运行上下文：这一刻这一趟的 run 还没建。
+// .poundlock 不在不建；记不下时回传叫项目经理请用户把需求稿贴在命令后面重发（照现在这样往下建，命令那一次记下的旧原话会被绑上、第 1 节对不上）。
 // 回 null（回答里没有像批准需求稿的）或 { kind（给用户那一行）、notice（给项目经理那一段） }。
 function recordBrief(input) {
   const b = briefAnswer(input?.tool_response)
   if (!b) return null
   const skip = (why) => {
-    process.stderr.write(`agent-team approval-ask：没有记成需求稿的批准（${why}）。\n`)
+    process.stderr.write(`poundlock approval-ask：没有记成需求稿的批准（${why}）。\n`)
     return { kind: 'brief-skipped', notice: briefNotice(why) }
   }
   if (b.why) return skip(b.why)
   const sid = input.session_id
   if (typeof sid !== 'string' || sid === '') return skip('no-session')
-  const agentTeamDir = join(ROOT_PROJECT, '.agent-team')
+  const agentTeamDir = join(ROOT_PROJECT, '.poundlock')
   let isDir = false
   try {
     isDir = statSync(agentTeamDir).isDirectory()
   } catch {}
-  if (!isDir) return skip('no-agent-team')
+  if (!isDir) return skip('no-poundlock')
   let runsBefore = []
   try {
     runsBefore = readdirSync(join(agentTeamDir, 'runs'))
   } catch {}
   try {
     const rec = pendingRecord({ at: new Date().toISOString(), sessionId: sid, args: b.draft, runsBefore, source: 'ask' })
-    // 需求稿批准沿用这个会话还挂着（没绑、没作废）的那条命令（/agent-team:at-tweak 之后问清的需求稿，建的仍是微调）；绑上或作废了的旧记录不沿用——
+    // 需求稿批准沿用这个会话还挂着（没绑、没作废）的那条命令（/poundlock:at-tweak 之后问清的需求稿，建的仍是微调）；绑上或作废了的旧记录不沿用——
     // 不然一次旧的 at-tweak 会让之后的需求稿建成微调。
     updateWordsBook(agentTeamDir, sid, (book) => {
       const prev = wordsFor(book, sid)
@@ -1827,10 +1827,10 @@ function recordBrief(input) {
       return withWords(book, sid, { ...rec, command: pending ? prev.command : 'at' })
     })
   } catch (e) {
-    process.stderr.write(`agent-team approval-ask：需求稿记不下（${quote(e?.message ?? e, { max: 120 })}）。\n`)
+    process.stderr.write(`poundlock approval-ask：需求稿记不下（${quote(e?.message ?? e, { max: 120 })}）。\n`)
     return skip('write-failed')
   }
-  process.stderr.write('agent-team approval-ask：已记下用户批准的需求稿。\n')
+  process.stderr.write('poundlock approval-ask：已记下用户批准的需求稿。\n')
   // 复核：current-run 指着的那一趟是批准之前就建好的、还没收口（项目经理先建了 run 再问）——需求稿不会绑给它（项目经理再写它的 state.json 时这份记录作废），
   // 回传点明出路。只读指针与那一趟的 state.json，不引任何磁盘上的值。
   let staleRun = false
@@ -1851,10 +1851,10 @@ function recordBrief(input) {
 function recordTakeover(input) {
   const a = takeoverAnswer(input?.tool_response)
   if (!a) return null
-  const agentTeamDir = join(ROOT_PROJECT, '.agent-team')
+  const agentTeamDir = join(ROOT_PROJECT, '.poundlock')
   let runId = pointerIdOf(agentTeamDir)
   const skip = (why) => {
-    process.stderr.write(`agent-team approval-ask：没有记成接手（${why}）。\n`)
+    process.stderr.write(`poundlock approval-ask：没有记成接手（${why}）。\n`)
     return { kind: 'takeover-skipped', notice: takeoverNotice({ runId, why }) }
   }
   if (a.why) return skip(a.why)
@@ -1882,7 +1882,7 @@ function recordTakeover(input) {
   } catch {
     return skip('write-failed')
   }
-  process.stderr.write(`agent-team approval-ask：已记下接手，${quote(runId)} 这一趟改归这个会话。\n`)
+  process.stderr.write(`poundlock approval-ask：已记下接手，${quote(runId)} 这一趟改归这个会话。\n`)
   return { kind: 'takeover-recorded', notice: takeoverNotice({ runId, why: null }) }
 }
 
@@ -1892,7 +1892,7 @@ function recordAbandon(input) {
   const a = abandonAnswer(input?.tool_response)
   if (!a) return null
   const skip = (why, runId = null) => {
-    process.stderr.write(`agent-team approval-ask：没有记成放弃（${why}）。\n`)
+    process.stderr.write(`poundlock approval-ask：没有记成放弃（${why}）。\n`)
     return { kind: 'abandon-skipped', notice: abandonNotice({ runId, why }) }
   }
   if (a.why) return skip(a.why)
@@ -1914,7 +1914,7 @@ function recordAbandon(input) {
   } catch {
     return skip('write-failed', ctx.runId)
   }
-  process.stderr.write(`agent-team approval-ask：已记下放弃 ${quote(ctx.runId)} 这一趟的批准。\n`)
+  process.stderr.write(`poundlock approval-ask：已记下放弃 ${quote(ctx.runId)} 这一趟的批准。\n`)
   return { kind: 'abandon-recorded', notice: abandonNotice({ runId: ctx.runId, why: null }) }
 }
 
@@ -1924,7 +1924,7 @@ function recordTweakDone(input, source) {
   const hit = source === 'ask' ? doneAnswer(input?.tool_response) : promptDone(input?.prompt) ? { ok: true } : null
   if (!hit) return null
   const skip = (why) => {
-    process.stderr.write(`agent-team ${source === 'ask' ? 'approval-ask' : 'approval-prompt'}：没有记成「可以了，收尾」（${why}）。\n`)
+    process.stderr.write(`poundlock ${source === 'ask' ? 'approval-ask' : 'approval-prompt'}：没有记成「可以了，收尾」（${why}）。\n`)
     return { kind: 'tweak-done-skipped', notice: doneNotice({ why }) }
   }
   if (hit.why) return skip(hit.why)
@@ -1948,7 +1948,7 @@ function recordTweakDone(input, source) {
   } catch {
     return skip('write-failed')
   }
-  process.stderr.write(`agent-team ${source === 'ask' ? 'approval-ask' : 'approval-prompt'}：已记下「可以了，收尾」。\n`)
+  process.stderr.write(`poundlock ${source === 'ask' ? 'approval-ask' : 'approval-prompt'}：已记下「可以了，收尾」。\n`)
   return { kind: 'tweak-done-recorded', notice: doneNotice({ why: null }) }
 }
 
@@ -1962,7 +1962,7 @@ function runWords(runDir) {
     return null
   }
   const rec = readWords(bytes)
-  if (!rec) process.stderr.write('agent-team user-words：这一趟的原话记录在却读不出来，这一次不核契约第 1 节。\n')
+  if (!rec) process.stderr.write('poundlock user-words：这一趟的原话记录在却读不出来，这一次不核契约第 1 节。\n')
   return rec
 }
 
@@ -2039,16 +2039,16 @@ function gateFileReason(checked, exotic) {
         ? '这是门禁记下的契约基线（推进出第一段时契约第 1 节的原文，每一次改需求的修订那一刻验证段各份结论的样子），门禁自己维护，不用、也不许改。'
         : leafIs(USER_WORDS_FILE)
           ? // M4o 复核（docs/50 §9，正文中 3）：原来落到交付快照那一句，来历与出路都是错的。
-            '这是门禁在用户发出 /agent-team:at 时记下的原话（项目一级那份，或者绑进这一趟 run 目录的那份），不用、也不许改；契约第 1 节对不上它，' +
+            '这是门禁在用户发出 /poundlock:at 时记下的原话（项目一级那份，或者绑进这一趟 run 目录的那份），不用、也不许改；契约第 1 节对不上它，' +
             '就照它改第 1 节。'
           : leafIs(CLAIMS_FILE)
             ? '这是门禁记下的这一趟微调认领了哪些项目文件（它派出去的人第一次写一个文件时记），不用、也不许改；认领在这一趟收尾或放弃之后自然不算。'
           : leafIs(OWNER_FILE)
             ? '这是门禁记下的这一趟归哪个会话（建它的那个会话，或者用户经「在这个会话接手」接过去的那个会话），不用、也不许改；要换会话，照 ' +
-              '/agent-team:at-resume 第 1 节「别的会话的一趟」问用户。'
+              '/poundlock:at-resume 第 1 节「别的会话的一趟」问用户。'
             : '这是门禁自己拍的交付快照，PM 推进或回退之后由门禁照磁盘重拍，不用、也不许改。'
   return (
-    `agent-team 门禁：不得写 ${inline(checked)}——${exotic ? `${exotic}；它可能就是门禁专属文件。` : ''}${what}` +
+    `poundlock 门禁：不得写 ${inline(checked)}——${exotic ? `${exotic}；它可能就是门禁专属文件。` : ''}${what}` +
     '任何人（包括项目经理与主线程）都不用 Edit/Write 写它。'
   )
 }
@@ -2074,7 +2074,7 @@ function approvalDiagnostic(stateFile, input) {
   try {
     const ctx = runCtxFor(input)
     // 并行微调：这份 state.json 是一趟微调的、门禁这一次没认出它归这个会话——记录器同样认不出，回答记不下；不叫它去改 current-run（微调不写它）。
-    const tw = tweakOfDir(join(ROOT_PROJECT, '.agent-team'), dirname(stateFile))
+    const tw = tweakOfDir(join(ROOT_PROJECT, '.poundlock'), dirname(stateFile))
     if (tw && (!ctx.ok || norm(ctx.runDir) !== norm(dirname(stateFile)))) {
       return (
         `\n另外：这份 state.json 是微调 ${quote(tw.id)} 的。门禁按会话认微调，这一次没认出它归这个会话（hook 输入里读不到会话 id，或者它归别的会话），` +
@@ -2083,7 +2083,7 @@ function approvalDiagnostic(stateFile, input) {
     }
     if (!ctx.ok) {
       return ctx.kind === 'no-run'
-        ? '\n另外：门禁现在找不到进行中的 run（.agent-team/current-run 不在），用户的回答会记不下——先把 current-run 指回这一趟 run。'
+        ? '\n另外：门禁现在找不到进行中的 run（.poundlock/current-run 不在），用户的回答会记不下——先把 current-run 指回这一趟 run。'
         : `\n另外：门禁现在读不到这个项目的运行状态，用户的回答会记不下——先修：${runContextFix(ctx.cause)}`
     }
     if (norm(ctx.runDir) !== norm(dirname(stateFile))) {
@@ -2166,7 +2166,7 @@ function appendDispatchLog(runDir, line, label, consequence = '完成核验这�
     forgetRuns()
     return true
   } catch (err) {
-    process.stderr.write(`agent-team ${label}：派发记录没有写成（${quote(err?.message ?? err, { max: 120 })}），${consequence}。\n`)
+    process.stderr.write(`poundlock ${label}：派发记录没有写成（${quote(err?.message ?? err, { max: 120 })}），${consequence}。\n`)
     return false
   }
 }
@@ -2220,7 +2220,7 @@ function elsewhereDispatchReason(runId) {
 }
 
 // 复核（docs/49 §8）：H3 拒那一趟的人写那一趟自己的 run 目录时（目录不是当前 run 的，本来就拒），理由说清那一趟不是当前 run——原来说「没被任何角色
-// 认领，由 PM 决定要不要在 paths 里划给谁」，出路是错的（.agent-team/ 下的一律不补）。
+// 认领，由 PM 决定要不要在 paths 里划给谁」，出路是错的（.poundlock/ 下的一律不补）。
 function elsewhereWriteReason(runId) {
   return (
     `这是 ${quote(runId)} 那一趟的 run 目录，你是那一趟派出去的，可 current-run 已经指着别的一趟——那一趟不是当前 run，门禁不放写进去，写了也没人核。` +
@@ -2235,7 +2235,7 @@ function elsewhereCompletionNotice(other, state, known) {
   if (state && closedAt(state) !== null) return `${head}那一趟已经收口——门禁不再核它的产物，它这次写的东西不计入任何一趟。`
   return (
     `${head}current-run 现在指着别的一趟——门禁不按这一趟核它，那一趟的产物这一次也没人核，它写的东西不计入这一趟。` +
-    '要接着用那一趟，先把 .agent-team/current-run 改回那个 run id，再跑 /agent-team:at-resume。'
+    '要接着用那一趟，先把 .poundlock/current-run 改回那个 run id，再跑 /poundlock:at-resume。'
   )
 }
 
@@ -2396,11 +2396,11 @@ function main() {
   TRACE_STATE.entered = true
   if (!KNOWN_CHECKS.has(CHECK)) {
     process.stderr.write(
-      `agent-team: 未知的检查项 ${JSON.stringify(CHECK)}；hooks.json 与 checks.mjs 已漂移。\n`,
+      `poundlock: 未知的检查项 ${JSON.stringify(CHECK)}；hooks.json 与 checks.mjs 已漂移。\n`,
     )
     // 未知检查项时事件名也不可知，按最常见的 PreToolUse 报，安全边界优先于精确。
     denyAndExit(
-      `agent-team 门禁收到未知的检查项 ${JSON.stringify(CHECK)}，按安全边界拒绝。` +
+      `poundlock 门禁收到未知的检查项 ${JSON.stringify(CHECK)}，按安全边界拒绝。` +
         `hooks.json 注册的检查名与 checks.mjs 认得的不一致。`,
       'PreToolUse',
     )
@@ -2414,7 +2414,7 @@ function main() {
     // 读不到可判定的输入。fail closed 的检查项拒绝；fail open 的放行，但不静默（M3v：此前这里零输出，与「判过了、
     // 结论是放行」分不出来）。
     if (spec.failClosed) {
-      denyAndExit('agent-team 门禁无法读取 hook 输入，按安全边界拒绝。', spec.event)
+      denyAndExit('poundlock 门禁无法读取 hook 输入，按安全边界拒绝。', spec.event)
     }
     inputUnreadable(spec, 'stdin 不是一个 JSON 对象')
   }
@@ -2423,7 +2423,7 @@ function main() {
     if (typeof input.tool_name !== 'string') {
       if (spec.failClosed) {
         denyAndExit(
-          'agent-team 门禁无法从 hook 输入中读出 tool_name（缺失或不是字符串），按安全边界拒绝。',
+          'poundlock 门禁无法从 hook 输入中读出 tool_name（缺失或不是字符串），按安全边界拒绝。',
           spec.event,
         )
       }
@@ -2445,8 +2445,8 @@ function main() {
       result = {
         decision: 'deny',
         reason:
-          `agent-team 派发白名单：微调这一趟只派开发角色（${TWEAK_STAGES_FILE} 里 S5 的产者），不派 ${target}。要产品定义、架构方案、测试或验收的，` +
-          '这次改动就不是微调：告诉用户，改走 /agent-team:at <需求> 另起完整的一趟。',
+          `poundlock 派发白名单：微调这一趟只派开发角色（${TWEAK_STAGES_FILE} 里 S5 的产者），不派 ${target}。要产品定义、架构方案、测试或验收的，` +
+          '这次改动就不是微调：告诉用户，改走 /poundlock:at <需求> 另起完整的一趟。',
       }
     }
     // M4i 复核（docs/44 §8）：被设置或 --agent 换掉的主会话（带 agent_type、不是项目经理、没有 agent_id）被拒时，理由末尾说身份——H1 的
@@ -2458,7 +2458,7 @@ function main() {
     // 一趟只归一个会话（hooks/lib/owner.mjs）：主线程（项目经理、不带 agent_type 的主会话；不带 agent_id）在 current-run 指着的一趟归别的会话、还没收口时
     // 派人，拒。排在读运行上下文之前：它只看指针、那一趟的收口与归属，读不出运行上下文时照样判。子代理往下派照旧按派发记录认，不归这一道管。
     if (!malformedCaller(input) && isContractWriter(callerOf(input)) && typeof input.agent_id !== 'string') {
-      const agentTeamDir = join(ROOT_PROJECT, '.agent-team')
+      const agentTeamDir = join(ROOT_PROJECT, '.poundlock')
       ownerUnjudged(input, agentTeamDir)
       const block = ownerDispatchBlock({ sessionId: input.session_id, pointerId: pickedRunOf(input)?.runId ?? pointerIdOf(agentTeamDir), infoOf: ownerInfoOf(agentTeamDir) })
       if (block) denyAndExit(ownerDenyReason(block) + selfCheckIdentity(input, '派发'), spec.event)
@@ -2483,7 +2483,7 @@ function main() {
       // 不是"这次调用与本检查项无关"（那种情况在上面 toolNames 那道前置
       // 校验里已经处理并保持沉默）。按 §6 的 allow + warning 对齐，同样留痕。
       process.stderr.write(
-        'agent-team H2 就绪门禁：这次调用没有可判定的目标角色（subagent_type 缺失或为空），跳过本次校验、放行。\n',
+        'poundlock H2 就绪门禁：这次调用没有可判定的目标角色（subagent_type 缺失或为空），跳过本次校验、放行。\n',
       )
       process.exit(0)
     }
@@ -2565,11 +2565,11 @@ function main() {
     if (verifyStage && dispatchable) {
       const cmp = contractCmp(ctx)
       if (cmp.kind === 'unreadable') {
-        process.stderr.write(`agent-team H2 就绪门禁：这一次读不出 ${CONTRACT_FILE}，派 ${target} 之前没核契约的账。\n`)
+        process.stderr.write(`poundlock H2 就绪门禁：这一次读不出 ${CONTRACT_FILE}，派 ${target} 之前没核契约的账。\n`)
       } else {
         const notice = contractCheckNotice(cmp, ctx.state?.contract_sha)
         if (notice) {
-          const head = `agent-team H2 就绪门禁：${target} 是 ${verifyStage} 的产者，对着契约验——契约的账对上之前不派它。`
+          const head = `poundlock H2 就绪门禁：${target} 是 ${verifyStage} 的产者，对着契约验——契约的账对上之前不派它。`
           denyAndExit(isContractWriter(input?.agent_type) ? `${head}${notice}处理完再派 ${target}。` : head + contractNoticeFor(ctx, false), spec.event)
         }
       }
@@ -2577,21 +2577,21 @@ function main() {
   }
 
   if (CHECK === 'writepath') {
-    // 门禁自检（M3t，docs/28，全量审查第 4 条）：写 .agent-team/gate-check 一律拒，理由带着
+    // 门禁自检（M3t，docs/28，全量审查第 4 条）：写 .poundlock/gate-check 一律拒，理由带着
     // 「在线」固定串。排在一切之前——主线程豁免、读运行上下文都在它后面：自检要在没有
-    // .agent-team 的项目里、坏掉的 run 里、由主线程发起时都拿得到回答。协议在 agents/at-pm.md。
+    // .poundlock 的项目里、坏掉的 run 里、由主线程发起时都拿得到回答。协议在 agents/at-pm.md。
     // M3v：调用者是 PM 时，理由末尾可能追加一句运行状态的说明（selfCheckTail）。
     const checked = input.tool_name === 'NotebookEdit' ? input?.tool_input?.notebook_path : input?.tool_input?.file_path
     if (isGateCheck(checked)) denyAndExit(gateCheckReason() + selfCheckTail(input, checked) + selfCheckIdentity(input), spec.event)
 
     // M3z（docs/34，全量审查第 16 条）：门禁专属文件（返工批准记录、交付快照）任何人都不用 Edit/Write 改，PM 与主线程也不行——
     // 排在主线程豁免与读运行上下文之前，与门禁自检同一个位置。按路径形状认任何项目的 runs/<id>/ 下的这两个名字；写法认不出
-    // （流后缀、结尾带点）时末段先规范化（control-files.mjs 的 leafName），.agent-team 在的项目里认不出的写法一律拒（与 H6 认
+    // （流后缀、结尾带点）时末段先规范化（control-files.mjs 的 leafName），.poundlock 在的项目里认不出的写法一律拒（与 H6 认
     // state.json 同一个口径）。
     // 复核（platform-1）：上一版先拿字面末段筛一道，8.3 短名、末段是 `.` 的写法、指向它的链接都从筛子里漏过去，而主线程豁免就在
     // 后面。isGateFile 走 norm()（解析 .、..、链接、8.3 短名），每一次 Edit/Write 都认一遍；字面末段只用来决定要不要先查认不出的写法。
     const exotic =
-      mayBeGateFile(checked) && existsSync(join(ROOT_PROJECT, '.agent-team')) ? exoticPath(checked, ROOT_PROJECT) : null
+      mayBeGateFile(checked) && existsSync(join(ROOT_PROJECT, '.poundlock')) ? exoticPath(checked, ROOT_PROJECT) : null
     if (exotic || isGateFile(checked)) denyAndExit(gateFileReason(checked, exotic), spec.event)
 
     // MAIN（无 agent_type）不受 per-role 隔离约束——H3 隔离的是
@@ -2616,7 +2616,7 @@ function main() {
     // 从它切走或指到它，拒。排在主线程豁免与读运行上下文之前：豁免放行的正是主线程，建 run 那一刻运行上下文也读不出来。子代理照旧按派发记录认回
     // 派它的那一趟，不归这一道管。hook 输入里读不到会话 id 时判不出来，不拦。
     if (isContractWriter(role) && typeof input.agent_id !== 'string') {
-      const agentTeamDir = join(ROOT_PROJECT, '.agent-team')
+      const agentTeamDir = join(ROOT_PROJECT, '.poundlock')
       const runsDir = join(agentTeamDir, 'runs')
       const target = ownerTargetOf(agentTeamDir, checked)
       ownerUnjudged(input, agentTeamDir, target)
@@ -2644,7 +2644,7 @@ function main() {
         // 项目经理不在此列（它不经派发记录认）；没有微调开着的项目照旧放行（自举不变）。
         if (!isContractWriter(role) && Object.hasOwn(loadRoster() ?? {}, role) && tweaksAt(ctx.agentTeamDir).some((t) => t.open)) {
           denyAndExit(
-            `agent-team 写路径门禁：项目里开着微调，门禁认不出你是哪一趟派的（哪一趟的派发记录里都没有你），按安全边界拒绝。` +
+            `poundlock 写路径门禁：项目里开着微调，门禁认不出你是哪一趟派的（哪一趟的派发记录里都没有你），按安全边界拒绝。` +
               '以「冒泡：」停下，把这一句原样回报派你的项目经理。' +
               selfCheckIdentity(input, '写入'),
             spec.event,
@@ -2652,7 +2652,7 @@ function main() {
         }
         if (tweakDirsUnguarded(ctx, role, checked)) {
           denyAndExit(
-            `agent-team 写路径门禁：${inline(checked)} 在 .agent-team/ 下——这个项目里只有微调、没有进行中的完整 run，那里是各趟微调的 run 目录与控制文件，` +
+            `poundlock 写路径门禁：${inline(checked)} 在 .poundlock/ 下——这个项目里只有微调、没有进行中的完整 run，那里是各趟微调的 run 目录与控制文件，` +
               '只有项目经理能写。你要是哪一趟微调派出去的，把这一句冒泡给项目经理。' +
               selfCheckIdentity(input, '写入'),
             spec.event,
@@ -2663,7 +2663,7 @@ function main() {
       }
       // 全分支评审 I2：'unreadable' 对子代理继续 fail closed，但 PM 要放行。
       // 上面 role === MAIN 那条豁免盖不住这种情形——settings.json 的 agent 键
-      // 把 at-pm 钉成主线程时，主会话自己的调用带 agent_type（原始值是全名 "agent-team:at-pm"，docs/22），落不进
+      // 把 at-pm 钉成主线程时，主会话自己的调用带 agent_type（原始值是全名 "poundlock:at-pm"，docs/22），落不进
       // MAIN。而这里的 deny 发生在看路径之前，拒的是这个会话的**每一次**
       // Edit/Write；agents/at-pm.md 现在有 Bash（M1c 设计 §1.1 的上界要求——M4b 订正：那条「上界」的前提，主线程的
       // tools: 封顶子代理的工具，P4 实测不成立；M4b 裁定保留，理由是跑构建与测试（docs/36 §2.9）。这条
@@ -2687,16 +2687,16 @@ function main() {
       // 通过当成另一条生效。
       if (isContractWriter(role)) {
         process.stderr.write(
-          `agent-team H3 写路径门禁：读不到运行上下文（${ctx.reason}），但调用者是 PM` +
+          `poundlock H3 写路径门禁：读不到运行上下文（${ctx.reason}），但调用者是 PM` +
             `（项目经理），本次放行、不拦截——修复一个坏掉的 run 恰恰要 PM 动手。` +
-            `若你不是在修 run，先检查 .agent-team/current-run 与 .agent-team/project.json。\n`,
+            `若你不是在修 run，先检查 .poundlock/current-run 与 .poundlock/project.json。\n`,
         )
         process.exit(0)
       }
       // M4i 复核（docs/44 §8，M10f）：被换掉的主会话自举到一半（runs 下非空、指针还没写）就落到这里，理由只说「有人建过 run 而指针不在」，
       // 它会当成别人留下的坏 run——末尾接上身份那一句（别的调用者返回空串）。
       denyAndExit(
-        `agent-team 写路径门禁读不到运行上下文（${ctx.reason}），按安全边界拒绝。` + selfCheckIdentity(input, '写入'),
+        `poundlock 写路径门禁读不到运行上下文（${ctx.reason}），按安全边界拒绝。` + selfCheckIdentity(input, '写入'),
         spec.event,
       )
     }
@@ -2732,7 +2732,7 @@ function main() {
     }
     if (otherRunDirWrite(ctx, role, filePath)) {
       denyAndExit(
-        `agent-team 写路径门禁：${inline(filePath)} 在另一趟 run 的目录里——那里的契约、产物与记录只归那一趟（只有项目经理能写），你写不了。` +
+        `poundlock 写路径门禁：${inline(filePath)} 在另一趟 run 的目录里——那里的契约、产物与记录只归那一趟（只有项目经理能写），你写不了。` +
           '你要是那一趟派出去的，把这一句冒泡给项目经理。' +
           selfCheckIdentity(input, '写入'),
         spec.event,
@@ -2797,16 +2797,16 @@ function main() {
     // 前提也是"一个 run 正在跑"。
     if (!ctx.ok) {
       if (ctx.kind === 'no-run') {
-        // 并行微调（安全审查）：只有微调时，各趟微调的契约在 .agent-team/ 下——与 H3 同一条，非项目经理不许写。
+        // 并行微调（安全审查）：只有微调时，各趟微调的契约在 .poundlock/ 下——与 H3 同一条，非项目经理不许写。
         const fp = input.tool_name === 'NotebookEdit' ? input?.tool_input?.notebook_path : input?.tool_input?.file_path
         if (tweakDirsUnguarded(ctx, callerOf(input), fp)) {
-          denyAndExit(`agent-team 契约保护：${inline(fp)} 在微调的 run 目录所在的 .agent-team/ 下，只有项目经理能写。` + selfCheckIdentity(input, '写入'), spec.event)
+          denyAndExit(`poundlock 契约保护：${inline(fp)} 在微调的 run 目录所在的 .poundlock/ 下，只有项目经理能写。` + selfCheckIdentity(input, '写入'), spec.event)
         }
         process.stderr.write(failOpenNotice('H4 契约保护', ctx))
         process.exit(0)
       }
       denyAndExit(
-        `agent-team 契约保护读不到运行上下文（${ctx.reason}），按安全边界拒绝。` + selfCheckIdentity(input, '写入'),
+        `poundlock 契约保护读不到运行上下文（${ctx.reason}），按安全边界拒绝。` + selfCheckIdentity(input, '写入'),
         spec.event,
       )
     }
@@ -2826,7 +2826,7 @@ function main() {
     if (r.decision === 'deny') denyAndExit(r.reason + selfCheckIdentity(input, '写入'), spec.event)
     // 并行微调（安全审查第二轮）：别的一趟 run 目录里的契约——与 H3 同一条，非项目经理不许写。
     if (leafName(filePath) === CONTRACT_FILE && otherRunDirWrite(ctx, callerOf(input), filePath)) {
-      denyAndExit(`agent-team 契约保护：${inline(filePath)} 是另一趟 run 的契约，只有项目经理能写。` + selfCheckIdentity(input, '写入'), spec.event)
+      denyAndExit(`poundlock 契约保护：${inline(filePath)} 是另一趟 run 的契约，只有项目经理能写。` + selfCheckIdentity(input, '写入'), spec.event)
     }
   }
 
@@ -2843,8 +2843,8 @@ function main() {
     // 角色去写别的 run 的 state.json 同样是在动编排层的账本，见
     // hooks/lib/control-files.mjs 头部），不依赖"当前是哪个 run"。挂 ctx 会平白
     // 多出 no-run/unreadable 两支要分派，而这条检查根本用不上：agentTeamDir 只是
-    // .agent-team 在哪，跟 readRunContext(projectDir, ...) 内部算出来的 base 是
-    // 同一条路径（join(projectDir, '.agent-team')），这里直接算一遍，不必先读
+    // .poundlock 在哪，跟 readRunContext(projectDir, ...) 内部算出来的 base 是
+    // 同一条路径（join(projectDir, '.poundlock')），这里直接算一遍，不必先读
     // current-run/state.json/stages.json 一整套只为了拿这一个字符串。
     //
     // ⚠️ 不豁免任何调用者（不像 H4 豁免 PM）。state.json 只有 PM 写得了是 H3 的
@@ -2861,17 +2861,17 @@ function main() {
         ? input?.tool_input?.notebook_path
         : input?.tool_input?.file_path
 
-    const agentTeamDir = join(ROOT_PROJECT, '.agent-team')
+    const agentTeamDir = join(ROOT_PROJECT, '.poundlock')
 
     // M3q（docs/25）：认不出是哪个文件的写法（流后缀、结尾带点或空格、网络路径），可能正是
     // 某个 run 的 state.json——H6 认不出来就等于放行一次清零。只在这个项目确实用着这支团队
-    // （.agent-team 在）、且最后一段可能就是 state.json（含 8.3 短名）时拦：H6 挂在每一次
+    // （.poundlock 在）、且最后一段可能就是 state.json（含 8.3 短名）时拦：H6 挂在每一次
     // Edit/Write 上，主线程写网络上一个不相干的文件不归它管。排在 norm() 之前，网络路径不能碰。
     const exotic =
       existsSync(agentTeamDir) && mayBeStateFile(filePath) ? exoticPath(filePath, ROOT_PROJECT) : null
     if (exotic) {
       denyAndExit(
-        `agent-team H6 返工预算：不得写 ${inline(filePath)}——${exotic}。门禁认不出它是不是 state.json，` +
+        `poundlock H6 返工预算：不得写 ${inline(filePath)}——${exotic}。门禁认不出它是不是 state.json，` +
           `按安全边界拒绝；请用普通的本地绝对路径。`,
         spec.event,
       )
@@ -2916,7 +2916,7 @@ function main() {
       }
       if (afterText === null) {
         denyAndExit(
-          `agent-team H6 返工预算：算不出这次 ${input.tool_name} 之后 state.json 会变成什么` +
+          `poundlock H6 返工预算：算不出这次 ${input.tool_name} 之后 state.json 会变成什么` +
             `（Edit 的 old_string 在文件里找不到、出现不止一处又没带 replace_all、用了弯引号或转义写法，` +
             `或者参数不全），门禁没法判断它有没有改小返工计数，` +
             `按安全边界拒绝。改用 Write 把完整的 state.json 整份重写。`,
@@ -2998,7 +2998,7 @@ function main() {
       const runSeen = GATE_FILES.map((p) => p.split('/').pop()).some((n) => existsSync(join(dirname(filePath), n)))
       const sk = decideStageRolesKey({ before, after, creating: before === null && beforeText === null && !runSeen })
       if (!sk.ok) denyAndExit(sk.reason, spec.event)
-      // 单个微调：mode 为 tweak 的写入要有门禁记下的 /agent-team:at-tweak——建 run 那一次看这个会话挂着的原话记录，之后 state.json 读不出来时看 run 目录
+      // 单个微调：mode 为 tweak 的写入要有门禁记下的 /poundlock:at-tweak——建 run 那一次看这个会话挂着的原话记录，之后 state.json 读不出来时看 run 目录
       // 里绑上的那一份（rework-guard.mjs 的 decideModeKey）。
       const myWords = wordsFor(readWordsBookAt(agentTeamDir), input.session_id)
       const mk = decideModeKey({
@@ -3036,7 +3036,7 @@ function main() {
       // diskSha 在上面（M4a 起收口判据也用它）。
       const rb = decideReworkBase({ before, after, stages: stagesForRework, diskSha, dispatched })
       if (!rb.ok) denyAndExit(rb.reason, spec.event)
-      for (const note of rb.notes) process.stderr.write(`agent-team H6 返工预算：${note}\n`)
+      for (const note of rb.notes) process.stderr.write(`poundlock H6 返工预算：${note}\n`)
 
       // M4j（docs/45，审查第 20 条）：契约基线（门禁专属的 contract-base.json，hooks/lib/contract-base.mjs）——推进与收口时，契约第 1 节
       // 跟推进出第一段时记下的不同、验证段的结论对着上一版契约，拒。排在最后：缺、空、上一轮的、返工预算这些先说。读不出来当没有基线。
@@ -3051,7 +3051,7 @@ function main() {
         contractBytes = readFileSync(join(runDir, CONTRACT_FILE))
       } catch {}
       const contractBase = readContractBase(contractBaseRaw)
-      if (contractBaseRaw && !contractBase) process.stderr.write('agent-team H6 契约基线：在却读不出来，这一次不核第 1 节与对着上一版契约的结论。\n')
+      if (contractBaseRaw && !contractBase) process.stderr.write('poundlock H6 契约基线：在却读不出来，这一次不核第 1 节与对着上一版契约的结论。\n')
       const cb = decideContractBase({
         before,
         after,
@@ -3063,7 +3063,7 @@ function main() {
       })
       if (!cb.ok && !abandoning) denyAndExit(cb.reason, spec.event)
 
-      // M4o（docs/50，审查第 20 条修法 A）：推进出第一段时，契约第 1 节对不上用户在 /agent-team:at 后面写的原话或批准的需求稿（docs/95）（这一趟建起来那一次绑进 run 目录的
+      // M4o（docs/50，审查第 20 条修法 A）：推进出第一段时，契约第 1 节对不上用户在 /poundlock:at 后面写的原话或批准的需求稿（docs/95）（这一趟建起来那一次绑进 run 目录的
       // 记录），拒。没有记录的（更早建的 run、别的会话建的、不经门禁建的、命令没带参数、收口之后照用户的消息另起的）不核。
       // 排在契约判据之后、验收判据之前：两样都是契约那一族，第一段推进时契约基线还没有，不会两样一起说。
       const chain = isStageChain(stagesForRework) ? Object.keys(stagesForRework) : []
@@ -3091,7 +3091,7 @@ function main() {
             ? { ok: false, kind: 'unreadable' }
             : compareContractSha({ recorded: after.contract_sha, actual: contractBytes ? sha256OfContract(contractBytes) : null })
         if (s1cmp.kind === 'unreadable') {
-          process.stderr.write(`agent-team H6 返工预算：这一次读不出 ${CONTRACT_FILE}，推进出 ${chain[0]} 之前没核契约的账。\n`)
+          process.stderr.write(`poundlock H6 返工预算：这一次读不出 ${CONTRACT_FILE}，推进出 ${chain[0]} 之前没核契约的账。\n`)
         } else {
           // 复核（docs/63 §8）：漂了的那一支在第一段里单写——契约还由项目经理写、可以改（改第 1 节照原话、改第 2 节的理解），通用那一句的「契约被人改过、
           // 不是第 4 节的修订——恢复原样」在这里会导向绕圈。值仍然只从写契约那一次的回传来、不照磁盘改账。
@@ -3101,7 +3101,7 @@ function main() {
                 `把最近一次写契约收到的【契约】回传给的 sha 记进 contract_sha；手上没有那个值，就原样重写一次 ${CONTRACT_FILE}，从这一次的回传里拿——` +
                 '不要自己算（门禁先统一行尾再算，自己算的对不上）。'
               : contractCheckNotice(s1cmp, after.contract_sha)
-          if (s1notice) denyAndExit(`agent-team H6 返工预算：推进出 ${chain[0]} 之前，这次写入的 contract_sha 要与磁盘上的契约对得上。${s1notice}`, spec.event)
+          if (s1notice) denyAndExit(`poundlock H6 返工预算：推进出 ${chain[0]} 之前，这次写入的 contract_sha 要与磁盘上的契约对得上。${s1notice}`, spec.event)
         }
       }
       // M4o 复核（docs/50 §9）：放行之前处理项目一级那份原话记录——这个会话建出这一趟 state.json 的那一次（写之前它不在）绑，续跑命令之前就有的那一趟
@@ -3160,7 +3160,7 @@ function main() {
       // 评审 F11：阶段链读得出、却认不出验收那一段（插件的 stages.json 改坏了）：这一次不读验收结论，留一行痕。
       // 单个微调：短链本来就没有验收段（测试段带 "test": true），不留这一行；正常链被改坏、丢了验收段的照旧留。
       const tweakTest = testStageOf(stagesForRework)
-      if (isStageChain(stagesForRework) && !acceptanceDef && stagesForRework[tweakTest?.stageId]?.test !== true) process.stderr.write('agent-team H6 验收结论：阶段链上认不出验收那一段，这一次不读验收结论。\n')
+      if (isStageChain(stagesForRework) && !acceptanceDef && stagesForRework[tweakTest?.stageId]?.test !== true) process.stderr.write('poundlock H6 验收结论：阶段链上认不出验收那一段，这一次不读验收结论。\n')
       const ac = decideAcceptance({
         before,
         after,
@@ -3203,17 +3203,17 @@ function main() {
       // ⚠️ 这里**不能**无条件 fail open（M1b 终审 C1）。
       //
       // 触达表的判据只有两样：插件侧的 roster.json，和刚写完的
-      // .agent-team/project.json。两者都与 run 无关——computeReach 是纯数据推导，
+      // .poundlock/project.json。两者都与 run 无关——computeReach 是纯数据推导，
       // 不看 state、不看 runDir。而 /at-init **按设计就跑在没有 run 的时候**
       // （commands/at-init.md 末尾明令「不要在这条命令里建 run、写 state.json 或
       // current-run」）。把整条通道挂在 ctx.ok 上，等于让它在它唯一该发声的场合
       // 永远沉默：全新项目上 PM 写完 project.json 之后什么都收不到，
-      // .agent-team/reach.json（控制文件之一、规格 §6.2.1、docs/09 账二 ③ 的唯一
+      // .poundlock/reach.json（控制文件之一、规格 §6.2.1、docs/09 账二 ③ 的唯一
       // 交付物）因此永远不存在，而 /at-status 让用户「重跑 /at-init」是个死循环。
       //
       // 只放这一条缝，不放宽别的：这次写的必须正好是 project.json 本身。别的写入
       // （包括 run 目录下的阶段产物）在没有运行上下文时照旧 fail open + 留痕。
-      // ctx.agentTeamDir 取不到时（runctx 最外层兜底 catch 那一支，连 .agent-team
+      // ctx.agentTeamDir 取不到时（runctx 最外层兜底 catch 那一支，连 .poundlock
       // 在哪都不知道）也照原路 fail open —— 见 hooks/lib/runctx.mjs 那里的注释。
       if (isProjectJson(filePath, ctx.agentTeamDir)) {
         let project = readProjectConfig(ROOT_PROJECT)
@@ -3253,7 +3253,7 @@ function main() {
           })
         }
         // project.json 刚写进去却读不出来。M3u（docs/29）：文件在、只是解析不出或不是对象时，照 state.json
-        // 那一支（M3r）回传一句固定的话——此前这里只往 stderr 留痕，模型看不到，/agent-team:at-init 会把它
+        // 那一支（M3r）回传一句固定的话——此前这里只往 stderr 留痕，模型看不到，/poundlock:at-init 会把它
         // 误当成「门禁没在跑」。不回显文件内容，不造空触达表。读不到（被删、被占用）时照旧只留痕（落到最后那行）。
         if (text !== null) {
           if (ctx.kind !== 'no-run') process.stderr.write(failOpenNotice('ledger 回传', ctx))
@@ -3262,13 +3262,13 @@ function main() {
           })
         }
       }
-      // M4g（docs/42，审查第 28 条）：/agent-team:at-init 写 reach.json 时按设计没有 run——触达表的判据只有花名册与 project.json，与
+      // M4g（docs/42，审查第 28 条）：/poundlock:at-init 写 reach.json 时按设计没有 run——触达表的判据只有花名册与 project.json，与
       // run 无关，照上面 project.json 那条缝的理由核它（对不上才说话）。project.json 核不了的几种（不在、这一刻读不出、读得到却解析不出）都在这里说。
       // docs/83 §8：写 reach.json 那一条缝重读过 project.json 的，下面「它在别处被弄坏」那一条缝用它，不再读第二轮（各停两次）。
       let projectReread = null
       if (isReachJson(filePath, ctx.agentTeamDir)) {
         let project = readProjectConfig(ROOT_PROJECT)
-        const projectFile = join(ROOT_PROJECT, '.agent-team', 'project.json')
+        const projectFile = join(ROOT_PROJECT, '.poundlock', 'project.json')
         // docs/83：project.json 不在也说（核不了）。
         const missing = !project.ok && !existsSync(projectFile)
         // docs/83 §8：在、这一刻却读不出（杀毒、索引器的短暂占用）——照写 project.json 那一条缝重读（readProjectText，最多三次）：读到对象照常核；
@@ -3334,10 +3334,10 @@ function main() {
       // M3u 复核轮（docs/29）：project.json 在别处被弄坏（用户在两趟 run 之间手改，加了注释或尾逗号）——run 在时
       // readRunContext 判 unreadable，落到这里的每一次写入此前都只往 stderr 留痕：PM 写 state.json、current-run、
       // 契约都收不到任何东西，契约哈希拿不到，commands/at.md 的「没收到就停下：门禁没在跑」把用户引去排查一个
-      // 不存在的问题。写 .agent-team 下任何文件时（PM 这一趟会写的都在那下面），自己读一遍 project.json：读得到、
+      // 不存在的问题。写 .poundlock 下任何文件时（PM 这一趟会写的都在那下面），自己读一遍 project.json：读得到、
       // 解析不出或不是对象，就回传那句固定的话的变体；读不到（被删、被占用）照旧只留痕。不回显文件内容。写的正是
       // project.json 时不走这里：上面那条缝已经读过它（读不到才落到这里），不再用「在别处被弄坏」的口径说它。
-      // .agent-team 之外的写入保持沉默，同下面 ctx.ok 那一支：project.json 坏着的项目里，主会话与执行角色每写一个
+      // .poundlock 之外的写入保持沉默，同下面 ctx.ok 那一支：project.json 坏着的项目里，主会话与执行角色每写一个
       // 业务文件都刷一遍这段话，会把真正要看的东西淹掉。
       if (
         typeof filePath === 'string' &&
@@ -3362,13 +3362,13 @@ function main() {
       // 没在跑」。现在按原因回传一段【门禁】，给用户一行。只在这几格说：
       //   - 调用者是 PM（isContractWriter）：unreadable 下非 PM 的写入在 PreToolUse 上就被 H3 拒了，走到这里的非 PM 只能是
       //     「Pre 时好、Post 时坏」的竞态，它修不了，说给它听只是多一个转述环节；
-      //   - 写的在 .agent-team/runs/ 下、不是控制文件：契约与产物都在那下面；.agent-team/ 下别的文件本来就没有回传，
+      //   - 写的在 .poundlock/runs/ 下、不是控制文件：契约与产物都在那下面；.poundlock/ 下别的文件本来就没有回传，
       //     跟它说「重写一次拿回传」是假话。控制文件（state.json）是 PM 在建 run、修 run——第一趟建 run 时写
       //     runs/<id>/state.json 的那一刻指针还没写，这里判丢指针，说一句就是在正路上刷屏；
-      //   - 不是 no-run：没有 run 就没有哈希可拿。偏离 /agent-team:at 第 1 节的顺序、直接写契约的那一格，落盘之后 runs/
+      //   - 不是 no-run：没有 run 就没有哈希可拿。偏离 /poundlock:at 第 1 节的顺序、直接写契约的那一格，落盘之后 runs/
       //     非空、指针不在，这里判丢指针——契约的哈希确实丢了，该出声（tests/gate-fail-open.test.mjs 钉着）。
       // 上面三条缝（project.json 本身、坏 state.json、在别处被弄坏的 project.json）先说完就退出了，不叠这一段。
-      // M4p 复核（docs/51 §8，中 1）：指针指着的那一趟 state.json 读不出来，项目经理照 /agent-team:at 第 1 节另起一趟、却漏切了指针，把契约或产物写进
+      // M4p 复核（docs/51 §8，中 1）：指针指着的那一趟 state.json 读不出来，项目经理照 /poundlock:at 第 1 节另起一趟、却漏切了指针，把契约或产物写进
       // 了新的那一趟——先说【指针】、叫它别去修那一趟。原来这里出【门禁】，修法叫它照 current-run 重建那一趟的 state.json，正好违反第 1 节。
       // 阶段链从插件自己那份读（ctx 读不出时没有它），读不出就只认契约。
       if (ctx.cause === 'state' && isContractWriter(input.agent_type) && typeof ctx.agentTeamDir === 'string') {
@@ -3399,7 +3399,7 @@ function main() {
       process.exit(0)
     }
 
-    // 不在 .agent-team/ 下的写入与本检查项无关，保持沉默——角色写业务代码是常态，
+    // 不在 .poundlock/ 下的写入与本检查项无关，保持沉默——角色写业务代码是常态，
     // 每次都刷一段 additionalContext 会把真正要看的东西淹掉。ledger 关心两类
     // 路径：控制文件，以及 run 目录下的阶段产物（后者用来判断当前阶段的产物齐
     // 没齐）；underDir 判的是后一类，写在 hooks/lib/path-norm.mjs 里（评审 I-2：
@@ -3486,7 +3486,7 @@ function main() {
       if (!ctx.project) {
         projectReport = {
           block: [
-            '.agent-team/project.json 不在——run 已经建起来，执行角色写 run 目录之外的任何地方都会被拒；先跑 /agent-team:at-init 写好它',
+            '.poundlock/project.json 不在——run 已经建起来，执行角色写 run 目录之外的任何地方都会被拒；先跑 /poundlock:at-init 写好它',
           ],
         }
       } else {
@@ -3746,8 +3746,8 @@ function main() {
       })
       if (!cov.narrowed) {
         process.stderr.write(
-          `agent-team 产者交代：读不到 .agent-team/project.json 的 available_roles（可用班底），` +
-            `本次判据没能按它收窄，报出来的口径比平时宽。跑 /agent-team:at-init 把它写上。\n`,
+          `poundlock 产者交代：读不到 .poundlock/project.json 的 available_roles（可用班底），` +
+            `本次判据没能按它收窄，报出来的口径比平时宽。跑 /poundlock:at-init 把它写上。\n`,
         )
       }
       // M3b 修复轮 1：收尾按「收件人改不改得了 state.json」分支。
@@ -3794,13 +3794,13 @@ function main() {
   }
 
   if (CHECK === 'user-words') {
-    // M4o（docs/50，审查第 20 条修法 A）：原话记录。/agent-team:at 展开时（UserPromptExpansion），把用户写在命令后面的那段话、这个会话的 id、
-    // 那一刻 runs/ 下已有的 run 记进项目一级的 .agent-team/user-words.json——整份重写，最近的一次命令为准；这个会话之后建出一趟新 run 的 state.json
-    // 那一次由 H6 绑进 run 目录（settleWords）。不拦任何东西、stdout 一个字都不写（这个事件上 exit 2 会把用户的命令拦掉）。.agent-team 不在不建它：
-    // 还没跑过 /agent-team:at-init 的项目，项目经理会叫用户先跑它（之后没重发命令、在对话里叫它接着做的，这一趟不核）。runs/ 读不出来当一趟都没有。
+    // M4o（docs/50，审查第 20 条修法 A）：原话记录。/poundlock:at 展开时（UserPromptExpansion），把用户写在命令后面的那段话、这个会话的 id、
+    // 那一刻 runs/ 下已有的 run 记进项目一级的 .poundlock/user-words.json——整份重写，最近的一次命令为准；这个会话之后建出一趟新 run 的 state.json
+    // 那一次由 H6 绑进 run 目录（settleWords）。不拦任何东西、stdout 一个字都不写（这个事件上 exit 2 会把用户的命令拦掉）。.poundlock 不在不建它：
+    // 还没跑过 /poundlock:at-init 的项目，项目经理会叫用户先跑它（之后没重发命令、在对话里叫它接着做的，这一趟不核）。runs/ 读不出来当一趟都没有。
     // 记不下只是这一趟不核第 1 节，留痕。
-    const agentTeamDir = join(ROOT_PROJECT, '.agent-team')
-    // 复核（docs/50 §9）：不带参数的 /agent-team:at——这个会话之前那条命令记下的、还挂着（没绑也没作废）的那份清掉：这一次的需求在之后的对话里给，
+    const agentTeamDir = join(ROOT_PROJECT, '.poundlock')
+    // 复核（docs/50 §9）：不带参数的 /poundlock:at——这个会话之前那条命令记下的、还挂着（没绑也没作废）的那份清掉：这一次的需求在之后的对话里给，
     // 留着它会绑给这一次建的那一趟。别的会话的那份不动。
     const blank = blankAtSession(input)
     if (blank) {
@@ -3810,7 +3810,7 @@ function main() {
             const p = wordsFor(book, blank)
             return p && p.bound === null && p.dropped === null ? withWords(book, blank, null) : null
           })
-          if (done) process.stderr.write('agent-team user-words：/agent-team:at 这次没带参数，这个会话之前记下的原话作废。\n')
+          if (done) process.stderr.write('poundlock user-words：/poundlock:at 这次没带参数，这个会话之前记下的原话作废。\n')
         }
       } catch {}
       process.exit(0)
@@ -3822,7 +3822,7 @@ function main() {
       isDir = statSync(agentTeamDir).isDirectory()
     } catch {}
     if (!isDir) {
-      process.stderr.write('agent-team user-words：这个项目里还没有 .agent-team（没跑过 /agent-team:at-init），这次的原话不记。\n')
+      process.stderr.write('poundlock user-words：这个项目里还没有 .poundlock（没跑过 /poundlock:at-init），这次的原话不记。\n')
       process.exit(0)
     }
     let runsBefore = []
@@ -3833,9 +3833,9 @@ function main() {
       const rec = pendingRecord({ at: new Date().toISOString(), sessionId: w.sessionId, args: w.args, runsBefore, command: w.command })
       // 一趟只归一个会话：只换这个会话那一条，别的会话挂着的不动。
       updateWordsBook(agentTeamDir, w.sessionId, (book) => withWords(book, w.sessionId, rec))
-      process.stderr.write('agent-team user-words：已记下 /agent-team:at 后面的原话。\n')
+      process.stderr.write('poundlock user-words：已记下 /poundlock:at 后面的原话。\n')
     } catch (e) {
-      process.stderr.write(`agent-team user-words：原话记不下（${quote(e?.message ?? e, { max: 120 })}），这一趟契约第 1 节不跟它核。\n`)
+      process.stderr.write(`poundlock user-words：原话记不下（${quote(e?.message ?? e, { max: 120 })}），这一趟契约第 1 节不跟它核。\n`)
     }
     process.exit(0)
   }
@@ -3846,7 +3846,7 @@ function main() {
     // 已收口的不出声——正常的一趟不多一个字。
     const command = typeof input.command_name === 'string' ? stripPluginPrefix(input.command_name) : ''
     if (input.expansion_type !== 'slash_command' || !['at', 'at-resume', 'at-status', 'at-tweak'].includes(command) || input.command_name === command) process.exit(0)
-    const agentTeamDir = join(ROOT_PROJECT, '.agent-team')
+    const agentTeamDir = join(ROOT_PROJECT, '.poundlock')
     const contexts = []
     const runId = pointerIdOf(agentTeamDir)
     const info = runId ? ownerInfoOf(agentTeamDir)(runId) : null
@@ -3959,11 +3959,11 @@ function main() {
     }
     // M4k：照现状交付那几条的留痕（返工批准那一句在下面）。
     for (const r of results.filter((x) => x.deliver)) {
-      process.stderr.write('agent-team ' + CHECK + '：' + (r.sha ? '已记下照现状交付的批准（' + r.name + '）。' : '没有记成照现状交付的批准（' + r.why + '）。') + '\n')
+      process.stderr.write('poundlock ' + CHECK + '：' + (r.sha ? '已记下照现状交付的批准（' + r.name + '）。' : '没有记成照现状交付的批准（' + r.why + '）。') + '\n')
     }
     for (const r of results.filter((x) => !x.deliver)) {
       process.stderr.write(
-        `agent-team ${CHECK}：` +
+        `poundlock ${CHECK}：` +
           (r.covers ? `已记下返工批准：回到 ${r.stage}（覆盖 ${r.covers.join('、')}）。` : `没有记成返工批准（${r.why}${r.stage ? `，${quote(r.stage)}` : ''}）。`) +
           '\n',
       )
@@ -4024,7 +4024,7 @@ function main() {
         contexts.splice(
           start,
           piece.length,
-          `交付物核验：${role}（${stage}）这条完成通知门禁之前已经核过一次、结论没变——照那一次的回传处理（同一个子代理的完成通知平台会送不止一条；那一次的回传已经不在上下文里的，读它的回报、照 /agent-team:at 第 3 节「核实」去 run 目录核实）。`,
+          `交付物核验：${role}（${stage}）这条完成通知门禁之前已经核过一次、结论没变——照那一次的回传处理（同一个子代理的完成通知平台会送不止一条；那一次的回传已经不在上下文里的，读它的回报、照 /poundlock:at 第 3 节「核实」去 run 目录核实）。`,
         )
         return
       }
@@ -4055,7 +4055,7 @@ function main() {
           if (recipientIsPm) {
             contexts.push(
               `交付物核验：${d.role}（${d.stage}）在这一趟收口之后才完成——收口时它还在跑。门禁不再核它的产物，它这次写的东西不计入这一趟；` +
-                '要用，另起一趟（/agent-team:at）。',
+                '要用，另起一趟（/poundlock:at）。',
             )
           }
           continue
@@ -4135,7 +4135,7 @@ function main() {
     // H5b（stop-gate）判的是"正在停止的这个 subagent 自己"：SubagentStop 是
     // 生命周期事件，agent_type 就是这次事件所属的那个 subagent——
     // docs/07-U5-U6-U8-实测结论.md §4 实测过，平台真实发的是全限定名
-    // "agent-team:at-xxx"，必须 stripPluginPrefix。
+    // "poundlock:at-xxx"，必须 stripPluginPrefix。
     //
     // H5a（deliverable）判的是"刚被派发、已经返回的那个目标角色"，不是发起
     // 这次 Agent 调用的调用者。PostToolUse 保留同一次调用的 tool_input：
@@ -4155,7 +4155,7 @@ function main() {
       // 前置校验里已经处理并保持沉默），是"这次事件确实归本检查项管，但
       // 认不出该查谁"，同样要放行 + 留痕，不能悄悄放行。
       process.stderr.write(
-        `agent-team ${label}：这次事件没有可判定的目标角色（agent_type 或 ` +
+        `poundlock ${label}：这次事件没有可判定的目标角色（agent_type 或 ` +
           `tool_input.subagent_type 缺失），跳过本次校验、放行。\n`,
       )
       process.exit(0)
@@ -4165,7 +4165,7 @@ function main() {
     // M3n：SubagentStop 带着 PM 的身份时，H5b 不表态——那不是一个被派出去的角色在收尾。
     // 实测（docs/22 §3）：CLI 自己起的内部分叉（agent_summary、prompt_suggestion、compact……）
     // 停下时也发 SubagentStop，而它们带的 agent_type 是**主线程**的身份，不是父代理的；
-    // 本插件用 settings.json 的 agent 键把主线程钉成 at-pm，于是它们一律是 "agent-team:at-pm"。
+    // 本插件用 settings.json 的 agent 键把主线程钉成 at-pm，于是它们一律是 "poundlock:at-pm"。
     // at-pm 是 S1 / S4 / S8 的产者：没有这一行时，H5b 在这几段、PM 的产物落盘之前会对每一个
     // 分叉 exit 2（docs/22 §5 是实物：一个写进度摘要的分叉被要求交出 04-dispatch.md）。
     // 这一行的前提有两半：
@@ -4249,7 +4249,7 @@ function main() {
         label,
       )
       process.stderr.write(
-        `agent-team ${label}：${ownId} 是 ${quote(elsewhere.id)} 那一趟派出去的，current-run 指着别的一趟——不按这一趟核、放它${sent ? '交回' : '停下'}` +
+        `poundlock ${label}：${ownId} 是 ${quote(elsewhere.id)} 那一趟派出去的，current-run 指着别的一趟——不按这一趟核、放它${sent ? '交回' : '停下'}` +
           `${kept ? '，停下行记回那一趟' : '（那一趟已经收口，不再记）'}。\n`,
       )
       process.exit(0)
@@ -4343,7 +4343,7 @@ function main() {
       const reason = r.ok ? verdictStopReason(ctx, role) : r.reason
       if (!reason || isBubbleStop({ stopHookActive: blockedBefore, lastMessage: report })) process.exit(0)
       if (!recordStop('block') && isBubbleStop({ stopHookActive: true, lastMessage: report })) {
-        process.stderr.write(`agent-team ${label}：拦截行没有记下，下一回认不出它被拦过——这次交回带着冒泡标记，放行。\n`)
+        process.stderr.write(`poundlock ${label}：拦截行没有记下，下一回认不出它被拦过——这次交回带着冒泡标记，放行。\n`)
         process.exit(0)
       }
       denyAndExit(`${reason}${HANDBACK_DENIED}`, spec.event)
@@ -4531,7 +4531,7 @@ function main() {
       let message = null
       if (r.skipped === 'unknown-stage') {
         process.stderr.write(
-          `agent-team ${label}：state.stage 不在阶段链里，这次没有做交付物核验、放行。` +
+          `poundlock ${label}：state.stage 不在阶段链里，这次没有做交付物核验、放行。` +
             (CHECK === 'deliverable' && !recipientCanWriteState
               ? `回传落在 ${inline(recipient)} 手里——它改不了 state.json，要靠它原样冒泡到 PM。`
               : '') +
@@ -4555,7 +4555,7 @@ function main() {
         const lastOpenForPm = !coordinator && recipientCanWriteState && ctx.state?.stage === lastStageId(ctx.stages) && closedAt(ctx.state) === null
         const notice = lastOpenForPm
           ? `⚠️ 交付物校验：${justNow} ${inline(role)} 不是当前阶段（state.stage = ${stageLabel}，阶段链最后一段）的执行者。` +
-            `这次若是在补收口缺的前置（收口时 H6 点过名的），不是返工、不用记回退——等它交完，照 /agent-team:at 第 6 节从第一步` +
+            `这次若是在补收口缺的前置（收口时 H6 点过名的），不是返工、不用记回退——等它交完，照 /poundlock:at 第 6 节从第一步` +
             `重走一遍再收口（补交的验收结论要读，交付文档要照它改）。交付之后的新改动：先照第 6 节收口、再另起一趟；这一趟的产物` +
             `有问题要返工：照「回退」一节记一次回退，同一次 Write 追加 history、记 rework 与 rework_base。` +
             `⚠️ **不要靠把 state.stage 改回旧阶段来消掉这条**。`
@@ -4564,7 +4564,7 @@ function main() {
             `执行者，但它能（传递地）派到当前阶段的执行角色——这原本是合法的层级协调。` +
             `只是当前阶段的产物已经全部齐备，state.stage 大概率没有随之推进到下一阶段：` +
             `这正是**停在旧阶段**，H5 会对新阶段全程哑火。去 run 目录核实产物是否真的都已` +
-            `完成，确认后照 /agent-team:at 第 3 节记推进的账：stage 与 history 用同一次 Write 推进，roster、stage_roles、trimmed 一起记。` +
+            `完成，确认后照 /poundlock:at 第 3 节记推进的账：stage 与 history 用同一次 Write 推进，roster、stage_roles、trimmed 一起记。` +
             (isRolePatternStage(ctx.stages?.[ctx.state?.stage]) ? IMPL_RECORD_NOTE : '')
           : `⚠️ 交付物校验：${justNow} ${inline(role)} 不是当前阶段（state.stage = ${stageLabel}）的` +
             `执行者，**而且它也派不到那个执行者**（所以不是一次层级协调），所以这次校验` +
@@ -4577,7 +4577,7 @@ function main() {
             // rework 与 rework_base 同一次 Write 记上。按收件人分：改得了 state.json 的照「回退」一节记，改不了的冒泡。
             // M4a（docs/35）：最后一段、没收口、PM 收件那一种挪到最前面单独说（lastOpenForPm）。
             (recipientCanWriteState
-              ? `这次派发若是驳回之后的返工，那不是把 stage 改回去，是记一次回退：照 /agent-team:at 的「回退」一节，` +
+              ? `这次派发若是驳回之后的返工，那不是把 stage 改回去，是记一次回退：照 /poundlock:at 的「回退」一节，` +
                 `同一次 Write 追加 history、记 rework 与 rework_base。这一次已经重写过的产物会被快照记成上一轮的，` +
                 `记完之后把它们标 "accepted"，不必再派一遍（验证段的产物除外：测试、验收、交付报告要再出一次）；` +
                 `被门禁拦下、没写成的，记完回退之后照常再派。`
@@ -4724,7 +4724,7 @@ try {
   // 两份 JSON，拒绝失效、回传全丢；已经写出去的那一份照样有效，这里只留痕，照那个结果的退出码退出（SubagentStop 的拒绝是 2）。
   if (DECIDED !== null) {
     process.stderr.write(
-      `agent-team ${CHECK} 检查项在写出结果之后异常（${quote(err?.message ?? err, { max: 120 })}）。${SECOND_WRITE_NOTE}\n`,
+      `poundlock ${CHECK} 检查项在写出结果之后异常（${quote(err?.message ?? err, { max: 120 })}）。${SECOND_WRITE_NOTE}\n`,
     )
     process.exit(DECIDED)
   }
@@ -4732,7 +4732,7 @@ try {
   // 万一不存在（防御性兜底），按最严格的 fail closed 处理，安全边界优先于精确。
   if (!spec || spec.failClosed) {
     // err?.message：throw 出来的不一定是 Error，这一层自己再抛就会掉进 boot.mjs 的加载失败退路。
-    denyAndExit(`agent-team 门禁异常，按安全边界拒绝：${quote(err?.message ?? err, { max: 120 })}`, event)
+    denyAndExit(`poundlock 门禁异常，按安全边界拒绝：${quote(err?.message ?? err, { max: 120 })}`, event)
   }
   // fail open 的检查项（spec.failClosed === false，此刻 spec 必然存在，见上面
   // 那条分支）此前这里直接 process.exit(0)——零 stdout、零 stderr，跟「判定

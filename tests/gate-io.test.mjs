@@ -132,7 +132,7 @@ test('tool_name 是数字——deny（fail closed）', () => {
 // 挂载方式（scripts/dev-link.mjs）本身就是 junction，hooks.json 里
 // ${CLAUDE_PLUGIN_ROOT} 展开的正是这条路径。
 test('经 junction 挂载路径执行仍然 deny（回归：入口守卫曾让 main() 在此路径下永不执行）', (t) => {
-  const linkPath = join(tmpdir(), `agent-team-junction-test-${process.pid}-${Date.now()}`)
+  const linkPath = join(tmpdir(), `poundlock-junction-test-${process.pid}-${Date.now()}`)
 
   try {
     execFileSync('cmd', ['/c', 'mklink', '/J', linkPath, ROOT], { encoding: 'utf8' })

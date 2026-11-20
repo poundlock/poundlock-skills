@@ -207,7 +207,7 @@ test('M3z：at-pm 指向第 4 节的返工批准；at-resume 说【返工预算�
   const resume = read('commands/at-resume.md')
   assert.match(resume, /【返工预算】是例外：它不是改 `state\.json` 修得好的/)
   assert.match(resume, /批准还在（门禁记在 run 目录里/)
-  assert.match(read('commands/at-status.md'), /返工批准:\s+<\.agent-team\/runs\/<run_id>\/approvals\.jsonl/)
+  assert.match(read('commands/at-status.md'), /返工批准:\s+<\.poundlock\/runs\/<run_id>\/approvals\.jsonl/)
 })
 
 test('M3z：at-architect、at-product 写明越过那一段之后派执行角色、改早段产物会被当成重做拦下，冒泡给 PM；at-acceptance 一次列全', () => {
@@ -259,7 +259,7 @@ test('M4a 复核 收尾：整段裁掉验收的没有 07，这一步跳过；补
 
 test('M4a 收尾：收口之后冻结、不再派人；新改动另起一趟（两条路），契约第 1 节逐字照抄这次的那几条消息；用户明说直接改照办并告知', () => {
   assert.match(S6, /收口之后[^。]*冻结[^。]*不再推进、回退或重开/)
-  assert.match(S6, /请用户用 `\/agent-team:at <改动>`/)
+  assert.match(S6, /请用户用 `\/poundlock:at <改动>`/)
   assert.match(S6, /照本文第 0–2 节自己建新 run[^。]*契约第 1 节逐字照抄用户提出这次改动的那几条消息/)
   assert.match(S6, /用户明说不走流程[^。]*照用户说的办[^。]*不经测试与验收/)
 })
@@ -291,8 +291,8 @@ test('M4a at-pm：S8 收口写收口标记；收口之后不派人、不记回�
   assert.match(PM, /S8[^。]*收口[^。]*`closed_at`/)
   assert.match(PM, /收口之后[^。]*不派人、不记回退[^。]*不自己改项目代码/)
   assert.match(PM, /没收口的 run[^。]*不能为了新需求另起一趟/)
-  // 复核（F1、P5）：用户自己跑 /agent-team:at 带来新需求时照它第 1 节办；第 1 节那一问不在第 4 节那几类里。
-  assert.match(PM, /用户跑 `\/agent-team:at` 带来新需求时[^。]*照它第 1 节办/)
+  // 复核（F1、P5）：用户自己跑 /poundlock:at 带来新需求时照它第 1 节办；第 1 节那一问不在第 4 节那几类里。
+  assert.match(PM, /用户跑 `\/poundlock:at` 带来新需求时[^。]*照它第 1 节办/)
   assert.match(PM, /第 1 节那一问[^。]*另算/)
 })
 

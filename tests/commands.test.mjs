@@ -155,7 +155,7 @@ test('前置条件：命令正文里确实有**排除命令名之后**仍要对�
 //
 // 第三次收窄是本轮新加的 COMMAND_NAMES：`at-init`/`at-status` 既不是 `at-pm`、也不在它的
 // 可达集里，此前是靠「那几行恰好不含派/dispatch/Agent」才没被判——一个等着发生的假阳性
-// （正文哪天写出「跑 `/agent-team:at-init` 之后再**派**……」就会要求那行带豁免词）。
+// （正文哪天写出「跑 `/poundlock:at-init` 之后再**派**……」就会要求那行带豁免词）。
 // 命令名不是角色名，这件事的单一真源是 tests/helpers/command-names.mjs（裁定「命令名排除集单一真源」与「先解决的那一侧留缺口」）。
 function unreachableDispatchLines(text) {
   const reachable = new Set(roster['at-pm'].can_delegate_to)
@@ -245,7 +245,7 @@ test('commands/ 正文里不得出现硬编码的角色名清单——班底要�
     for (const m of textOf(f).matchAll(ROLE_LIST_RE)) {
       assert.fail(
         `commands/${f} 里写死了一份角色名清单：「${m[0].replace(/\s+/g, ' ')}」。` +
-          '可用班底的真源是 .agent-team/project.json 的 available_roles（规格 §7.1，' +
+          '可用班底的真源是 .poundlock/project.json 的 available_roles（规格 §7.1，' +
           '由 /at-init 写）——正文里写死一份，M2 加角色那天 /at 会静默漏算，' +
           '而漏算的表现正是规格 §4.2 ④ 引用的那条：某个角色整个项目从未被调用，' +
           '且无人发现。',
@@ -305,14 +305,14 @@ test('命令正文里出现的每个 NN-*.md 产物名都是 stages.json 的 pro
   }
 })
 
-test('命令正文里出现的每个 .agent-team 路径都是控制文件、门禁专属文件或 run 目录下的产物', () => {
+test('命令正文里出现的每个 .poundlock 路径都是控制文件、门禁专属文件或 run 目录下的产物', () => {
   // M2b Task 2：produces 现在有数组/对象两种形式（S2 是对象），flatMap 对对象值
   // 不展平，原地重算会静默产出一个混进对象的 Set，导致 has() 恒为 false。改用
   // producedNames(stages)（单一真源，已经走 expandProduces 认两种形式）。
   const produced = producedNames(stages)
   const ok = (rel) =>
-    // M3z（docs/34）：门禁专属文件（返工批准记录、交付快照）也是 .agent-team 下的合法路径——/agent-team:at-status 要读前者。
-    // M4o（docs/50）：项目一级的原话记录（.agent-team/user-words.json）同样是门禁专属文件，/agent-team:at 第 2 节点它的名字。
+    // M3z（docs/34）：门禁专属文件（返工批准记录、交付快照）也是 .poundlock 下的合法路径——/poundlock:at-status 要读前者。
+    // M4o（docs/50）：项目一级的原话记录（.poundlock/user-words.json）同样是门禁专属文件，/poundlock:at 第 2 节点它的名字。
     [...CONTROL_FILES, ...GATE_FILES, ...PROJECT_GATE_FILES].some((c) => new RegExp(`^${c.replace('*', '[^/]+')}$`).test(rel)) ||
     /^runs\/[^/]+\/?$/.test(rel) ||
     // 用户登记的 skill：清单与副本（hooks/lib/skills.mjs，项目经理经 skills-cli 写）。
@@ -320,11 +320,11 @@ test('命令正文里出现的每个 .agent-team 路径都是控制文件、门�
     rel === `${SKILLS_DIR}/` ||
     rel.startsWith(`${SKILLS_DIR}/<dir>/`) ||
     [...produced].some((p) => rel.endsWith(p))
-  // 字符类里有 *（M3v）：正文会写 Glob 模式（`.agent-team/runs/*/state.json`，commands/at-resume.md 找丢了指针的 run），
+  // 字符类里有 *（M3v）：正文会写 Glob 模式（`.poundlock/runs/*/state.json`，commands/at-resume.md 找丢了指针的 run），
   // 没有它，匹配在 runs/ 就断了、被当成一个裸的 runs/ 报出来。runs/*/state.json 本身就是控制文件的模式，照认。
   for (const f of FILES) {
-    for (const m of new Set(textOf(f).match(/\.agent-team\/[A-Za-z0-9_./<>*-]+/g) ?? [])) {
-      const rel = m.replace('.agent-team/', '').replace(/[.]$/, '')
+    for (const m of new Set(textOf(f).match(/\.poundlock\/[A-Za-z0-9_./<>*-]+/g) ?? [])) {
+      const rel = m.replace('.poundlock/', '').replace(/[.]$/, '')
       assert.ok(
         ok(rel.replace(/<run[_-]?id>/g, 'RID')),
         `commands/${f} 提到 ${m}，它既不是控制文件（hooks/lib/control-files.mjs）` +
@@ -496,7 +496,7 @@ test('每条命令都写明「核实磁盘，不信子代理自述」', () => {
   }
 })
 
-// ⭐ docs/11 §5.37：`/agent-team:at-resume` 第 2 节让 PM 按
+// ⭐ docs/11 §5.37：`/poundlock:at-resume` 第 2 节让 PM 按
 // `expandProduces(stage, stageRolesInRun(stage, roster))` 展开、再「齐了 → 推进」（§5.37 当时的口径；M3x 起改走
 // participantsOf，见下面这条判据里的开局）。刚进 S2 / S5、
 // 这一段的产者还一个都没派时，展开是空集，而「全部都在磁盘上」对空集是真命题——照字面判会把
@@ -558,7 +558,7 @@ test('/at 第 4 节的表与 04-dispatch 模板写全了升级条件的 kind 取
 // 「This name is used for namespacing components. For example, in the UI, the agent
 // `agent-creator` for the plugin with name `plugin-dev` will appear as
 // `plugin-dev:agent-creator`.」
-// 所以这四条命令的真实调用名是 `/agent-team:at-init`，不是 `/at-init`。
+// 所以这四条命令的真实调用名是 `/poundlock:at-init`，不是 `/at-init`。
 //
 // 为什么要钉住：命令正文里到处是「让用户先跑 X」「回到 X 的第 3 节」这类互相引用。写成
 // 裸名的话，PM 与用户照着敲会得到一个**按那个名字并不存在**的命令——与 stages.json 第一天
@@ -621,7 +621,7 @@ test('命令正文引用的每条斜杠命令都真的存在于 commands/', () =
 // 终审发现 3：受信前缀（规格 §6.5）的单一真源是 hooks/lib/trusted.mjs 的 TRUSTED_PREFIX。
 // 六份 agents/*.md 对它的引用由 tests/agents.test.mjs:91-95（从 trusted.mjs import 常量，
 // 断言 bodyOf(f).includes(TRUSTED_PREFIX)）钉住，但 commands/at.md:41 与
-// commands/at-init.md:42 各自硬编码了一份同样的字面量「agent-team 账本回传」，没有被
+// commands/at-init.md:42 各自硬编码了一份同样的字面量「poundlock 账本回传」，没有被
 // 任何测试钉住。hooks/lib/trusted.mjs 头部注释自己写着「commands/at.md 与
 // commands/at-init.md 的正文都引用了这个字符串」——模块知道这两份拷贝存在，却没有东西
 // 保证它们同步。终审实测过：把 commands/at.md:41 的「账本回传」改成「账本回报」，
@@ -636,7 +636,7 @@ test('命令正文引用的每条斜杠命令都真的存在于 commands/', () =
 // 分别守 agents/ 与 commands/ 自己的工具面是同一个道理。
 //
 // at-resume.md 与 at-status.md 不在这份清单里：grep 全仓库确认过它们的正文只是散文提及
-// 「账本回传」这个概念（不带 `agent-team` 前缀，不是这个字面量的拷贝），.includes() 天然
+// 「账本回传」这个概念（不带 `poundlock` 前缀，不是这个字面量的拷贝），.includes() 天然
 // 不会命中，硬把它们塞进清单只会让断言对着一个从不成立的期望空转。
 const FILES_WITH_TRUSTED_PREFIX = ['at.md', 'at-init.md']
 

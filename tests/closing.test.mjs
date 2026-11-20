@@ -190,7 +190,7 @@ test('M4a 冻结：改 closed_at、去掉它、改 stage、往 history 追加 �
     const r = close({ before: FROZEN, after })
     assert.equal(r.ok, false, JSON.stringify(after))
     assert.match(r.reason, /已经收口/)
-    assert.match(r.reason, /\/agent-team:at/)
+    assert.match(r.reason, /\/poundlock:at/)
     assert.doesNotMatch(r.reason, /记一次回退/)
   }
 })
@@ -272,7 +272,7 @@ test('M4a 复核 关上：最后一段的产物或前置是空文件 → 拒，�
   assert.match(r.reason, /08-delivery\.md[^\n]*空文件/)
 })
 
-// 复核（A-8）：冻结的拒绝理由与 H2 同一条出路，同样给出 at.md 的路径（压缩之后上下文里不一定还有 /agent-team:at 的正文）。
+// 复核（A-8）：冻结的拒绝理由与 H2 同一条出路，同样给出 at.md 的路径（压缩之后上下文里不一定还有 /poundlock:at 的正文）。
 test('M4a 复核 冻结：拒绝理由给出 at.md 的路径', () => {
   const r = decideClosing({ before: FROZEN, after: { ...FROZEN, stage: 'S5' }, stages: STAGES, diskSha: diskOf(ALL_FILES), atPath: '/plugin/commands/at.md' })
   assert.match(r.reason, /Read \/plugin\/commands\/at\.md/)
@@ -297,7 +297,7 @@ test('M4a 收口之后派团队角色 → 拒，PM 拿到另起一趟的两条�
     const r = dispatchOf({ target })
     assert.equal(r.decision, 'deny', target)
     assert.match(r.reason, /已经收口/)
-    assert.match(r.reason, /\/agent-team:at/)
+    assert.match(r.reason, /\/poundlock:at/)
     assert.match(r.reason, /"20261001-0900-x"/)
     assert.match(r.reason, new RegExp(`"${CLOSED}"`))
     assert.doesNotMatch(r.reason, /记一次回退/)
@@ -312,7 +312,7 @@ test('M4a 收口之后：派发者不是 PM → 拒，叫它回报上级，不�
   const r = dispatchOf({ target: 'at-backend', callerCanWriteState: false })
   assert.equal(r.decision, 'deny')
   assert.match(r.reason, /回报给派你的人/)
-  assert.doesNotMatch(r.reason, /\/agent-team:at /)
+  assert.doesNotMatch(r.reason, /\/poundlock:at /)
 })
 
 test('M4a 最后一段、没收口：派协调者 → 拒，给收口、记回退、自己读三条路', () => {

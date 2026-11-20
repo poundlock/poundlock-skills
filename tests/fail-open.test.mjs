@@ -26,8 +26,8 @@ const PARTS = [
   {},
   { contexts: [] },
   { contexts: ['【门禁】一段'] },
-  { systemMessage: 'agent-team 一行' },
-  { contexts: ['【门禁】一段', '【账本比对】另一段'], systemMessage: 'agent-team 一行' },
+  { systemMessage: 'poundlock 一行' },
+  { contexts: ['【门禁】一段', '【账本比对】另一段'], systemMessage: 'poundlock 一行' },
   { contexts: [null, '', 3] },
 ]
 
@@ -53,14 +53,14 @@ test('hookOutput：对任何事件、任何入参，stdout 要么为空、要么
 })
 
 test('hookOutput：PostToolUse 上几段并成一份受信块，systemMessage 在顶层', () => {
-  const { stdout, bug } = hookOutput('PostToolUse', { contexts: ['【门禁】甲', '【账本比对】乙'], systemMessage: 'agent-team 一行' })
+  const { stdout, bug } = hookOutput('PostToolUse', { contexts: ['【门禁】甲', '【账本比对】乙'], systemMessage: 'poundlock 一行' })
   assert.equal(bug, null)
   const v = JSON.parse(stdout)
   assert.deepEqual(Object.keys(v).sort(), ['hookSpecificOutput', 'systemMessage'])
   assert.ok(v.hookSpecificOutput.additionalContext.startsWith(TRUSTED_PREFIX))
   assert.equal(v.hookSpecificOutput.additionalContext.split(TRUSTED_PREFIX).length - 1, 1)
   assert.match(v.hookSpecificOutput.additionalContext, /【门禁】甲\n\n【账本比对】乙/)
-  assert.equal(v.systemMessage, 'agent-team 一行')
+  assert.equal(v.systemMessage, 'poundlock 一行')
 })
 
 test('hookOutput：PostToolUse 上什么都没有时不写 stdout；只有 systemMessage 时不带 hookSpecificOutput', () => {
@@ -75,8 +75,8 @@ test('hookOutput：PreToolUse 上不发受信块——contexts 丢掉并报 BUG�
   const a = hookOutput('PreToolUse', { contexts: ['【门禁】甲'] })
   assert.equal(a.stdout, '')
   assert.match(a.bug, /BUG/)
-  const b = hookOutput('PreToolUse', { contexts: ['【门禁】甲'], systemMessage: 'agent-team 一行' })
-  assert.deepEqual(JSON.parse(b.stdout), { systemMessage: 'agent-team 一行' })
+  const b = hookOutput('PreToolUse', { contexts: ['【门禁】甲'], systemMessage: 'poundlock 一行' })
+  assert.deepEqual(JSON.parse(b.stdout), { systemMessage: 'poundlock 一行' })
   assert.ok(!b.stdout.includes(TRUSTED_PREFIX))
   assert.equal(hookOutput('PreToolUse', { systemMessage: 'x' }).bug, null)
 })
@@ -100,11 +100,11 @@ test('runContextFix：每个原因各有一句修法，互不相同', () => {
 
 test('runContextFix：丢指针给找法与多 run 的规则，不列目录名', () => {
   const t = runContextFix('pointer')
-  assert.match(t, /\.agent-team\/runs\/\*\/state\.json/)
+  assert.match(t, /\.poundlock\/runs\/\*\/state\.json/)
   assert.match(t, /只 Glob `runs\/\*` 列不出目录/)
   assert.match(t, /最后建的那一趟/)
   assert.match(t, /问用户/)
-  assert.match(t, /\/agent-team:at 第 1 节/)
+  assert.match(t, /\/poundlock:at 第 1 节/)
 })
 
 test('runContextFix：project、plugin、runs 三种原因不把 PM 指去修 current-run 或 state.json', () => {
@@ -115,16 +115,16 @@ test('runContextFix：project、plugin、runs 三种原因不把 PM 指去修 cu
     }
   }
   assert.match(runContextFix('project'), /project\.json/)
-  assert.match(runContextFix('plugin'), /重装或更新 agent-team 插件/)
+  assert.match(runContextFix('plugin'), /重装或更新 poundlock 插件/)
   assert.match(runContextFix('plugin'), /不要去改插件目录下的文件/)
   assert.doesNotMatch(runContextFix('plugin'), /写回一份合法的/)
 })
 
 test('runContextFix：atStart 时按命令分；project 本来就是 at-init 修的，不说「不在这里修」', () => {
-  assert.match(runContextFix('pointer', { atStart: true }), /这条命令是 \/agent-team:at 的话：/)
+  assert.match(runContextFix('pointer', { atStart: true }), /这条命令是 \/poundlock:at 的话：/)
   assert.doesNotMatch(runContextFix('pointer'), /这条命令是/)
   for (const c of ['pointer', 'state', 'plugin', 'runs']) {
-    assert.match(runContextFix(c, { atStart: true }), /\/agent-team:at-init 的话，不在这里修，收尾时告诉用户/)
+    assert.match(runContextFix(c, { atStart: true }), /\/poundlock:at-init 的话，不在这里修，收尾时告诉用户/)
     assert.doesNotMatch(runContextFix(c), /at-init 的话/)
   }
   assert.doesNotMatch(runContextFix('project', { atStart: true }), /不在这里修/)
@@ -203,11 +203,11 @@ test('no-run 派发那句：说明是有意的放行，给条件分支，不下�
   const t = dispatchNoRunNotice()
   assert.match(t, /^【门禁】/)
   assert.match(t, /有意的放行/)
-  assert.match(t, /告诉用户可以用 \/agent-team:at 起一趟 run/)
-  // M4e（docs/39 §2.2，审查第 39 条）：没进版本库的 .agent-team 会被 git clean、git stash -u 清掉或藏起——那时门禁照样说「没有 run」。
+  assert.match(t, /告诉用户可以用 \/poundlock:at 起一趟 run/)
+  // M4e（docs/39 §2.2，审查第 39 条）：没进版本库的 .poundlock 会被 git clean、git stash -u 清掉或藏起——那时门禁照样说「没有 run」。
   assert.ok(
     t.includes(
-      '在的话，看 .agent-team/current-run 与 .agent-team/runs/ 还在不在——没进版本库的这几份会被 git clean、git stash -u 这类命令一起清掉或' +
+      '在的话，看 .poundlock/current-run 与 .poundlock/runs/ 还在不在——没进版本库的这几份会被 git clean、git stash -u 这类命令一起清掉或' +
         '藏起：告诉用户（藏起的他能用 git stash pop 找回，清掉的找不回），这些 git 命令你不要自己跑。',
     ),
     t,
@@ -231,13 +231,13 @@ test('systemMessage：固定文字、README 的叫法、不带受信前缀', () 
     systemMessage('deliver-skipped'),
   ]
   for (const s of all) {
-    assert.ok(typeof s === 'string' && s.startsWith('agent-team '), s)
+    assert.ok(typeof s === 'string' && s.startsWith('poundlock '), s)
     assert.doesNotMatch(s, /H2|H5a|H5b|ledger|运行上下文|\n/, s)
     assert.ok(!s.includes(TRUSTED_PREFIX), s)
   }
   assert.match(systemMessage('dispatch-unreadable', { cause: 'pointer' }), /前置就绪/)
   assert.match(systemMessage('unknown-stage'), /交付物核验/)
-  assert.match(systemMessage('dispatch-unreadable', { cause: 'plugin' }), /重装或更新 agent-team 插件/)
+  assert.match(systemMessage('dispatch-unreadable', { cause: 'plugin' }), /重装或更新 poundlock 插件/)
   assert.deepEqual(Object.keys(GATE_NAME).sort(), ['approval-ask', 'approval-prompt', 'completion', 'deliverable', 'handback', 'handback-sent', 'ledger', 'readiness', 'stop-gate'])
   // docs/99：交回的两道是 H5b 挪到交回前后的那一半，README 那一侧同叫「交付物核验」。
   for (const c of ['handback', 'handback-sent']) assert.equal(GATE_NAME[c], GATE_NAME['stop-gate'], c)
@@ -247,7 +247,7 @@ test('systemMessage：固定文字、README 的叫法、不带受信前缀', () 
 // M4k（docs/46，评审 F10）：两个记录器也记照现状交付——读不出输入、出错那两句（还不知道是哪一种批准）改叫「批准记录」；记下、没记下按种类各一句。
 test('M3z systemMessage：批准记录器的几句说「没有记下」，不说「放行」', () => {
   for (const s of [systemMessage('input', { check: 'approval-ask' }), systemMessage('crash', { check: 'approval-ask' })]) {
-    assert.match(s, /^agent-team 批准记录：/, s)
+    assert.match(s, /^poundlock 批准记录：/, s)
     assert.match(s, /没有记/, s)
     assert.doesNotMatch(s, /放行/, s)
   }
@@ -255,10 +255,10 @@ test('M3z systemMessage：批准记录器的几句说「没有记下」，不说
     assert.match(s, /没有记/, s)
     assert.doesNotMatch(s, /放行/, s)
   }
-  assert.match(systemMessage('approval-skipped'), /^agent-team 返工批准：/)
-  assert.match(systemMessage('approval-recorded'), /^agent-team 返工批准：已记下/)
-  assert.match(systemMessage('deliver-recorded'), /^agent-team 照现状交付：已记下/)
-  assert.match(systemMessage('deliver-skipped'), /^agent-team 照现状交付：/)
+  assert.match(systemMessage('approval-skipped'), /^poundlock 返工批准：/)
+  assert.match(systemMessage('approval-recorded'), /^poundlock 返工批准：已记下/)
+  assert.match(systemMessage('deliver-recorded'), /^poundlock 照现状交付：已记下/)
+  assert.match(systemMessage('deliver-skipped'), /^poundlock 照现状交付：/)
 })
 
 test('crashContext：把异常消息放进引号；只有 deliverable 与 ledger 有；非 PM 收到冒泡句', () => {
@@ -324,13 +324,13 @@ test('unknownStageFix：history 的形状不对时不引 H6 的说法，叫 PM �
   assert.match(unknownStageFix({ state: { stage: 'S9', history: [] }, stages: STAGES }), /追加一条真实的当前阶段/)
 })
 
-// 复核（wording 第 3 条）：命令开头的追加句要分命令——/agent-team:at 要建新 run 时不该先去修一趟即将被替下的旧 run；
+// 复核（wording 第 3 条）：命令开头的追加句要分命令——/poundlock:at 要建新 run 时不该先去修一趟即将被替下的旧 run；
 // at-resume 里「一趟都没有 state.json」时不该自己补建。
-// 第二轮真实会话（docs/30 §3）：通用修法排在前、「/agent-team:at 照建」排在后时，8 次里 3 次先改了旧 run，两次还用新需求
-// 覆盖了旧契约；「收尾时告诉用户」0/4 生效。所以 /agent-team:at 那一支排第一、明写不碰旧 run 目录，告诉用户不挂在「收尾」上。
-const AT_BRANCH = '这条命令是 /agent-team:at 的话：不要写原来那趟 run 目录下的任何文件，照第 1 节另起一个 run id 建新 run'
+// 第二轮真实会话（docs/30 §3）：通用修法排在前、「/poundlock:at 照建」排在后时，8 次里 3 次先改了旧 run，两次还用新需求
+// 覆盖了旧契约；「收尾时告诉用户」0/4 生效。所以 /poundlock:at 那一支排第一、明写不碰旧 run 目录，告诉用户不挂在「收尾」上。
+const AT_BRANCH = '这条命令是 /poundlock:at 的话：不要写原来那趟 run 目录下的任何文件，照第 1 节另起一个 run id 建新 run'
 const TELL_NOW = '这一轮回复用户时（不论停在哪一步）'
-test('命令开头：丢指针、state.json 坏、stage 不在链里——/agent-team:at 那一支排第一，不碰旧 run，这一轮就告诉用户', () => {
+test('命令开头：丢指针、state.json 坏、stage 不在链里——/poundlock:at 那一支排第一，不碰旧 run，这一轮就告诉用户', () => {
   const texts = {
     pointer: runContextFix('pointer', { atStart: true }),
     state: runContextFix('state', { atStart: true }),
@@ -339,14 +339,14 @@ test('命令开头：丢指针、state.json 坏、stage 不在链里——/agent
   for (const [k, t] of Object.entries(texts)) {
     assert.ok(t.includes(AT_BRANCH), `${k}：${t}`)
     assert.ok(t.includes(TELL_NOW), `${k}：${t}`)
-    assert.match(t, /这条命令是 \/agent-team:at-resume 的话：/, k)
-    assert.ok(t.indexOf(AT_BRANCH) < t.indexOf('这条命令是 /agent-team:at-resume 的话'), `${k}：/agent-team:at 那一支要排在修法之前`)
+    assert.match(t, /这条命令是 \/poundlock:at-resume 的话：/, k)
+    assert.ok(t.indexOf(AT_BRANCH) < t.indexOf('这条命令是 /poundlock:at-resume 的话'), `${k}：/poundlock:at 那一支要排在修法之前`)
     assert.doesNotMatch(t, /收尾时告诉用户旧|旧 run 的问题收尾时/, k)
   }
   for (const c of ['project', 'runs', 'plugin']) assert.ok(!runContextFix(c, { atStart: true }).includes(AT_BRANCH), c)
   const p = texts.pointer
   assert.match(p, /不要自己补 state\.json，也不要删目录/)
-  assert.ok(p.indexOf('/agent-team:at-resume 的话') < p.indexOf('用 Glob'), '丢指针的找法属于 at-resume 那一支')
+  assert.ok(p.indexOf('/poundlock:at-resume 的话') < p.indexOf('用 Glob'), '丢指针的找法属于 at-resume 那一支')
 })
 
 // 第二轮真实会话：state.json 从零重建时，PM 用 Bash 自己算 contract_sha（LF 的夹具上碰巧对得上，CRLF 签出的契约上就不对）。
@@ -356,7 +356,7 @@ test('runContextFix(state)：认不出来的 contract_sha 写 PENDING，从回�
   assert.match(t, /原样重写一次 00-contract\.md/)
   assert.match(t, /告诉用户/)
   // 第三轮真实会话：at-resume 里 3/3 仍用 Bash 自己算（「认不出来」读成了「算不出来」）；两次还 cd 进 run 目录、把 state.json
-  // 写进了嵌套的 .agent-team。
+  // 写进了嵌套的 .poundlock。
   assert.match(t, /不要用 Bash 自己算/)
 })
 
@@ -367,7 +367,7 @@ test('runContextFix(plugin, atStart)：要建或续 run 的命令在这里停下
 
 // 真实会话（docs/30 §3）：修法只说「当前 run 的 state.json」时，haiku 把它写到了项目根。
 test('runContextFix(state)：写明 state.json 在哪', () => {
-  assert.ok(runContextFix('state').includes('`.agent-team/runs/<current-run 里的 run id>/state.json`'))
+  assert.ok(runContextFix('state').includes('`.poundlock/runs/<current-run 里的 run id>/state.json`'))
 })
 
 test('selfCheckAppendix：no-run、ok 且阶段在链里时不追加', () => {

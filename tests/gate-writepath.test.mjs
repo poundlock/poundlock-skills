@@ -39,7 +39,7 @@ const PROJECT = {
 }
 
 // Task 4 复审（顾虑 1 的真正解法）：这条原来用"干净临时目录、没有
-// .agent-team"来代表"ctx.ok 为 false"，断言 deny。评审指出这个场景其实是
+// .poundlock"来代表"ctx.ok 为 false"，断言 deny。评审指出这个场景其实是
 // readRunContext 新分类里的 kind:'no-run'（压根没有进行中的 run，门禁没有
 // 东西要管），不该再 deny——见下面"没有 run 时"那几条。为了不丢失"H3 对
 // 真实失败仍然 fail closed"这条覆盖，这里改成一个 run 真实存在、但
@@ -51,10 +51,10 @@ test('writepath：run 存在但 project.json 坏了——仍然 fail closed，�
   try {
     // makeRun 已经造出 current-run + runs/r1/state.json，run 是真实存在的；
     // 只手动把 project.json 写成坏 JSON——不是"没有 run"，是"run 读不出来"。
-    writeFileSync(join(dirs.projectDir, '.agent-team', 'project.json'), '{ not json', 'utf8')
+    writeFileSync(join(dirs.projectDir, '.poundlock', 'project.json'), '{ not json', 'utf8')
     const input = {
       tool_name: 'Edit',
-      agent_type: 'agent-team:at-backend',
+      agent_type: 'poundlock:at-backend',
       tool_input: { file_path: join(dirs.projectDir, 'src', 'server', 'api.ts') },
     }
     const { stdout, status } = run('writepath', input, undefined, dirs.projectDir)
@@ -80,7 +80,7 @@ test('writepath：run 存在但 project.json 坏了——仍然 fail closed，�
 // 全分支评审 I2：上一条（子代理）是 unreadable 继续 fail closed 的那一半，
 // 下面三条是另一半——被 settings.json 钉成主线程的 at-pm 必须能过去。
 //
-// ⚠️ 订正（M4b，docs/36）：settings.json 现在写全名 {"agent": "agent-team:at-pm"}；钉住的 PM 在 hook 输入里的原始
+// ⚠️ 订正（M4b，docs/36）：settings.json 现在写全名 {"agent": "poundlock:at-pm"}；钉住的 PM 在 hook 输入里的原始
 // agent_type 一直是全名（docs/22），裸 'at-pm' 是剥前缀之后的值。原始值是裸名的只有一种：项目或用户层另有一份非插件的
 // at-pm.md，用户经 --agent at-pm 或自己设置里的 agent 键选中了它（只有插件的 at-pm 时，--agent at-pm 按后缀解析成全名）。
 // 两种都按 PM 放行。
@@ -110,7 +110,7 @@ test('writepath：run 存在但 project.json 坏了——仍然 fail closed，�
 test('writepath：project.json 坏了（unreadable），被钉成主线程的 at-pm 写普通源码——放行且留痕，不能把唯一的运维人锁在门外', () => {
   const dirs = makeRun({ runId: 'r1' })
   try {
-    writeFileSync(join(dirs.projectDir, '.agent-team', 'project.json'), '{ not json', 'utf8')
+    writeFileSync(join(dirs.projectDir, '.poundlock', 'project.json'), '{ not json', 'utf8')
     const input = {
       tool_name: 'Edit',
       agent_type: 'at-pm',
@@ -126,7 +126,7 @@ test('writepath：project.json 坏了（unreadable），被钉成主线程的 at
         'at-pm 现在有 Bash，但逼它用 `echo >` 去修一个坏掉的 run 不是可接受的运维路径',
     )
     assert.ok(stderr.trim().length > 0, '这是一次 fail open，必须留痕，不能悄悄放行')
-    assert.match(stderr, /agent-team/)
+    assert.match(stderr, /poundlock/)
     assert.match(stderr, /(H3|写路径)/)
   } finally {
     rmSync(dirs.projectDir, { recursive: true, force: true })
@@ -139,14 +139,14 @@ test('writepath：project.json 坏了（unreadable），被钉成主线程的 at
 // ——仍然放行」对齐——两道闸此前对同一个身份给出相反结论（H3 说「at-pm 是
 // 一个普通角色」、H4 说「at-pm 是 PM」），这是六道闸之间最实在的一处语义
 // 打架，现在收口。
-test('writepath：project.json 坏了（unreadable），at-pm 修 .agent-team/project.json 本身——放行，这正是逃生路径', () => {
+test('writepath：project.json 坏了（unreadable），at-pm 修 .poundlock/project.json 本身——放行，这正是逃生路径', () => {
   const dirs = makeRun({ runId: 'r1' })
   try {
-    writeFileSync(join(dirs.projectDir, '.agent-team', 'project.json'), '{ not json', 'utf8')
+    writeFileSync(join(dirs.projectDir, '.poundlock', 'project.json'), '{ not json', 'utf8')
     const input = {
       tool_name: 'Write',
       agent_type: 'at-pm',
-      tool_input: { file_path: join(dirs.projectDir, '.agent-team', 'project.json') },
+      tool_input: { file_path: join(dirs.projectDir, '.poundlock', 'project.json') },
     }
     const { stdout, status } = run('writepath', input, undefined, dirs.projectDir)
 
@@ -165,10 +165,10 @@ test('writepath：project.json 坏了（unreadable），at-pm 修 .agent-team/pr
 test('writepath：current-run 是空文件（unreadable），被钉成主线程的 at-pm——同样放行，短路认的是 kind 不是某个具体坏文件', () => {
   const dirs = makeRun({ runId: 'r1' })
   try {
-    writeFileSync(join(dirs.projectDir, '.agent-team', 'current-run'), '', 'utf8')
+    writeFileSync(join(dirs.projectDir, '.poundlock', 'current-run'), '', 'utf8')
     const input = {
       tool_name: 'Edit',
-      agent_type: 'agent-team:at-pm',
+      agent_type: 'poundlock:at-pm',
       tool_input: { file_path: join(dirs.projectDir, 'src', 'x.ts') },
     }
     const { stdout, status } = run('writepath', input, undefined, dirs.projectDir)
@@ -184,13 +184,13 @@ test('writepath：current-run 是空文件（unreadable），被钉成主线程�
 // Task 4 复审：current-run 内容含路径穿越字符同样必须继续 fail closed——
 // 这是路径可信边界问题，不是"没有 run"。
 test('writepath：current-run 内容含路径穿越字符——仍然 fail closed', () => {
-  const cwd = mkdtempSync(join(tmpdir(), 'agent-team-h3-traversal-cwd-'))
+  const cwd = mkdtempSync(join(tmpdir(), 'poundlock-h3-traversal-cwd-'))
   try {
-    mkdirSync(join(cwd, '.agent-team'), { recursive: true })
-    writeFileSync(join(cwd, '.agent-team', 'current-run'), '../../evil', 'utf8')
+    mkdirSync(join(cwd, '.poundlock'), { recursive: true })
+    writeFileSync(join(cwd, '.poundlock', 'current-run'), '../../evil', 'utf8')
     const input = {
       tool_name: 'Edit',
-      agent_type: 'agent-team:at-backend',
+      agent_type: 'poundlock:at-backend',
       tool_input: { file_path: join(cwd, 'src', 'server', 'api.ts') },
     }
     const { stdout, status } = run('writepath', input, undefined, cwd)
@@ -208,11 +208,11 @@ test('writepath：current-run 内容含路径穿越字符——仍然 fail close
 // H1/H3 的措辞差异、不排前面会怎样自举死锁）见 hooks/gate.mjs 里这段判定
 // 上方的注释，不在这里重复。
 test('writepath：没有 agent_type（真·主线程）时放行，即使 ctx.ok 为 false——不会自己把自己锁死', () => {
-  const cwd = mkdtempSync(join(tmpdir(), 'agent-team-h3-main-cwd-'))
+  const cwd = mkdtempSync(join(tmpdir(), 'poundlock-h3-main-cwd-'))
   try {
     const input = {
       tool_name: 'Write',
-      tool_input: { file_path: join(cwd, '.agent-team', 'project.json') },
+      tool_input: { file_path: join(cwd, '.poundlock', 'project.json') },
     }
     const { stdout, status } = run('writepath', input, undefined, cwd)
 
@@ -221,7 +221,7 @@ test('writepath：没有 agent_type（真·主线程）时放行，即使 ctx.ok
       stdout.trim(),
       '',
       '无 agent_type 的调用不受 per-role 隔离约束，且不能被"读不到上下文"卡住——' +
-        '否则 /at-init 从主线程写 .agent-team/project.json 这类自举动作会被永久拒绝，' +
+        '否则 /at-init 从主线程写 .poundlock/project.json 这类自举动作会被永久拒绝，' +
         '第一个 run 永远建不出来',
     )
   } finally {
@@ -233,11 +233,11 @@ test('writepath：没有 agent_type（真·主线程）时放行，即使 ctx.ok
 // hooks/lib/runctx.mjs 头部注释。这条验证"有名有姓的角色"这一般情形，
 // 下面那条验证死锁场景本身（at-pm 写 project.json）。
 test('writepath：没有 run 时，有名有姓的角色（非 MAIN）也放行——按 no-run 处理，不因为不是 MAIN 就被收紧', () => {
-  const cwd = mkdtempSync(join(tmpdir(), 'agent-team-h3-norun-named-cwd-'))
+  const cwd = mkdtempSync(join(tmpdir(), 'poundlock-h3-norun-named-cwd-'))
   try {
     const input = {
       tool_name: 'Edit',
-      agent_type: 'agent-team:at-backend',
+      agent_type: 'poundlock:at-backend',
       tool_input: { file_path: join(cwd, 'src', 'server', 'api.ts') },
     }
     const { stdout, stderr, status } = run('writepath', input, undefined, cwd)
@@ -248,7 +248,7 @@ test('writepath：没有 run 时，有名有姓的角色（非 MAIN）也放行�
       stderr.trim().length > 0,
       '必须往 stderr 留痕；静默的放行和门禁坏掉长得一模一样（H2 立下的先例）',
     )
-    assert.match(stderr, /agent-team/)
+    assert.match(stderr, /poundlock/)
     assert.match(stderr, /(H3|写路径)/)
     assert.match(stderr, /current-run/, 'stderr 里应带上 readRunContext 给出的具体原因')
     // 复评 Minor 2：整理项 10 的修复本体是 failOpenNotice 里那条
@@ -276,12 +276,12 @@ test('writepath：没有 run 时，有名有姓的角色（非 MAIN）也放行�
 // 主线程的 hook 输入带 agent_type（docs/05-M0-结论.md「次要事实」），不
 // 享受上一条"无 agent_type"的豁免，走的是这条"kind:'no-run' 一般性放行"。
 test('writepath：没有 run 时，被 settings.json 钉成主线程的 at-pm 写 project.json 不受阻——这正是死锁场景本身', () => {
-  const cwd = mkdtempSync(join(tmpdir(), 'agent-team-h3-bootstrap-cwd-'))
+  const cwd = mkdtempSync(join(tmpdir(), 'poundlock-h3-bootstrap-cwd-'))
   try {
     const input = {
       tool_name: 'Write',
       agent_type: 'at-pm',
-      tool_input: { file_path: join(cwd, '.agent-team', 'project.json') },
+      tool_input: { file_path: join(cwd, '.poundlock', 'project.json') },
     }
     const { stdout, status } = run('writepath', input, undefined, cwd)
 
@@ -289,7 +289,7 @@ test('writepath：没有 run 时，被 settings.json 钉成主线程的 at-pm �
     assert.equal(
       stdout.trim(),
       '',
-      '/at-init 从被钉成主线程的 at-pm 写 .agent-team/project.json 这个自举动作' +
+      '/at-init 从被钉成主线程的 at-pm 写 .poundlock/project.json 这个自举动作' +
         '不该被拒绝，否则第一个 run 永远建不出来',
     )
   } finally {
@@ -302,7 +302,7 @@ test('writepath：ctx.ok 为 true，写自己名下的路径——deny 判定链
   try {
     const input = {
       tool_name: 'Edit',
-      agent_type: 'agent-team:at-backend',
+      agent_type: 'poundlock:at-backend',
       tool_input: { file_path: join(dirs.projectDir, 'src', 'server', 'api.ts') },
     }
     const { stdout, status } = run('writepath', input, undefined, dirs.projectDir)
@@ -323,7 +323,7 @@ test('writepath：ctx.ok 为 true，写别人名下的路径——deny 判定真
   try {
     const input = {
       tool_name: 'Edit',
-      agent_type: 'agent-team:at-backend',
+      agent_type: 'poundlock:at-backend',
       tool_input: { file_path: join(dirs.projectDir, 'src', 'web', 'App.tsx') },
     }
     const { stdout, status } = run('writepath', input, undefined, dirs.projectDir)
@@ -377,7 +377,7 @@ test('writepath：NotebookEdit 用 notebook_path 而不是 file_path 也能被�
   try {
     const input = {
       tool_name: 'NotebookEdit',
-      agent_type: 'agent-team:at-backend',
+      agent_type: 'poundlock:at-backend',
       tool_input: { notebook_path: join(dirs.projectDir, 'src', 'web', 'analysis.ipynb') },
     }
     const { stdout, status } = run('writepath', input, undefined, dirs.projectDir)
@@ -410,7 +410,7 @@ test('writepath：被 settings.json 钉成主线程的 at-pm（带 agent_type）
       tool_name: 'Write',
       agent_type: 'at-pm',
       tool_input: {
-        file_path: join(dirs.projectDir, '.agent-team', 'runs', 'r1', '00-contract.md'),
+        file_path: join(dirs.projectDir, '.poundlock', 'runs', 'r1', '00-contract.md'),
       },
     }
     const { stdout, status } = run('writepath', input, undefined, dirs.projectDir)
@@ -444,7 +444,7 @@ test('writepath：被钉成主线程的 at-pm 写 S4 的产物 04-dispatch.md �
       tool_name: 'Write',
       agent_type: 'at-pm',
       tool_input: {
-        file_path: join(dirs.projectDir, '.agent-team', 'runs', 'r1', '04-dispatch.md'),
+        file_path: join(dirs.projectDir, '.poundlock', 'runs', 'r1', '04-dispatch.md'),
       },
     }
     const { stdout, status } = run('writepath', input, undefined, dirs.projectDir)
@@ -473,9 +473,9 @@ test('writepath：run 目录下写别人阶段的产物——仍然 deny，理�
   try {
     const input = {
       tool_name: 'Edit',
-      agent_type: 'agent-team:at-backend',
+      agent_type: 'poundlock:at-backend',
       tool_input: {
-        file_path: join(dirs.projectDir, '.agent-team', 'runs', 'r1', '00-contract.md'),
+        file_path: join(dirs.projectDir, '.poundlock', 'runs', 'r1', '00-contract.md'),
       },
     }
     const { stdout, status } = run('writepath', input, undefined, dirs.projectDir)
@@ -500,9 +500,9 @@ test('writepath：run 目录下写 state.json——仍然 deny，它不是任何
   try {
     const input = {
       tool_name: 'Edit',
-      agent_type: 'agent-team:at-backend',
+      agent_type: 'poundlock:at-backend',
       tool_input: {
-        file_path: join(dirs.projectDir, '.agent-team', 'runs', 'r1', 'state.json'),
+        file_path: join(dirs.projectDir, '.poundlock', 'runs', 'r1', 'state.json'),
       },
     }
     const { stdout, status } = run('writepath', input, undefined, dirs.projectDir)
@@ -522,42 +522,42 @@ test('writepath：run 目录下写 state.json——仍然 deny，它不是任何
 })
 
 // H3：run 目录的兄弟目录同前缀粘连（docs/11 §1.5 第 3 点）。docs/11 举的例子字面
-// 是 `.agent-team-backup` 对 `.agent-team`，跟 tests/path-norm.test.mjs 钉住的纯
+// 是 `.poundlock-backup` 对 `.poundlock`，跟 tests/path-norm.test.mjs 钉住的纯
 // 函数场景一致。但动手前核对 decideWritePath 的实现发现：underDir 在这个函数里
-// 唯一的调用点传的第二个参数是 runDir（`.agent-team/runs/<id>`），不是 agentTeamDir
-// （`.agent-team`）本身——agentTeamDir 层面的判定走的是 isControlFile 自己另一份
+// 唯一的调用点传的第二个参数是 runDir（`.poundlock/runs/<id>`），不是 agentTeamDir
+// （`.poundlock`）本身——agentTeamDir 层面的判定走的是 isControlFile 自己另一份
 // 独立、已经带结尾 `/` 的 inline 前缀检查（hooks/lib/control-files.mjs），根本不经过
-// underDir。这意味着"`.agent-team-backup` 对 `.agent-team`"这个具体输入，即使
+// underDir。这意味着"`.poundlock-backup` 对 `.poundlock`"这个具体输入，即使
 // underDir 退化成不带结尾 `/` 的裸 startsWith，在 decideWritePath 这条调用链上也
-// 不会被误判——两个字符串在到达共同的 `runs/r1` 后缀之前就已经分叉了（`.agent-team`
-// 后面接的是 `/`，`.agent-team-backup` 后面接的是 `-backup`）。这一点已经用 cp 备份
+// 不会被误判——两个字符串在到达共同的 `runs/r1` 后缀之前就已经分叉了（`.poundlock`
+// 后面接的是 `/`，`.poundlock-backup` 后面接的是 `-backup`）。这一点已经用 cp 备份
 // hooks/lib/path-norm.mjs、手动把 underDir 退化成裸 startsWith 实测验证过：这个输入
 // 在退化版本下依然是 false，path-norm.test.mjs 那条纯函数测试会变红，但下面这条不会。
 //
 // 于是这里补两条，不是一条：
 // 1. 先把 docs/11 字面写的场景原样钉住——这是一条合法、独立的不变量（"跟
-//    .agent-team 同前缀的兄弟目录不会被误认成控制文件或 run 目录产物"），只是
+//    .poundlock 同前缀的兄弟目录不会被误认成控制文件或 run 目录产物"），只是
 //    它不会被 underDir 的裁剪 bug 触发，对那个 bug 不敏感。
 // 2. 再补一条 decideWritePath 真实调用点的参数形状会撞上的版本——runDir 自己的
 //    兄弟：run r1 进行中时，`runs/r1-backup/01-prd.md` 对 `runs/r1` 同前缀粘连。
 //    这一条才是"若 underDir 的调用点被错误换成裸 startsWith，H3 层面会变红"这句
 //    话真正成立的那一条（同一次实测：退化版本下这条输入是 true，即误判成落在
 //    run 目录里）。
-test('H3：跟 .agent-team 同前缀的兄弟目录不算控制文件也不算 run 目录内——.agent-team-backup 对 .agent-team 必须 false（docs/11 §1.5 第 3 点字面场景）', () => {
+test('H3：跟 .poundlock 同前缀的兄弟目录不算控制文件也不算 run 目录内——.poundlock-backup 对 .poundlock 必须 false（docs/11 §1.5 第 3 点字面场景）', () => {
   const dirs = makeRun({ runId: 'r1', project: PROJECT })
   try {
     const input = {
       tool_name: 'Edit',
-      agent_type: 'agent-team:at-backend',
+      agent_type: 'poundlock:at-backend',
       tool_input: {
-        file_path: join(dirs.projectDir, '.agent-team-backup', 'runs', 'r1', '01-prd.md'),
+        file_path: join(dirs.projectDir, '.poundlock-backup', 'runs', 'r1', '01-prd.md'),
       },
     }
     const { stdout, status } = run('writepath', input, undefined, dirs.projectDir)
     const out = decisionOf(stdout)
 
     assert.equal(status, 0)
-    assert.ok(out, '.agent-team-backup/... 不在 PROJECT.paths 任何角色名下，必须 deny')
+    assert.ok(out, '.poundlock-backup/... 不在 PROJECT.paths 任何角色名下，必须 deny')
     assert.equal(out.permissionDecision, 'deny')
     // 理由必须是函数末尾 project.paths 那一支的通用兜底措辞，不能是 run 目录
     // 那一支的"不是任何阶段的 produces"——下面的自检锚证明这两支措辞真的不同。
@@ -573,9 +573,9 @@ test('H3：run 目录自己的兄弟目录同前缀粘连不算在 run 目录内
   try {
     const input = {
       tool_name: 'Edit',
-      agent_type: 'agent-team:at-backend',
+      agent_type: 'poundlock:at-backend',
       tool_input: {
-        file_path: join(dirs.projectDir, '.agent-team', 'runs', 'r1-backup', '01-prd.md'),
+        file_path: join(dirs.projectDir, '.poundlock', 'runs', 'r1-backup', '01-prd.md'),
       },
     }
     const { stdout, status } = run('writepath', input, undefined, dirs.projectDir)
@@ -603,9 +603,9 @@ test('自检：同名的 01-prd.md 若真的落在 run 目录里，reason 点名
   try {
     const input = {
       tool_name: 'Edit',
-      agent_type: 'agent-team:at-backend',
+      agent_type: 'poundlock:at-backend',
       tool_input: {
-        file_path: join(dirs.projectDir, '.agent-team', 'runs', 'r1', '01-prd.md'),
+        file_path: join(dirs.projectDir, '.poundlock', 'runs', 'r1', '01-prd.md'),
       },
     }
     const { stdout } = run('writepath', input, undefined, dirs.projectDir)
@@ -629,7 +629,7 @@ test('ctx.ok 时：被钉成主线程的 at-pm 能写 state.json（账一，走�
     const { stdout, stderr } = run('writepath', {
       tool_name: 'Write',
       agent_type: 'at-pm',
-      tool_input: { file_path: join(projectDir, '.agent-team', 'runs', 'r1', 'state.json') },
+      tool_input: { file_path: join(projectDir, '.poundlock', 'runs', 'r1', 'state.json') },
     }, GATE, projectDir)
     assert.equal(decisionOf(stdout), null, '不该有拒绝输出')
     // 自证「走的不是 I2 豁免」：I2 豁免必留 /读不到运行上下文/ 这行 stderr 痕迹
@@ -648,8 +648,8 @@ test('ctx.ok 时：at-backend 写 state.json 被拒，理由点名控制文件',
   try {
     const { stdout } = run('writepath', {
       tool_name: 'Write',
-      agent_type: 'agent-team:at-backend',
-      tool_input: { file_path: join(projectDir, '.agent-team', 'runs', 'r1', 'state.json') },
+      agent_type: 'poundlock:at-backend',
+      tool_input: { file_path: join(projectDir, '.poundlock', 'runs', 'r1', 'state.json') },
     }, GATE, projectDir)
     const d = decisionOf(stdout)
     assert.equal(d.permissionDecision, 'deny')
@@ -662,7 +662,7 @@ test('ctx.ok 时：at-backend 写 state.json 被拒，理由点名控制文件',
 
 // ⚠️ 这里必须用**未登记**角色（at-outsider 不在 PROJECT.paths 里）。
 // 用 at-backend 的话这条测试会在错误的理由下变绿：它是登记过的角色，改动前写
-// .agent-team/project.json 本来就会被「这条路径没有被任何角色认领」拒掉，
+// .poundlock/project.json 本来就会被「这条路径没有被任何角色认领」拒掉，
 // 根本走不到「静默放行」那条早退。真正被这次改动堵上的是未登记角色那条路
 // （Object.hasOwn(owners, role) 早退 → allow），纯函数层由
 // tests/writepath.test.mjs 的 at-outsider 用例覆盖，这条补的是子进程级那一层
@@ -672,8 +672,8 @@ test('ctx.ok 时：at-outsider 写 project.json 被拒（此前会被静默放�
   try {
     const { stdout } = run('writepath', {
       tool_name: 'Write',
-      agent_type: 'agent-team:at-outsider',
-      tool_input: { file_path: join(projectDir, '.agent-team', 'project.json') },
+      agent_type: 'poundlock:at-outsider',
+      tool_input: { file_path: join(projectDir, '.poundlock', 'project.json') },
     }, GATE, projectDir)
     const d = decisionOf(stdout)
     assert.equal(d.permissionDecision, 'deny')
@@ -691,11 +691,11 @@ test('ctx.ok 时：at-outsider 写 project.json 被拒（此前会被静默放�
 test('unreadable 时：at-pm 仍被放行，但走的是 I2 豁免而不是控制文件规则', () => {
   const { projectDir, pluginDir } = makeRun({ runId: 'r1', project: PROJECT })
   try {
-    rmSync(join(projectDir, '.agent-team', 'runs', 'r1', 'state.json'), { force: true })
+    rmSync(join(projectDir, '.poundlock', 'runs', 'r1', 'state.json'), { force: true })
     const { stdout, stderr } = run('writepath', {
       tool_name: 'Write',
       agent_type: 'at-pm',
-      tool_input: { file_path: join(projectDir, '.agent-team', 'runs', 'r1', 'state.json') },
+      tool_input: { file_path: join(projectDir, '.poundlock', 'runs', 'r1', 'state.json') },
     }, GATE, projectDir)
     assert.equal(decisionOf(stdout), null)
     // 这两行 stderr 是 I2 豁免独有的留痕，控制文件规则那条路径不会打它。
@@ -710,11 +710,11 @@ test('unreadable 时：at-pm 仍被放行，但走的是 I2 豁免而不是控�
 test('unreadable 时：at-backend 写 state.json 仍然 fail closed', () => {
   const { projectDir, pluginDir } = makeRun({ runId: 'r1', project: PROJECT })
   try {
-    rmSync(join(projectDir, '.agent-team', 'runs', 'r1', 'state.json'), { force: true })
+    rmSync(join(projectDir, '.poundlock', 'runs', 'r1', 'state.json'), { force: true })
     const { stdout } = run('writepath', {
       tool_name: 'Write',
-      agent_type: 'agent-team:at-backend',
-      tool_input: { file_path: join(projectDir, '.agent-team', 'runs', 'r1', 'state.json') },
+      agent_type: 'poundlock:at-backend',
+      tool_input: { file_path: join(projectDir, '.poundlock', 'runs', 'r1', 'state.json') },
     }, GATE, projectDir)
     assert.equal(decisionOf(stdout).permissionDecision, 'deny')
   } finally {
@@ -741,7 +741,7 @@ test('unreadable 时：at-backend 写 state.json 仍然 fail closed', () => {
 const makeDanglingPointer = () => {
   const dirs = makeRun({ runId: 'r1', project: PROJECT })
   // current-run 留着（内容仍然是 r1），只删掉它指向的 run 目录——这就是坏指针。
-  rmSync(join(dirs.projectDir, '.agent-team', 'runs', 'r1'), { recursive: true, force: true })
+  rmSync(join(dirs.projectDir, '.poundlock', 'runs', 'r1'), { recursive: true, force: true })
   return dirs
 }
 
@@ -750,8 +750,8 @@ test('坏指针（current-run 指向的 run 目录不存在）：at-backend 写 
   try {
     const { stdout, status } = run('writepath', {
       tool_name: 'Write',
-      agent_type: 'agent-team:at-backend',
-      tool_input: { file_path: join(projectDir, '.agent-team', 'runs', 'r1', 'state.json') },
+      agent_type: 'poundlock:at-backend',
+      tool_input: { file_path: join(projectDir, '.poundlock', 'runs', 'r1', 'state.json') },
     }, GATE, projectDir)
     assert.equal(status, 0)
     const out = decisionOf(stdout)
@@ -779,7 +779,7 @@ test('坏指针：at-backend 连自己认领的 src/server/ 也写不了——un
   try {
     const { stdout } = run('writepath', {
       tool_name: 'Write',
-      agent_type: 'agent-team:at-backend',
+      agent_type: 'poundlock:at-backend',
       tool_input: { file_path: join(projectDir, 'src', 'server', 'api.ts') },
     }, GATE, projectDir)
     const out = decisionOf(stdout)
@@ -800,7 +800,7 @@ test('坏指针：被钉成主线程的 at-pm 写 state.json 仍然放行，走 
     const { stdout, stderr } = run('writepath', {
       tool_name: 'Write',
       agent_type: 'at-pm',
-      tool_input: { file_path: join(projectDir, '.agent-team', 'runs', 'r1', 'state.json') },
+      tool_input: { file_path: join(projectDir, '.poundlock', 'runs', 'r1', 'state.json') },
     }, GATE, projectDir)
     assert.equal(decisionOf(stdout), null, '把插件唯一的运维人锁在门外，比多拒一次更糟')
     // 这两行 stderr 是 I2 豁免独有的留痕（与本文件上面那条同一份判别方式）：
@@ -813,13 +813,13 @@ test('坏指针：被钉成主线程的 at-pm 写 state.json 仍然放行，走 
   }
 })
 
-test('坏指针：at-pm 写 .agent-team/current-run 本身放行——那正是把这个坏指针修好的那一次写入', () => {
+test('坏指针：at-pm 写 .poundlock/current-run 本身放行——那正是把这个坏指针修好的那一次写入', () => {
   const { projectDir, pluginDir } = makeDanglingPointer()
   try {
     const { stdout, stderr } = run('writepath', {
       tool_name: 'Write',
       agent_type: 'at-pm',
-      tool_input: { file_path: join(projectDir, '.agent-team', 'current-run') },
+      tool_input: { file_path: join(projectDir, '.poundlock', 'current-run') },
     }, GATE, projectDir)
     assert.equal(
       decisionOf(stdout),
@@ -850,7 +850,7 @@ test('坏指针：at-pm 写 .agent-team/current-run 本身放行——那正是�
 const makeMissingPointer = () => {
   const dirs = makeRun({ runId: 'r1', project: PROJECT })
   // runs/r1/ 与它的 state.json 原封不动，只删掉指针——这就是这一格。
-  rmSync(join(dirs.projectDir, '.agent-team', 'current-run'), { force: true })
+  rmSync(join(dirs.projectDir, '.poundlock', 'current-run'), { force: true })
   return dirs
 }
 
@@ -859,7 +859,7 @@ test('丢指针（current-run 不在、runs/ 非空）：at-backend 写别人认
   try {
     const { stdout, status } = run('writepath', {
       tool_name: 'Write',
-      agent_type: 'agent-team:at-backend',
+      agent_type: 'poundlock:at-backend',
       tool_input: { file_path: join(projectDir, 'src', 'web', 'app.tsx') },
     }, GATE, projectDir)
     assert.equal(status, 0)
@@ -882,8 +882,8 @@ test('丢指针：at-backend 写 runs/r1/state.json 被拒——控制文件这�
   try {
     const { stdout } = run('writepath', {
       tool_name: 'Write',
-      agent_type: 'agent-team:at-backend',
-      tool_input: { file_path: join(projectDir, '.agent-team', 'runs', 'r1', 'state.json') },
+      agent_type: 'poundlock:at-backend',
+      tool_input: { file_path: join(projectDir, '.poundlock', 'runs', 'r1', 'state.json') },
     }, GATE, projectDir)
     const out = decisionOf(stdout)
     assert.ok(out, '改动前这里放行，而 state.json 的 artifacts 是账本比对的唯一基线')
@@ -903,7 +903,7 @@ test('丢指针：at-backend 连自己认领的 src/server/ 也写不了——�
   try {
     const { stdout } = run('writepath', {
       tool_name: 'Write',
-      agent_type: 'agent-team:at-backend',
+      agent_type: 'poundlock:at-backend',
       tool_input: { file_path: join(projectDir, 'src', 'server', 'api.ts') },
     }, GATE, projectDir)
     const out = decisionOf(stdout)
@@ -919,13 +919,13 @@ test('丢指针：at-backend 连自己认领的 src/server/ 也写不了——�
 // ⚠️ 下面三条是上面三条的**正向自检锚**。判据被错改成「unreadable 一律拒」时
 // 上面三条照样绿，红的是这三条——而它们红掉的后果分别是：run 接不回来、
 // **第一趟 run 建不出来**、自举死锁。
-test('丢指针：at-pm 写 .agent-team/current-run 本身放行——把指针写回去就是修好它的那一次写入', () => {
+test('丢指针：at-pm 写 .poundlock/current-run 本身放行——把指针写回去就是修好它的那一次写入', () => {
   const { projectDir, pluginDir } = makeMissingPointer()
   try {
     const { stdout, stderr } = run('writepath', {
       tool_name: 'Write',
       agent_type: 'at-pm',
-      tool_input: { file_path: join(projectDir, '.agent-team', 'current-run') },
+      tool_input: { file_path: join(projectDir, '.poundlock', 'current-run') },
     }, GATE, projectDir)
     assert.equal(
       decisionOf(stdout),
@@ -949,11 +949,11 @@ test('丢指针：at-pm 写 .agent-team/current-run 本身放行——把指针�
 // 路径，而是**建第一趟 run 这个动作本身**。一条用例走完两步，因为要钉的是那个
 // **顺序**：拆开就看不出它们是同一趟里相邻的两帧。
 test('丢指针 · 正路瞬态：照 commands/at.md 第 1 节建第一趟 run，PM 的每一步都放行', () => {
-  const projectDir = mkdtempSync(join(tmpdir(), 'agent-team-h3-firstrun-'))
+  const projectDir = mkdtempSync(join(tmpdir(), 'poundlock-h3-firstrun-'))
   try {
-    // /at-init 之后的形态：.agent-team 在、project.json 在、还没有任何 run。
-    mkdirSync(join(projectDir, '.agent-team'), { recursive: true })
-    writeFileSync(join(projectDir, '.agent-team', 'project.json'), JSON.stringify(PROJECT), 'utf8')
+    // /at-init 之后的形态：.poundlock 在、project.json 在、还没有任何 run。
+    mkdirSync(join(projectDir, '.poundlock'), { recursive: true })
+    writeFileSync(join(projectDir, '.poundlock', 'project.json'), JSON.stringify(PROJECT), 'utf8')
     const asPm = (file) => run('writepath', {
       tool_name: 'Write',
       agent_type: 'at-pm',
@@ -961,8 +961,8 @@ test('丢指针 · 正路瞬态：照 commands/at.md 第 1 节建第一趟 run�
     }, GATE, projectDir)
 
     // 第 1 节第 2 步：目录已建（runs/ 非空、指针还没写 = 这一格），写 state.json。
-    mkdirSync(join(projectDir, '.agent-team', 'runs', 'r1'), { recursive: true })
-    const stateWrite = asPm(join(projectDir, '.agent-team', 'runs', 'r1', 'state.json'))
+    mkdirSync(join(projectDir, '.poundlock', 'runs', 'r1'), { recursive: true })
+    const stateWrite = asPm(join(projectDir, '.poundlock', 'runs', 'r1', 'state.json'))
     assert.equal(
       decisionOf(stateWrite.stdout),
       null,
@@ -976,8 +976,8 @@ test('丢指针 · 正路瞬态：照 commands/at.md 第 1 节建第一趟 run�
     )
 
     // 第 1 节第 3 步：state.json 已落盘，写 current-run。仍然在这一格里。
-    writeFileSync(join(projectDir, '.agent-team', 'runs', 'r1', 'state.json'), '{}', 'utf8')
-    assert.equal(decisionOf(asPm(join(projectDir, '.agent-team', 'current-run')).stdout), null)
+    writeFileSync(join(projectDir, '.poundlock', 'runs', 'r1', 'state.json'), '{}', 'utf8')
+    assert.equal(decisionOf(asPm(join(projectDir, '.poundlock', 'current-run')).stdout), null)
   } finally {
     rmSync(projectDir, { recursive: true, force: true })
   }
@@ -986,15 +986,15 @@ test('丢指针 · 正路瞬态：照 commands/at.md 第 1 节建第一趟 run�
 // ⚠️ **这一刀的硬边界**：收窄认的是「runs/ 里有没有东西」，不是「runs/ 这个目录在不在」。
 // 判据被错写成 existsSync(runsDir) 时上面每一条都照样绿，红的是这一条——而它红掉的
 // 后果是：run 目录被清空过的项目里，整支班底一上来就写不了任何东西。
-// 本文件上面「没有 run 时，有名有姓的角色（非 MAIN）也放行」那条走的是 .agent-team
+// 本文件上面「没有 run 时，有名有姓的角色（非 MAIN）也放行」那条走的是 .poundlock
 // 整个不存在，与这条是同一条边的两个形态，两条都要在。
 test('自举边界：runs/ 存在但是空目录——有名有姓的非 PM 角色仍然放行，按 no-run 处理', () => {
-  const cwd = mkdtempSync(join(tmpdir(), 'agent-team-h3-emptyruns-'))
+  const cwd = mkdtempSync(join(tmpdir(), 'poundlock-h3-emptyruns-'))
   try {
-    mkdirSync(join(cwd, '.agent-team', 'runs'), { recursive: true })
+    mkdirSync(join(cwd, '.poundlock', 'runs'), { recursive: true })
     const { stdout, stderr, status } = run('writepath', {
       tool_name: 'Edit',
-      agent_type: 'agent-team:at-backend',
+      agent_type: 'poundlock:at-backend',
       tool_input: { file_path: join(cwd, 'src', 'server', 'api.ts') },
     }, GATE, cwd)
     assert.equal(status, 0)
@@ -1015,7 +1015,7 @@ test('writepath：主线程写 run 目录里别人的阶段产物也放行——
   try {
     const input = {
       tool_name: 'Write',
-      tool_input: { file_path: join(dirs.projectDir, '.agent-team', 'runs', 'r1', '01-prd.md'), content: 'x' },
+      tool_input: { file_path: join(dirs.projectDir, '.poundlock', 'runs', 'r1', '01-prd.md'), content: 'x' },
     }
     const { stdout, status } = run('writepath', input, undefined, dirs.projectDir)
     assert.equal(status, 0)
@@ -1033,19 +1033,19 @@ test('M4i 复核：H3——认不出的调用者写没人认领的路径也拒�
   const dirs = makeRun({ runId: 'r1', stage: 'S5', project: PROJECT })
   try {
     const write = (agent, file_path, extra = {}) => ({ tool_name: 'Write', agent_type: agent, tool_input: { file_path, content: 'x' }, ...extra })
-    for (const bad of ['', 0, 'agent-team:']) {
+    for (const bad of ['', 0, 'poundlock:']) {
       const d = decisionOf(run('writepath', write(bad, join(dirs.projectDir, 'unclaimed', 'x.ts')), undefined, dirs.projectDir).stdout)
       assert.equal(d?.permissionDecision, 'deny', JSON.stringify(bad))
       assert.ok(d.permissionDecisionReason.startsWith('门禁认不出发起这次写入的是谁'), d.permissionDecisionReason)
     }
-    const ctl = decisionOf(run('writepath', write('my-main', join(dirs.projectDir, '.agent-team', 'project.json')), undefined, dirs.projectDir).stdout)
+    const ctl = decisionOf(run('writepath', write('my-main', join(dirs.projectDir, '.poundlock', 'project.json')), undefined, dirs.projectDir).stdout)
     assert.equal(ctl?.permissionDecision, 'deny')
-    assert.ok(ctl.permissionDecisionReason.endsWith("注意：发起这次写入的是 \"my-main\"，不是 agent-team 的项目经理（agent-team:at-pm）——设置里的 agent 或者启动时的 --agent 换掉了主会话。这样跑不了这支团队：门禁不把你当项目经理，建 run、记 state.json 这些项目经理的写入会被拒。停下来告诉用户：去掉设置里的那一项 agent、起会话时不带别的 --agent，或者直接用 claude --agent agent-team:at-pm 起会话。"), ctl.permissionDecisionReason)
+    assert.ok(ctl.permissionDecisionReason.endsWith("注意：发起这次写入的是 \"my-main\"，不是 poundlock 的项目经理（poundlock:at-pm）——设置里的 agent 或者启动时的 --agent 换掉了主会话。这样跑不了这支团队：门禁不把你当项目经理，建 run、记 state.json 这些项目经理的写入会被拒。停下来告诉用户：去掉设置里的那一项 agent、起会话时不带别的 --agent，或者直接用 claude --agent poundlock:at-pm 起会话。"), ctl.permissionDecisionReason)
     // H4：被换掉的主会话写契约，契约保护拒，理由末尾同样说身份。
-    const contract = decisionOf(run('contract', write('my-main', join(dirs.projectDir, '.agent-team', 'runs', 'r1', '00-contract.md')), undefined, dirs.projectDir).stdout)
-    assert.ok(contract?.permissionDecision === 'deny' && contract.permissionDecisionReason.endsWith("注意：发起这次写入的是 \"my-main\"，不是 agent-team 的项目经理（agent-team:at-pm）——设置里的 agent 或者启动时的 --agent 换掉了主会话。这样跑不了这支团队：门禁不把你当项目经理，建 run、记 state.json 这些项目经理的写入会被拒。停下来告诉用户：去掉设置里的那一项 agent、起会话时不带别的 --agent，或者直接用 claude --agent agent-team:at-pm 起会话。"), JSON.stringify(contract))
+    const contract = decisionOf(run('contract', write('my-main', join(dirs.projectDir, '.poundlock', 'runs', 'r1', '00-contract.md')), undefined, dirs.projectDir).stdout)
+    assert.ok(contract?.permissionDecision === 'deny' && contract.permissionDecisionReason.endsWith("注意：发起这次写入的是 \"my-main\"，不是 poundlock 的项目经理（poundlock:at-pm）——设置里的 agent 或者启动时的 --agent 换掉了主会话。这样跑不了这支团队：门禁不把你当项目经理，建 run、记 state.json 这些项目经理的写入会被拒。停下来告诉用户：去掉设置里的那一项 agent、起会话时不带别的 --agent，或者直接用 claude --agent poundlock:at-pm 起会话。"), JSON.stringify(contract))
     // 带 agent_id 的子代理写控制文件：照旧，不说身份。
-    const sub = decisionOf(run('writepath', write('agent-team:at-backend', join(dirs.projectDir, '.agent-team', 'project.json'), { agent_id: 'a0000000000000e02' }), undefined, dirs.projectDir).stdout)
+    const sub = decisionOf(run('writepath', write('poundlock:at-backend', join(dirs.projectDir, '.poundlock', 'project.json'), { agent_id: 'a0000000000000e02' }), undefined, dirs.projectDir).stdout)
     assert.ok(sub?.permissionDecision === 'deny' && !sub.permissionDecisionReason.includes('注意：发起这次'), JSON.stringify(sub))
   } finally {
     rmSync(dirs.projectDir, { recursive: true, force: true })
@@ -1057,18 +1057,18 @@ test('M4i 复核：H3——认不出的调用者写没人认领的路径也拒�
 // 已经非空、指针不在，门禁判读不出运行上下文、按安全边界拒。那两条拒绝（H3、H4）原来只说「有人建过 run 而指针不在」，被换掉的主会话会
 // 当成别人留下的坏 run；末尾接上身份那一句。项目经理在这种状态下照旧放行（修一个坏掉的 run 要它动手）。
 test('M4i 复核：读不到运行上下文时，H3、H4 拒绝被换掉的主会话，理由末尾说身份；项目经理照旧放行', () => {
-  const p = mkdtempSync(join(tmpdir(), 'agent-team-m4i-boot-'))
+  const p = mkdtempSync(join(tmpdir(), 'poundlock-m4i-boot-'))
   try {
-    mkdirSync(join(p, '.agent-team', 'runs', '20261006-0900-probe'), { recursive: true })
-    writeFileSync(join(p, '.agent-team', 'runs', '20261006-0900-probe', 'state.json'), '{"run_id":"20261006-0900-probe","stage":"S1"}')
+    mkdirSync(join(p, '.poundlock', 'runs', '20261006-0900-probe'), { recursive: true })
+    writeFileSync(join(p, '.poundlock', 'runs', '20261006-0900-probe', 'state.json'), '{"run_id":"20261006-0900-probe","stage":"S1"}')
     const write = (agent, file_path) => ({ tool_name: 'Write', ...(agent ? { agent_type: agent } : {}), tool_input: { file_path, content: 'x' } })
-    const pointer = join(p, '.agent-team', 'current-run')
+    const pointer = join(p, '.poundlock', 'current-run')
     for (const check of ['writepath', 'contract']) {
       const d = decisionOf(run(check, write('my-main', pointer), undefined, p).stdout)
       assert.equal(d?.permissionDecision, 'deny', check)
       assert.ok(d.permissionDecisionReason.includes('读不到运行上下文'), d.permissionDecisionReason)
-      assert.ok(d.permissionDecisionReason.endsWith("注意：发起这次写入的是 \"my-main\"，不是 agent-team 的项目经理（agent-team:at-pm）——设置里的 agent 或者启动时的 --agent 换掉了主会话。这样跑不了这支团队：门禁不把你当项目经理，建 run、记 state.json 这些项目经理的写入会被拒。停下来告诉用户：去掉设置里的那一项 agent、起会话时不带别的 --agent，或者直接用 claude --agent agent-team:at-pm 起会话。"), d.permissionDecisionReason)
-      assert.equal(decisionOf(run(check, write('agent-team:at-pm', pointer), undefined, p).stdout), null, `${check}：项目经理在这种状态下照旧放行`)
+      assert.ok(d.permissionDecisionReason.endsWith("注意：发起这次写入的是 \"my-main\"，不是 poundlock 的项目经理（poundlock:at-pm）——设置里的 agent 或者启动时的 --agent 换掉了主会话。这样跑不了这支团队：门禁不把你当项目经理，建 run、记 state.json 这些项目经理的写入会被拒。停下来告诉用户：去掉设置里的那一项 agent、起会话时不带别的 --agent，或者直接用 claude --agent poundlock:at-pm 起会话。"), d.permissionDecisionReason)
+      assert.equal(decisionOf(run(check, write('poundlock:at-pm', pointer), undefined, p).stdout), null, `${check}：项目经理在这种状态下照旧放行`)
     }
   } finally {
     rmSync(p, { recursive: true, force: true })

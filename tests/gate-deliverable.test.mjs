@@ -48,7 +48,7 @@ import { REAL_STAGES, whoCanReach } from './helpers/stage-role-reach.mjs'
 test('stop-gate：产物真的缺失时真拦截——exit 2，stderr 点名阶段与文件（此前从未被任何测试真正执行到的分支）', () => {
   const dirs = makeRun({ runId: 'r1' }) // 不建任何 artifacts，at-product 在 S2 的产物必然缺失
   try {
-    const input = { hook_event_name: 'SubagentStop', agent_type: 'agent-team:at-product' }
+    const input = { hook_event_name: 'SubagentStop', agent_type: 'poundlock:at-product' }
     const { stdout, stderr, status } = run('stop-gate', input, undefined, dirs.projectDir)
 
     assert.equal(status, 2, 'H5b 真拦截必须走 exit 2，不是别的退出码')
@@ -65,7 +65,7 @@ test('stop-gate：产物真的缺失时真拦截——exit 2，stderr 点名阶�
 test('stop-gate：产物已经写到磁盘时放行，不拦截、不留任何告警', () => {
   const dirs = makeRun({ runId: 'r1', artifacts: ['01-prd.md'] })
   try {
-    const input = { hook_event_name: 'SubagentStop', agent_type: 'agent-team:at-product' }
+    const input = { hook_event_name: 'SubagentStop', agent_type: 'poundlock:at-product' }
     const { stdout, stderr, status } = run('stop-gate', input, undefined, dirs.projectDir)
 
     assert.equal(status, 0)
@@ -78,15 +78,15 @@ test('stop-gate：产物已经写到磁盘时放行，不拦截、不留任何�
 })
 
 test('stop-gate：没有 run 时 fail open 并在 stderr 留痕，不是静默放行也不是真拦截', () => {
-  const cwd = mkdtempSync(join(tmpdir(), 'agent-team-h5b-norun-cwd-'))
+  const cwd = mkdtempSync(join(tmpdir(), 'poundlock-h5b-norun-cwd-'))
   try {
-    const input = { hook_event_name: 'SubagentStop', agent_type: 'agent-team:at-product' }
+    const input = { hook_event_name: 'SubagentStop', agent_type: 'poundlock:at-product' }
     const { stdout, stderr, status } = run('stop-gate', input, undefined, cwd)
 
     assert.equal(status, 0, 'H5b fail open：读不到运行上下文不能真拦截')
     assert.equal(stdout, '')
     assert.ok(stderr.trim().length > 0, '必须往 stderr 留痕；静默的放行和门禁坏掉长得一模一样')
-    assert.match(stderr, /agent-team/)
+    assert.match(stderr, /poundlock/)
     assert.match(stderr, /(H5b|交付物)/)
     assert.match(stderr, /current-run/, 'stderr 里应带上 readRunContext 给出的具体原因')
   } finally {
@@ -98,13 +98,13 @@ test('stop-gate：没有 run 时 fail open 并在 stderr 留痕，不是静默�
 //
 // 沿着输入状态横着走一遍消费方（docs/16 §3.12）补的那一格。H5 从头到尾没有 fail closed
 // 的那一半，所以这一格的分类改判对它**只影响那半句话**。这条与上面「没有 run 时」
-// 那条配对：那条走 .agent-team 整个不存在（no-run），这条走指针丢了（unreadable），
+// 那条配对：那条走 .poundlock 整个不存在（no-run），这条走指针丢了（unreadable），
 // failOpenNotice 的三元塌成任一支，必有一条变红。
 test('stop-gate：丢指针时 fail open + 留痕，措辞说「读不到运行上下文」——run 就在那里，丢的是指针', () => {
   const dirs = makeRun({ runId: 'r1' })
   try {
-    rmSync(join(dirs.projectDir, '.agent-team', 'current-run'), { force: true })
-    const input = { hook_event_name: 'SubagentStop', agent_type: 'agent-team:at-product' }
+    rmSync(join(dirs.projectDir, '.poundlock', 'current-run'), { force: true })
+    const input = { hook_event_name: 'SubagentStop', agent_type: 'poundlock:at-product' }
     const { stdout, stderr, status } = run('stop-gate', input, undefined, dirs.projectDir)
 
     assert.equal(status, 0, 'H5 没有 fail closed 的一半，这一格的改判不该让它开始拦截')
@@ -121,14 +121,14 @@ test('stop-gate：run 存在但 state.json 坏了（kind: unreadable）——同
   // 这里是同一种处理。这条用一个真实存在但读不出来的 run 证明这一点。
   const dirs = makeRun({ runId: 'r1' })
   try {
-    writeFileSync(join(dirs.projectDir, '.agent-team', 'runs', 'r1', 'state.json'), '{ not json', 'utf8')
-    const input = { hook_event_name: 'SubagentStop', agent_type: 'agent-team:at-product' }
+    writeFileSync(join(dirs.projectDir, '.poundlock', 'runs', 'r1', 'state.json'), '{ not json', 'utf8')
+    const input = { hook_event_name: 'SubagentStop', agent_type: 'poundlock:at-product' }
     const { stdout, stderr, status } = run('stop-gate', input, undefined, dirs.projectDir)
 
     assert.equal(status, 0, 'H5 没有 fail closed 的一半，unreadable 也要放行')
     assert.equal(stdout, '')
     assert.ok(stderr.trim().length > 0)
-    assert.match(stderr, /agent-team/)
+    assert.match(stderr, /poundlock/)
     // 复评 Minor 2：这是 failOpenNotice 里那条 kind 三元的另一支。与
     // tests/gate-writepath.test.mjs 里 no-run 那条配对——两条都在，三元塌成
     // 任何一个单一字符串、或者两支调换，必定有一条变红。
@@ -165,7 +165,7 @@ test('stop-gate：agent_type 缺失时放行——没有可判定的目标角色
 //
 // 实测（docs/22 §3、§5）：CLI 自己起的内部分叉（agent_summary、prompt_suggestion……）停下时
 // 也发 SubagentStop，带进来的 agent_type 是**主线程**的身份、不是父代理的——本插件把主线程
-// 钉成 at-pm，于是它们一律是 "agent-team:at-pm"。at-pm 是 S1 / S4 / S8 的产者，修之前 H5b
+// 钉成 at-pm，于是它们一律是 "poundlock:at-pm"。at-pm 是 S1 / S4 / S8 的产者，修之前 H5b
 // 在这三段、PM 的产物落盘之前对每一个分叉 exit 2。
 //
 // 输入照 docs/22 §3 第 7 行那次真实输入的形状写：十五个键，一个不少；路径与 id 换成占位。
@@ -192,7 +192,7 @@ function forkStopInput(cwd, agentType) {
         type: 'subagent',
         status: 'running',
         description: '派发 at-product 写 01-prd.md',
-        agent_type: 'agent-team:at-product',
+        agent_type: 'poundlock:at-product',
       },
     ],
     session_crons: [],
@@ -207,7 +207,7 @@ const PM_STAGES = [
 ]
 
 test('自检：分叉输入的形状就是 docs/22 §3 记下的那十五个键', () => {
-  assert.deepEqual(Object.keys(forkStopInput('x', 'agent-team:at-pm')), [
+  assert.deepEqual(Object.keys(forkStopInput('x', 'poundlock:at-pm')), [
     'session_id', 'transcript_path', 'cwd', 'scratchpad_dir', 'prompt_id', 'permission_mode',
     'agent_id', 'agent_type', 'effort', 'hook_event_name', 'stop_hook_active',
     'agent_transcript_path', 'last_assistant_message', 'background_tasks', 'session_crons',
@@ -215,7 +215,7 @@ test('自检：分叉输入的形状就是 docs/22 §3 记下的那十五个键'
 })
 
 for (const [stage, product] of PM_STAGES) {
-  for (const agentType of ['agent-team:at-pm', 'at-pm']) {
+  for (const agentType of ['poundlock:at-pm', 'at-pm']) {
     test(`stop-gate：分叉带着 PM 的身份（${agentType}）在 ${stage} 停下、${product} 还不在——不表态：exit 0，stdout 与 stderr 都为空`, () => {
       const dirs = makeRun({ runId: 'r1', stage }) // 不建任何产物：PM 在这一段的产物必然缺失
       try {
@@ -237,12 +237,12 @@ for (const [stage, product] of PM_STAGES) {
   // 正向锚 + 反向锚，一条两用：同一份夹具上 H5a 对目标 at-pm 照报缺产物。
   //   · 证明上面那两条的静默不是因为产物恰好在盘上（夹具里 PM 的产物确实不在）；
   //   · 证明那一行只属于 stop-gate——H5a 读的是 tool_input.subagent_type，它那条告警不变。
-  test(`H5a：同一份 ${stage} 夹具、目标是 agent-team:at-pm——照报「应当产出 ${product}」，那一行只属于 stop-gate`, () => {
+  test(`H5a：同一份 ${stage} 夹具、目标是 poundlock:at-pm——照报「应当产出 ${product}」，那一行只属于 stop-gate`, () => {
     const dirs = makeRun({ runId: 'r1', stage })
     try {
       const input = {
         tool_name: 'Agent',
-        tool_input: { subagent_type: 'agent-team:at-pm', prompt: 'x', description: 'x' },
+        tool_input: { subagent_type: 'poundlock:at-pm', prompt: 'x', description: 'x' },
         tool_response: {},
       }
       const { stdout, status } = run('deliverable', input, undefined, dirs.projectDir)
@@ -263,9 +263,9 @@ for (const [stage, product] of PM_STAGES) {
 // 修之前这里是「当前没有进行中的 run」那一行 fail open 留痕；把那一行挪到 !ctx.ok 那一支
 // 之后，这一条红——gate.mjs 那段注释写着这个顺序，**注释不是判据**（docs/11 §5.33）。
 test('stop-gate：分叉带着 PM 的身份、而且还没有任何 run——同样不表态，不写 failOpenNotice', () => {
-  const cwd = mkdtempSync(join(tmpdir(), 'agent-team-h5b-fork-norun-'))
+  const cwd = mkdtempSync(join(tmpdir(), 'poundlock-h5b-fork-norun-'))
   try {
-    const { stdout, stderr, status } = run('stop-gate', forkStopInput(cwd, 'agent-team:at-pm'), undefined, cwd)
+    const { stdout, stderr, status } = run('stop-gate', forkStopInput(cwd, 'poundlock:at-pm'), undefined, cwd)
     assert.equal(status, 0)
     assert.equal(stdout, '')
     assert.equal(stderr, '', `不归本检查项管的事件不该留 fail open 的痕；stderr=${stderr}`)
@@ -275,10 +275,10 @@ test('stop-gate：分叉带着 PM 的身份、而且还没有任何 run——同
 })
 
 // 反向锚：同一种输入形状，换成一个真正被派出去的执行角色——照拦。这一行没有顺手把 H5b 关掉。
-test('stop-gate：同一种输入形状、换成 agent-team:at-product 在 S2 停下而 01-prd.md 还不在——照拦（exit 2）', () => {
+test('stop-gate：同一种输入形状、换成 poundlock:at-product 在 S2 停下而 01-prd.md 还不在——照拦（exit 2）', () => {
   const dirs = makeRun({ runId: 'r1', stage: 'S2' })
   try {
-    const { stdout, stderr, status } = run('stop-gate', forkStopInput(dirs.projectDir, 'agent-team:at-product'), undefined, dirs.projectDir)
+    const { stdout, stderr, status } = run('stop-gate', forkStopInput(dirs.projectDir, 'poundlock:at-product'), undefined, dirs.projectDir)
     assert.equal(status, 2)
     assert.equal(stdout, '')
     assert.match(stderr, /at-product 在 S2 应当产出 01-prd\.md/)
@@ -319,7 +319,7 @@ test('deliverable：查的是被派发的目标角色（tool_input.subagent_type
     const input = {
       tool_name: 'Agent',
       agent_type: 'at-pm',
-      tool_input: { subagent_type: 'agent-team:at-product' },
+      tool_input: { subagent_type: 'poundlock:at-product' },
     }
     const { stdout, status } = run('deliverable', input, undefined, dirs.projectDir)
     const out = decisionOf(stdout)
@@ -405,7 +405,7 @@ test('deliverable 的缺产物告警（H5a 真实记录）真实输出以受信�
     const input = {
       tool_name: 'Agent',
       agent_type: 'at-pm',
-      tool_input: { subagent_type: 'agent-team:at-product' },
+      tool_input: { subagent_type: 'poundlock:at-product' },
     }
     const { stdout } = run('deliverable', input, undefined, dirs.projectDir)
     const out = decisionOf(stdout)
@@ -429,7 +429,7 @@ test('deliverable：目标角色已经写出产物——stdout 为空，不记 w
     // 的场景，不是"不管账本记没记都沉默"（后者现在是假的，会被下面新增的测试戳穿）——
     // 所以在这里把账本补成与磁盘内容一致，让夹具真正代表测试名字承诺的场景，而不是
     // 悄悄依赖"没人检查账本"这个已经不再成立的前提。
-    const statePath = join(dirs.projectDir, '.agent-team', 'runs', 'r1', 'state.json')
+    const statePath = join(dirs.projectDir, '.poundlock', 'runs', 'r1', 'state.json')
     const state = JSON.parse(readFileSync(statePath, 'utf8'))
     // M4c（docs/37）：契约的账只在 contract_sha，不进 artifacts——「记账也对得上」对契约就是 contract_sha 等于磁盘。
     state.contract_sha = sha256OfContract('fixture 00-contract.md\n')
@@ -439,7 +439,7 @@ test('deliverable：目标角色已经写出产物——stdout 为空，不记 w
     const input = {
       tool_name: 'Agent',
       agent_type: 'at-pm',
-      tool_input: { subagent_type: 'agent-team:at-product' },
+      tool_input: { subagent_type: 'poundlock:at-product' },
     }
     const { stdout, status } = run('deliverable', input, undefined, dirs.projectDir)
 
@@ -454,11 +454,11 @@ test('deliverable：目标角色已经写出产物——stdout 为空，不记 w
 // M3v（docs/30，全量审查第 12 条）：这一条原来断言 stdout 为空。主线程派一个它派得动的团队角色时，H5a 现在回传一段
 // 「这次派发没做校验、这是有意的放行」（形状表在 tests/gate-fail-open.test.mjs）——交付物告警照旧不写，stderr 照旧留痕。
 test('deliverable：没有 run 时 fail open 并在 stderr 留痕，不写交付物告警（主线程派团队角色只回传「有意的放行」）', () => {
-  const cwd = mkdtempSync(join(tmpdir(), 'agent-team-h5a-norun-cwd-'))
+  const cwd = mkdtempSync(join(tmpdir(), 'poundlock-h5a-norun-cwd-'))
   try {
     const input = {
       tool_name: 'Agent',
-      tool_input: { subagent_type: 'agent-team:at-product' },
+      tool_input: { subagent_type: 'poundlock:at-product' },
     }
     const { stdout, stderr, status } = run('deliverable', input, undefined, cwd)
 
@@ -466,10 +466,10 @@ test('deliverable：没有 run 时 fail open 并在 stderr 留痕，不写交付
     const ctx = decisionOf(stdout)?.additionalContext ?? ''
     assert.doesNotMatch(ctx, /交付物校验：/, '没有 run 时不该写交付物告警')
     assert.match(ctx, /有意的放行/)
-    const coordinator = run('deliverable', { ...input, agent_type: 'agent-team:at-architect', tool_input: { subagent_type: 'agent-team:at-backend' } }, undefined, cwd)
+    const coordinator = run('deliverable', { ...input, agent_type: 'poundlock:at-architect', tool_input: { subagent_type: 'poundlock:at-backend' } }, undefined, cwd)
     assert.equal(coordinator.stdout, '', '协调者发起的派发在没有 run 时不回传任何东西')
     assert.ok(stderr.trim().length > 0)
-    assert.match(stderr, /agent-team/)
+    assert.match(stderr, /poundlock/)
     assert.match(stderr, /(H5a|交付物)/)
   } finally {
     rmSync(cwd, { recursive: true, force: true })
@@ -489,7 +489,7 @@ test('deliverable：tool_input.subagent_type 缺失时放行、且留痕——�
     // 确实归 H5a 管，只是认不出该查谁，跟"这次调用与本检查项无关"（那种在
     // toolNames 前置校验里就静默退出了）不是一回事，必须留痕。
     assert.ok(stderr.trim().length > 0, '认不出目标角色也要留痕，不能悄悄放行')
-    assert.match(stderr, /agent-team/)
+    assert.match(stderr, /poundlock/)
     assert.match(stderr, /(H5a|交付物)/)
   } finally {
     rmSync(dirs.projectDir, { recursive: true, force: true })
@@ -521,7 +521,7 @@ test('state.stage 与被派角色对不上时 H5a 发 warning，而不是静默�
   try {
     const { stdout } = run('deliverable', {
       tool_name: 'Agent', agent_type: 'at-architect',
-      tool_input: { subagent_type: 'agent-team:at-backend' },
+      tool_input: { subagent_type: 'poundlock:at-backend' },
     }, GATE, projectDir)
     const ctx = JSON.parse(stdout).hookSpecificOutput.additionalContext
     assert.match(ctx, /没有意见/)
@@ -564,7 +564,7 @@ test('S5 派 at-architect 去分发（正路）：H5a 不发 warning——它是
   try {
     const { stdout, status } = run('deliverable', {
       tool_name: 'Agent', agent_type: 'at-pm',
-      tool_input: { subagent_type: 'agent-team:at-architect' },
+      tool_input: { subagent_type: 'poundlock:at-architect' },
     }, GATE, projectDir)
     assert.equal(status, 0)
     assert.equal(
@@ -585,7 +585,7 @@ test('S5 返回的是一个派不到执行角色的角色（at-outsider）：H5a
   try {
     const { stdout, status } = run('deliverable', {
       tool_name: 'Agent', agent_type: 'at-pm',
-      tool_input: { subagent_type: 'agent-team:at-outsider' },
+      tool_input: { subagent_type: 'poundlock:at-outsider' },
     }, GATE, projectDir)
     assert.equal(status, 0)
     // 正向锚点：上一条是「stdout 为空」这种否定断言，单独立不住——必须有一条
@@ -614,7 +614,7 @@ test('deliverable 的哑火告警（role-not-in-stage 非协调者）真实输�
   try {
     const { stdout } = run('deliverable', {
       tool_name: 'Agent', agent_type: 'at-pm',
-      tool_input: { subagent_type: 'agent-team:at-outsider' },
+      tool_input: { subagent_type: 'poundlock:at-outsider' },
     }, GATE, projectDir)
     const ctx = JSON.parse(stdout).hookSpecificOutput.additionalContext
     assert.ok(ctx.startsWith(TRUSTED_PREFIX))
@@ -660,7 +660,7 @@ function runDeliverableAgainstIsolatedRoster(rosterText) {
   try {
     return run('deliverable', {
       tool_name: 'Agent', agent_type: 'at-pm',
-      tool_input: { subagent_type: 'agent-team:at-outsider' },
+      tool_input: { subagent_type: 'poundlock:at-outsider' },
     }, dirs.gate, dirs.projectDir)
   } finally {
     rmSync(dirs.projectDir, { recursive: true, force: true })
@@ -725,7 +725,7 @@ test('H5a：协调者返回且当前阶段未 done —— 静默（这是合法�
   const f = H5A_STAGE_DONE_FIXTURES.coordinatorNotDone
   const { projectDir, pluginDir } = makeRun({ runId: 'r1', stage: f.stage, artifacts: f.diskArtifacts })
   try {
-    const statePath = join(projectDir, '.agent-team', 'runs', 'r1', 'state.json')
+    const statePath = join(projectDir, '.poundlock', 'runs', 'r1', 'state.json')
     const state = JSON.parse(readFileSync(statePath, 'utf8'))
     state.roster = f.roster
     writeFileSync(statePath, JSON.stringify(state), 'utf8')
@@ -735,7 +735,7 @@ test('H5a：协调者返回且当前阶段未 done —— 静默（这是合法�
     // 「协调者 + 未 done」，判据的第一行：仍然静默。
     const { stdout } = run('deliverable', {
       tool_name: 'Agent', agent_type: 'at-pm',
-      tool_input: { subagent_type: 'agent-team:at-architect' },
+      tool_input: { subagent_type: 'poundlock:at-architect' },
     }, GATE, projectDir)
 
     assert.equal(stdout, '')
@@ -749,7 +749,7 @@ test('H5a：协调者返回但当前阶段已经 done —— 报（这正是「�
   const f = H5A_STAGE_DONE_FIXTURES.coordinatorDone
   const { projectDir, pluginDir } = makeRun({ runId: 'r1', stage: f.stage, artifacts: f.diskArtifacts })
   try {
-    const statePath = join(projectDir, '.agent-team', 'runs', 'r1', 'state.json')
+    const statePath = join(projectDir, '.poundlock', 'runs', 'r1', 'state.json')
     const state = JSON.parse(readFileSync(statePath, 'utf8'))
     state.roster = f.roster
     // 账本记录与磁盘内容对齐（哈希对得上），让这条测试只钉「stageDone 分支的 h5a
@@ -766,7 +766,7 @@ test('H5a：协调者返回但当前阶段已经 done —— 报（这正是「�
     // JSON.parse('') 的异常掩盖真实的失败原因。
     const { stdout } = run('deliverable', {
       tool_name: 'Agent', agent_type: 'at-pm',
-      tool_input: { subagent_type: 'agent-team:at-architect' },
+      tool_input: { subagent_type: 'poundlock:at-architect' },
     }, GATE, projectDir)
 
     // ⚠️ 修复轮 1：这里原来钉的是 /停在旧阶段/——**两支文案都含这四个字**（非协调者那支
@@ -784,7 +784,7 @@ test('H5a：非协调者返回 —— 报（判据这一半不变）', () => {
   const f = H5A_STAGE_DONE_FIXTURES.nonCoordinator
   const { projectDir, pluginDir } = makeRun({ runId: 'r1', stage: f.stage, artifacts: f.diskArtifacts })
   try {
-    const statePath = join(projectDir, '.agent-team', 'runs', 'r1', 'state.json')
+    const statePath = join(projectDir, '.poundlock', 'runs', 'r1', 'state.json')
     const state = JSON.parse(readFileSync(statePath, 'utf8'))
     state.roster = f.roster
     writeFileSync(statePath, JSON.stringify(state), 'utf8')
@@ -793,7 +793,7 @@ test('H5a：非协调者返回 —— 报（判据这一半不变）', () => {
     // 判据（`!coordinator`）是 M1 就有的老行为，这次改动没有碰它，这条测试证明它还在。
     const { stdout } = run('deliverable', {
       tool_name: 'Agent', agent_type: 'at-pm',
-      tool_input: { subagent_type: 'agent-team:at-outsider' },
+      tool_input: { subagent_type: 'poundlock:at-outsider' },
     }, GATE, projectDir)
     const ctx = JSON.parse(stdout).hookSpecificOutput.additionalContext
 
@@ -827,14 +827,14 @@ function runH5aM3x({ stage_roles, roster, diskArtifacts, returns = 'at-architect
   try {
     if (ledger) {
       // 账本与磁盘对齐，让这几条只看 H5a 那一支，不夹带账本比对的 unrecorded。
-      const statePath = join(projectDir, '.agent-team', 'runs', 'r1', 'state.json')
+      const statePath = join(projectDir, '.poundlock', 'runs', 'r1', 'state.json')
       const state = JSON.parse(readFileSync(statePath, 'utf8'))
       state.artifacts = Object.fromEntries(diskArtifacts.map((n) => [n, sha256OfContract(`fixture ${n}\n`)]))
       writeFileSync(statePath, JSON.stringify(state), 'utf8')
     }
     return run('deliverable', {
       tool_name: 'Agent', agent_type: 'at-pm',
-      tool_input: { subagent_type: `agent-team:${returns}` },
+      tool_input: { subagent_type: `poundlock:${returns}` },
     }, GATE, projectDir).stdout
   } finally {
     rmSync(projectDir, { recursive: true, force: true })
@@ -882,12 +882,12 @@ test('M3x 整趟口径：S5 还没记账、01-prd.md 记账之后被改过——
     artifacts: ['00-contract.md', '01-prd.md', '03-arch.md'],
   })
   try {
-    const statePath = join(projectDir, '.agent-team', 'runs', 'r1', 'state.json')
+    const statePath = join(projectDir, '.poundlock', 'runs', 'r1', 'state.json')
     const state = JSON.parse(readFileSync(statePath, 'utf8'))
     state.artifacts = { '01-prd.md': 'sha256:' + 'c'.repeat(64) }
     writeFileSync(statePath, JSON.stringify(state), 'utf8')
     const { stdout } = run('deliverable', {
-      tool_name: 'Agent', agent_type: 'at-pm', tool_input: { subagent_type: 'agent-team:at-architect' },
+      tool_name: 'Agent', agent_type: 'at-pm', tool_input: { subagent_type: 'poundlock:at-architect' },
     }, GATE, projectDir)
     assert.match(stdout, /【账本比对】/, stdout)
     assert.match(stdout, /01-prd\.md/, stdout)
@@ -1002,14 +1002,14 @@ const H5A_TOPOLOGY_BEHAVIOUR = {
 function runH5a(f, { ledger = null } = {}) {
   const { projectDir, pluginDir } = makeRun({ runId: 'r1', stage: f.stage, artifacts: f.diskArtifacts })
   try {
-    const statePath = join(projectDir, '.agent-team', 'runs', 'r1', 'state.json')
+    const statePath = join(projectDir, '.poundlock', 'runs', 'r1', 'state.json')
     const state = JSON.parse(readFileSync(statePath, 'utf8'))
     state.roster = f.roster
     if (ledger) state.artifacts = ledger
     writeFileSync(statePath, JSON.stringify(state), 'utf8')
     return run('deliverable', {
       tool_name: 'Agent', agent_type: 'at-pm',
-      tool_input: { subagent_type: `agent-team:${f.returns}` },
+      tool_input: { subagent_type: `poundlock:${f.returns}` },
     }, GATE, projectDir).stdout
   } finally {
     rmSync(projectDir, { recursive: true, force: true })
@@ -1112,7 +1112,7 @@ test('前置条件：上面三条行为测试的夹具互不相同——否则�
 test('H5b 在角色与当前阶段对不上时不拦——fail open，不发 exit 2', () => {
   const { projectDir, pluginDir } = makeRun({ runId: 'r1', stage: 'S2' })
   try {
-    const { status } = run('stop-gate', { agent_type: 'agent-team:at-backend' }, GATE, projectDir)
+    const { status } = run('stop-gate', { agent_type: 'poundlock:at-backend' }, GATE, projectDir)
     assert.equal(status, 0)
   } finally {
     rmSync(projectDir, { recursive: true, force: true })
@@ -1137,7 +1137,7 @@ test('磁盘上有产物但 artifacts 里没记：H5a 报出来（Bash 绕过 H3
   const { projectDir, pluginDir } = makeRun({ runId: 'r1', stage: 'S2', artifacts: ['01-prd.md'], roster: ['at-product'] })
   try {
     const { stdout } = run('deliverable', {
-      tool_name: 'Agent', agent_type: 'at-pm', tool_input: { subagent_type: 'agent-team:at-product' },
+      tool_name: 'Agent', agent_type: 'at-pm', tool_input: { subagent_type: 'poundlock:at-product' },
     }, GATE, projectDir)
     const c = JSON.parse(stdout).hookSpecificOutput.additionalContext
     assert.match(c, /01-prd\.md/)
@@ -1162,7 +1162,7 @@ test('账本比对的措辞不得说成「限制」或「越权」', () => {
   const { projectDir, pluginDir } = makeRun({ runId: 'r1', stage: 'S2', artifacts: ['01-prd.md'], roster: ['at-product'] })
   try {
     const { stdout } = run('deliverable', {
-      tool_name: 'Agent', agent_type: 'at-pm', tool_input: { subagent_type: 'agent-team:at-product' },
+      tool_name: 'Agent', agent_type: 'at-pm', tool_input: { subagent_type: 'poundlock:at-product' },
     }, GATE, projectDir)
     const c = JSON.parse(stdout).hookSpecificOutput.additionalContext
     assert.doesNotMatch(c, /限制|越权/)
@@ -1188,7 +1188,7 @@ test('前置条件：上一条那个场景确实产出了非空回传', () => {
   const { projectDir, pluginDir } = makeRun({ runId: 'r1', stage: 'S2', artifacts: ['01-prd.md'], roster: ['at-product'] })
   try {
     const { stdout } = run('deliverable', {
-      tool_name: 'Agent', agent_type: 'at-pm', tool_input: { subagent_type: 'agent-team:at-product' },
+      tool_name: 'Agent', agent_type: 'at-pm', tool_input: { subagent_type: 'poundlock:at-product' },
     }, GATE, projectDir)
     assert.ok(stdout.trim().length > 0)
   } finally {
@@ -1220,7 +1220,7 @@ test('前置条件：上一条那个场景确实产出了非空回传', () => {
 test('roster 只派了 at-backend：账本里记着的 at-frontend 产物不被报成 missing（roster 真的传到了 compareArtifacts）', () => {
   const { projectDir, pluginDir } = makeRun({ runId: 'r1', stage: 'S5' })
   try {
-    const statePath = join(projectDir, '.agent-team', 'runs', 'r1', 'state.json')
+    const statePath = join(projectDir, '.poundlock', 'runs', 'r1', 'state.json')
     const state = JSON.parse(readFileSync(statePath, 'utf8'))
     state.roster = ['at-backend']
     state.artifacts = { '05-impl/at-frontend.md': sha256OfContract('fixture 05-impl/at-frontend.md\n') }
@@ -1229,7 +1229,7 @@ test('roster 只派了 at-backend：账本里记着的 at-frontend 产物不被�
     // at-architect 是 S5 的合法协调者（roster.json：can_delegate_to 含 at-backend），
     // H5a 的「哑火告警」会被静默——stdout 里如果还有内容，只可能来自账本比对。
     const { stdout } = run('deliverable', {
-      tool_name: 'Agent', agent_type: 'at-pm', tool_input: { subagent_type: 'agent-team:at-architect' },
+      tool_name: 'Agent', agent_type: 'at-pm', tool_input: { subagent_type: 'poundlock:at-architect' },
     }, GATE, projectDir)
     assert.equal(stdout.trim(), '')
   } finally {
@@ -1247,14 +1247,14 @@ test('roster 只派了 at-backend：账本里记着的 at-frontend 产物不被�
 test('正向自检锚：roster 同时包含 at-frontend 时，同一份账本会被报成 missing——证明上一条不是账本比对对这份夹具恒沉默', () => {
   const { projectDir, pluginDir } = makeRun({ runId: 'r1', stage: 'S5' })
   try {
-    const statePath = join(projectDir, '.agent-team', 'runs', 'r1', 'state.json')
+    const statePath = join(projectDir, '.poundlock', 'runs', 'r1', 'state.json')
     const state = JSON.parse(readFileSync(statePath, 'utf8'))
     state.roster = ['at-backend', 'at-frontend']
     state.artifacts = { '05-impl/at-frontend.md': sha256OfContract('fixture 05-impl/at-frontend.md\n') }
     writeFileSync(statePath, JSON.stringify(state), 'utf8')
 
     const { stdout } = run('deliverable', {
-      tool_name: 'Agent', agent_type: 'at-pm', tool_input: { subagent_type: 'agent-team:at-architect' },
+      tool_name: 'Agent', agent_type: 'at-pm', tool_input: { subagent_type: 'poundlock:at-architect' },
     }, GATE, projectDir)
     const c = JSON.parse(stdout).hookSpecificOutput.additionalContext
     assert.match(c, /05-impl\/at-frontend\.md/)
@@ -1276,13 +1276,13 @@ test('正向自检锚：roster 同时包含 at-frontend 时，同一份账本会
 test('形状 B（接线）：at-frontend 还不在 roster 里，它写在磁盘上的文件照样被报成 unrecorded', () => {
   const { projectDir, pluginDir } = makeRun({ runId: 'r1', stage: 'S5', artifacts: ['05-impl/at-frontend.md'] })
   try {
-    const statePath = join(projectDir, '.agent-team', 'runs', 'r1', 'state.json')
+    const statePath = join(projectDir, '.poundlock', 'runs', 'r1', 'state.json')
     const state = JSON.parse(readFileSync(statePath, 'utf8'))
     state.roster = ['at-backend']
     writeFileSync(statePath, JSON.stringify(state), 'utf8')
 
     const { stdout } = run('deliverable', {
-      tool_name: 'Agent', agent_type: 'at-pm', tool_input: { subagent_type: 'agent-team:at-architect' },
+      tool_name: 'Agent', agent_type: 'at-pm', tool_input: { subagent_type: 'poundlock:at-architect' },
     }, GATE, projectDir)
     const c = JSON.parse(stdout).hookSpecificOutput.additionalContext
     assert.match(c, /05-impl\/at-frontend\.md/)
@@ -1298,13 +1298,13 @@ test('形状 B（接线）：at-frontend 还不在 roster 里，它写在磁盘�
 test('同一块磁盘，roster 换成含 at-frontend 时回传一模一样——unrecorded 在接线这一层也不跟着 roster 变', () => {
   const { projectDir, pluginDir } = makeRun({ runId: 'r1', stage: 'S5', artifacts: ['05-impl/at-frontend.md'] })
   try {
-    const statePath = join(projectDir, '.agent-team', 'runs', 'r1', 'state.json')
+    const statePath = join(projectDir, '.poundlock', 'runs', 'r1', 'state.json')
     const state = JSON.parse(readFileSync(statePath, 'utf8'))
     state.roster = ['at-backend', 'at-frontend']
     writeFileSync(statePath, JSON.stringify(state), 'utf8')
 
     const { stdout } = run('deliverable', {
-      tool_name: 'Agent', agent_type: 'at-pm', tool_input: { subagent_type: 'agent-team:at-architect' },
+      tool_name: 'Agent', agent_type: 'at-pm', tool_input: { subagent_type: 'poundlock:at-architect' },
     }, GATE, projectDir)
     const c = JSON.parse(stdout).hookSpecificOutput.additionalContext
     assert.match(c, /05-impl\/at-frontend\.md/)
@@ -1338,7 +1338,7 @@ test('同一块磁盘，roster 换成含 at-frontend 时回传一模一样——
 test('账本比对：state.roster 不是数组时退回全部 producers——账本里记着而磁盘上没有的产物仍然被报成 missing', () => {
   const dirs = makeRun({ runId: 'r1', stage: 'S5' })
   try {
-    const statePath = join(dirs.projectDir, '.agent-team', 'runs', 'r1', 'state.json')
+    const statePath = join(dirs.projectDir, '.poundlock', 'runs', 'r1', 'state.json')
     const state = JSON.parse(readFileSync(statePath, 'utf8'))
     // 非数组。validateState 会嫌它，但那是 ledger 检查项的事，deliverable 这条路不跑它。
     state.roster = null
@@ -1348,7 +1348,7 @@ test('账本比对：state.roster 不是数组时退回全部 producers——账
     const input = {
       tool_name: 'Agent',
       agent_type: 'at-pm',
-      tool_input: { subagent_type: 'agent-team:at-backend' },
+      tool_input: { subagent_type: 'poundlock:at-backend' },
     }
     const { stdout } = run('deliverable', input, undefined, dirs.projectDir)
     assert.match(stdout, /05-impl\/at-frontend\.md/)
@@ -1361,7 +1361,7 @@ test('账本比对：state.roster 不是数组时退回全部 producers——账
 test('前置条件：同一夹具在 state.roster 是合法数组且含 at-frontend 时也报——上一条不是靠别的原因绿的', () => {
   const dirs = makeRun({ runId: 'r1', stage: 'S5' })
   try {
-    const statePath = join(dirs.projectDir, '.agent-team', 'runs', 'r1', 'state.json')
+    const statePath = join(dirs.projectDir, '.poundlock', 'runs', 'r1', 'state.json')
     const state = JSON.parse(readFileSync(statePath, 'utf8'))
     state.roster = ['at-frontend']
     state.artifacts = { '05-impl/at-frontend.md': sha256OfContract('fixture 05-impl/at-frontend.md\n') }
@@ -1370,7 +1370,7 @@ test('前置条件：同一夹具在 state.roster 是合法数组且含 at-front
     const input = {
       tool_name: 'Agent',
       agent_type: 'at-pm',
-      tool_input: { subagent_type: 'agent-team:at-backend' },
+      tool_input: { subagent_type: 'poundlock:at-backend' },
     }
     const { stdout } = run('deliverable', input, undefined, dirs.projectDir)
     assert.match(stdout, /05-impl\/at-frontend\.md/)
@@ -1410,7 +1410,7 @@ function driftAs(agentType) {
     artifacts: ['01-prd.md', '02-ui-spec.md', '02-wireframe.html'],
   })
   try {
-    const input = { tool_name: 'Agent', tool_input: { subagent_type: 'agent-team:at-ui' } }
+    const input = { tool_name: 'Agent', tool_input: { subagent_type: 'poundlock:at-ui' } }
     if (agentType !== null) input.agent_type = agentType
     const { stdout, stderr } = run('deliverable', input, GATE, projectDir)
     const context = stdout.trim() ? JSON.parse(stdout).hookSpecificOutput.additionalContext : ''
@@ -1519,7 +1519,7 @@ test('M4g 第 28 条：两种行都带门禁按磁盘算出来的值，「没记
     runId: 'r1', stage: 'S2', artifacts: ['01-prd.md', '02-ui-spec.md', '02-wireframe.html', '04-dispatch.md', '05-impl/at-ui.md'], roster: ['at-product', 'at-ui'],
   })
   try {
-    const runDir = join(projectDir, '.agent-team', 'runs', 'r1')
+    const runDir = join(projectDir, '.poundlock', 'runs', 'r1')
     writeFileSync(join(runDir, '02-ui-spec.md'), Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from('# UI\r\n甲\r\n', 'utf8')]))
     const state = JSON.parse(readFileSync(join(runDir, 'state.json'), 'utf8'))
     state.artifacts = { '02-wireframe.html': 'sha256:' + '0'.repeat(64) }
@@ -1530,7 +1530,7 @@ test('M4g 第 28 条：两种行都带门禁按磁盘算出来的值，「没记
     )
     const sha = (n) => sha256OfContract(readFileSync(join(runDir, n)))
     for (const agent of ['at-pm', null]) {
-      const input = { tool_name: 'Agent', tool_input: { subagent_type: 'agent-team:at-ui' } }
+      const input = { tool_name: 'Agent', tool_input: { subagent_type: 'poundlock:at-ui' } }
       if (agent !== null) input.agent_type = agent
       const c = JSON.parse(run('deliverable', input, GATE, projectDir).stdout).hookSpecificOutput.additionalContext
       assert.ok(c.includes(`02-ui-spec.md：磁盘上有这份文件，但 artifacts 里没记（门禁按磁盘算出来是 ${sha('02-ui-spec.md')}；门禁的派发记录里 at-ui 在 S2 被派出去过）`), c)

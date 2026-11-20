@@ -41,25 +41,25 @@ if (atLeast(HAVE, MIN_NODE)) {
   import('./gate.mjs').catch(function (err) {
     return refuse({
       stderrHead:
-        'agent-team 门禁代码加载失败（检查项 ' + JSON.stringify(CHECK) + '）：\n' + ((err && err.stack) || err),
+        'poundlock 门禁代码加载失败（检查项 ' + JSON.stringify(CHECK) + '）：\n' + ((err && err.stack) || err),
       denyReason:
-        'agent-team 门禁代码加载失败（' + summarize(err) + '），无法判定这次调用，按安全边界拒绝。' +
-        '插件安装可能不完整或已损坏：重装或更新 agent-team 插件后再试。',
-      openNote: '检查项加载失败，本次放行、没有拦截（它是 fail open 的）。重装或更新 agent-team 插件。',
+        'poundlock 门禁代码加载失败（' + summarize(err) + '），无法判定这次调用，按安全边界拒绝。' +
+        '插件安装可能不完整或已损坏：重装或更新 poundlock 插件后再试。',
+      openNote: '检查项加载失败，本次放行、没有拦截（它是 fail open 的）。重装或更新 poundlock 插件。',
       recorderNote:
-        '检查项加载失败，这次的回答记不下（批准记录器不拦任何东西）。重装或更新 agent-team 插件；' +
+        '检查项加载失败，这次的回答记不下（批准记录器不拦任何东西）。重装或更新 poundlock 插件；' +
         '用户若是在批准再返工一轮或照现状交付，修好之后要再批准一次。',
       wordsNote:
-        '检查项加载失败，这次 /agent-team:at 后面的原话记不下（原话记录器不拦任何东西），这一趟契约第 1 节不跟它核。' +
-        '重装或更新 agent-team 插件。',
+        '检查项加载失败，这次 /poundlock:at 后面的原话记不下（原话记录器不拦任何东西），这一趟契约第 1 节不跟它核。' +
+        '重装或更新 poundlock 插件。',
     })
   })
 } else {
   const which = '门禁用的 node 是 v' + oneLine(HAVE) + '（' + oneLine(process.execPath) + '）'
   refuse({
-    stderrHead: 'agent-team 门禁需要 Node ' + MIN_NODE + ' 或更新，而' + which + '。',
+    stderrHead: 'poundlock 门禁需要 Node ' + MIN_NODE + ' 或更新，而' + which + '。',
     denyReason:
-      'agent-team 门禁需要 Node ' + MIN_NODE + ' 或更新，而' + which + '——门禁代码跑不起来，按安全边界拒绝。' +
+      'poundlock 门禁需要 Node ' + MIN_NODE + ' 或更新，而' + which + '——门禁代码跑不起来，按安全边界拒绝。' +
       '升级 Claude Code 启动时 PATH 上的 Node，装完重开 Claude Code；没法升级的话，卸载本插件。',
     openNote:
       '检查项没有运行（Node 太旧），本次放行、没有拦截（它是 fail open 的）。升级 Node 到 ' + MIN_NODE + ' 或更新。',
@@ -67,7 +67,7 @@ if (atLeast(HAVE, MIN_NODE)) {
       '检查项没有运行（Node 太旧），这次的回答记不下（批准记录器不拦任何东西）。升级 Node 到 ' + MIN_NODE + ' 或更新；' +
       '用户若是在批准再返工一轮或照现状交付，升级之后要再批准一次。',
     wordsNote:
-      '检查项没有运行（Node 太旧），这次 /agent-team:at 后面的原话记不下（原话记录器不拦任何东西），这一趟契约第 1 节不跟它核。' +
+      '检查项没有运行（Node 太旧），这次 /poundlock:at 后面的原话记不下（原话记录器不拦任何东西），这一趟契约第 1 节不跟它核。' +
       '升级 Node 到 ' + MIN_NODE + ' 或更新。',
   })
 }
@@ -105,7 +105,7 @@ async function refuse(msg) {
   // 返工批准的记录器（表里 recorder 为真）不放行任何东西，失败的后果是这次的回答记不下（M3z 复核 platform-5）；原话记录器（records 是
   // 'user-words'，M4o）失败的后果是这一趟契约第 1 节不跟原话核。
   const note = spec && spec.recorder === true ? (spec.records === 'user-words' ? msg.wordsNote : msg.recorderNote) : msg.openNote
-  process.stderr.write('agent-team ' + CHECK + ' ' + note + '\n')
+  process.stderr.write('poundlock ' + CHECK + ' ' + note + '\n')
   process.stderr.write(msg.stderrHead + '\n')
   process.exit(1)
 }

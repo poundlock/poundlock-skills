@@ -13,8 +13,8 @@ import { makeRun } from './fixtures/make-run.mjs'
 
 const ROSTER = JSON.parse(readFileSync(new URL('../roster.json', import.meta.url), 'utf8'))
 const STAGES = JSON.parse(readFileSync(new URL('../stages.json', import.meta.url), 'utf8'))
-const RUN = '/proj/.agent-team/runs/r1'
-const AT = '/proj/.agent-team'
+const RUN = '/proj/.poundlock/runs/r1'
+const AT = '/proj/.poundlock'
 const PROJECT = { paths: { 'at-ui': ['src/ui/'], 'at-frontend': ['src/web/'], 'at-backend': ['src/server/'] } }
 const call = (role, filePath, stageId) =>
   decideWritePath({ roster: ROSTER, role, filePath, project: PROJECT, runDir: RUN, stages: STAGES, agentTeamDir: AT, stageId })
@@ -89,7 +89,7 @@ test('复核（docs/54 §8，中 2）：H5b 那一句只列还没交的那几份
 test('子进程（复核 docs/54 §8）：state 在 S5 时 at-ui 被拒——照旧是执行段的出路，门禁传的是真的当前段', () => {
   const dirs = makeRun({ runId: 'r1', stage: 'S5', roster: ['at-product', 'at-ui'], project: PROJECT })
   try {
-    const input = { tool_name: 'Write', agent_type: 'agent-team:at-ui', tool_input: { file_path: join(dirs.projectDir, 'src', 'web', 'App.tsx'), content: 'x' } }
+    const input = { tool_name: 'Write', agent_type: 'poundlock:at-ui', tool_input: { file_path: join(dirs.projectDir, 'src', 'web', 'App.tsx'), content: 'x' } }
     const d = decisionOf(run('writepath', input, undefined, dirs.projectDir).stdout)
     assert.equal(d?.permissionDecision, 'deny')
     assert.ok(d.permissionDecisionReason.includes('列到你名下') && !d.permissionDecisionReason.includes('这一段（'), d.permissionDecisionReason)
@@ -108,7 +108,7 @@ test('正文（复核 docs/54 §8）：at-product 不再说「列到你名下」
 test('子进程：state 停在 S2 时 at-ui 写别人认领的文件，拒绝理由给这一段的规格', () => {
   const dirs = makeRun({ runId: 'r1', stage: 'S2', roster: ['at-product', 'at-ui'], project: PROJECT })
   try {
-    const input = { tool_name: 'Write', agent_type: 'agent-team:at-ui', tool_input: { file_path: join(dirs.projectDir, 'src', 'web', 'App.tsx'), content: 'x' } }
+    const input = { tool_name: 'Write', agent_type: 'poundlock:at-ui', tool_input: { file_path: join(dirs.projectDir, 'src', 'web', 'App.tsx'), content: 'x' } }
     const d = decisionOf(run('writepath', input, undefined, dirs.projectDir).stdout)
     assert.equal(d?.permissionDecision, 'deny')
     assert.ok(d.permissionDecisionReason.includes(SPEC_WAY), d.permissionDecisionReason)

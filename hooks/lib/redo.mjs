@@ -125,11 +125,11 @@ export function decideRedispatch({ stages, stageId, target, roster, candidates, 
   // 吃旧 run 的返工额度。先给「收口、另起一趟」，记回退只留给这一趟的产物真有问题。
   const chainLength = Object.keys(stages).length
   const atEnd = c === chainLength - 1
-    ? `state.stage 是阶段链最后一段：要是交付之后的新改动，先照 /agent-team:at 第 6 节收口、再另起一趟——不要记回退把新需求塞进这一趟；` +
+    ? `state.stage 是阶段链最后一段：要是交付之后的新改动，先照 /poundlock:at 第 6 节收口、再另起一趟——不要记回退把新需求塞进这一趟；` +
       `要是这一趟的产物有问题要返工，才照下面记回退。`
     : ''
   const out = callerCanWriteState
-    ? `${atEnd}要它返工：照 /agent-team:at 第 3 节的「回退」先记一次回退（回到 ${where}），再派它——返工计数照记，到上限会被要求先问用户。` +
+    ? `${atEnd}要它返工：照 /poundlock:at 第 3 节的「回退」先记一次回退（回到 ${where}），再派它——返工计数照记，到上限会被要求先问用户。` +
       // 文档核对（docs/36 §3.2）：门禁只按「谁的产物交过」算出回到哪一段；它上一份报的根因在更早一段（例：测试没过是实现的问题）时，
       // 照这一句回到这一段只会让它再写一份同样的结论。不读内容，只把读者引回那张表。
       `回到哪一段以那张表为准：它上一份报的根因在更早一段的（例：测试没过是实现的问题），回到更早那一段。` +

@@ -4,12 +4,12 @@
 // 这个前提只在会话刚起来时成立：平台按会话**当前** cwd 起 hook 进程，而主线程的 Bash
 // 做过 cd 之后，这个 cwd 会一直留在子目录里（子代理的 Bash 不跨调用保留 cd，主线程保留）。
 // at-pm 就是主线程、持有 Bash、正文还要它跑构建与测试——一次 `cd web && npm test` 之后，
-// 本会话余下时间里 readRunContext 在 <子目录>/.agent-team 找不到 run，判 no-run，H2–H6
+// 本会话余下时间里 readRunContext 在 <子目录>/.poundlock 找不到 run，判 no-run，H2–H6
 // 全部 fail open，只往 stderr 写一句「当前没有进行中的 run」。
 //
 // 只换成 CLAUDE_PROJECT_DIR 也不对（M3p 复核，docs/24 §2.1）：它是**会话启动时**的项目根，
 // 用户 /cd 到另一个项目之后它不跟着走——那边的 run 就被门禁整个看丢了，这是同一类 fail open。
-// 现行口径：从 cwd 往上找最近的 .agent-team；cwd 还在启动项目里时找到启动项目为止、不越界，
+// 现行口径：从 cwd 往上找最近的 .poundlock；cwd 还在启动项目里时找到启动项目为止、不越界，
 // 离开了启动项目就一直找上去；都找不到才退回 CLAUDE_PROJECT_DIR（再没有就是 cwd）。
 //
 // 下面的子进程判据**每一条都把 cwd 钉在别处**（项目的子目录，或 /cd 之后的另一个项目），
@@ -27,10 +27,10 @@ import { projectRootFrom } from '../hooks/lib/runctx.mjs'
 import { norm } from '../hooks/lib/path-norm.mjs'
 import { TRACE_ENV } from '../hooks/lib/trace.mjs'
 
-// ---- projectRootFrom 本身（「这个目录下有没有 .agent-team」由调用方注入；比较经 norm()，
+// ---- projectRootFrom 本身（「这个目录下有没有 .poundlock」由调用方注入；比较经 norm()，
 // 假路径两侧同样按字面解析，M3q）----
 
-// dirs：有 .agent-team 的目录。比较一律过 norm()，免得 win32 上 '/proj' 被 resolve 成 'C:proj'
+// dirs：有 .poundlock 的目录。比较一律过 norm()，免得 win32 上 '/proj' 被 resolve 成 'C:proj'
 // 之后字面对不上。
 const having = (...dirs) => {
   const set = new Set(dirs.map(norm))
@@ -38,41 +38,41 @@ const having = (...dirs) => {
 }
 const root = (env, cwd, has) => norm(projectRootFrom(env, cwd, has))
 
-test('projectRootFrom：cwd 在启动项目的子目录里，往上找到启动项目的 .agent-team', () => {
+test('projectRootFrom：cwd 在启动项目的子目录里，往上找到启动项目的 .poundlock', () => {
   assert.equal(root({ CLAUDE_PROJECT_DIR: '/proj' }, '/proj/web/src', having('/proj')), norm('/proj'))
 })
 
-test('projectRootFrom：/cd 到另一个项目之后，用那个项目的 .agent-team，不用启动项目的', () => {
+test('projectRootFrom：/cd 到另一个项目之后，用那个项目的 .poundlock，不用启动项目的', () => {
   assert.equal(root({ CLAUDE_PROJECT_DIR: '/a' }, '/b/web', having('/a', '/b')), norm('/b'))
 })
 
-test('projectRootFrom：cwd 在启动项目里时不越过启动项目往上找——祖先目录里的 .agent-team 不是这个项目的', () => {
+test('projectRootFrom：cwd 在启动项目里时不越过启动项目往上找——祖先目录里的 .poundlock 不是这个项目的', () => {
   assert.equal(root({ CLAUDE_PROJECT_DIR: '/home/u/proj' }, '/home/u/proj/web', having('/home/u')), norm('/home/u/proj'))
 })
 
-test('projectRootFrom：离开启动项目、一路找不到 .agent-team 时退回启动项目', () => {
+test('projectRootFrom：离开启动项目、一路找不到 .poundlock 时退回启动项目', () => {
   assert.equal(root({ CLAUDE_PROJECT_DIR: '/a' }, '/b/web', having()), norm('/a'))
 })
 
-test('projectRootFrom：离最近的那个赢——嵌套的子项目有自己的 .agent-team 时用它', () => {
+test('projectRootFrom：离最近的那个赢——嵌套的子项目有自己的 .poundlock 时用它', () => {
   assert.equal(root({ CLAUDE_PROJECT_DIR: '/proj' }, '/proj/pkg/x', having('/proj', '/proj/pkg')), norm('/proj/pkg'))
 })
 
-// M3v 第三轮真实会话（docs/30 §3）：PM 用 Bash `cd .agent-team/runs/<id>` 之后 cwd 留在那里，相对路径的 Write 在 run 目录里
-// 造出一个嵌套的 .agent-team——「离最近的那个赢」于是把 run 目录认成了项目根，那一趟的门禁全看错了地方。项目根不会在
-// 某个 .agent-team 目录里面，那样的候选跳过。
-test('projectRootFrom：.agent-team 里面嵌套出来的 .agent-team 不算——项目根不会在 .agent-team 目录里', () => {
-  const nested = '/proj/.agent-team/runs/r1'
+// M3v 第三轮真实会话（docs/30 §3）：PM 用 Bash `cd .poundlock/runs/<id>` 之后 cwd 留在那里，相对路径的 Write 在 run 目录里
+// 造出一个嵌套的 .poundlock——「离最近的那个赢」于是把 run 目录认成了项目根，那一趟的门禁全看错了地方。项目根不会在
+// 某个 .poundlock 目录里面，那样的候选跳过。
+test('projectRootFrom：.poundlock 里面嵌套出来的 .poundlock 不算——项目根不会在 .poundlock 目录里', () => {
+  const nested = '/proj/.poundlock/runs/r1'
   assert.equal(root({ CLAUDE_PROJECT_DIR: '/proj' }, nested, having('/proj', nested)), norm('/proj'))
   assert.equal(root({}, `${nested}/sub`, having('/proj', nested)), norm('/proj'))
-  assert.equal(root({}, '/proj/.AGENT-TEAM/runs/r1', having('/proj', '/proj/.AGENT-TEAM/runs/r1')), norm('/proj'))
+  assert.equal(root({}, '/proj/.POUNDLOCK/runs/r1', having('/proj', '/proj/.POUNDLOCK/runs/r1')), norm('/proj'))
 })
 
 test('projectRootFrom：没有 CLAUDE_PROJECT_DIR 时照样往上找', () => {
   assert.equal(root({}, '/proj/web', having('/proj')), norm('/proj'))
 })
 
-test('projectRootFrom：没有 CLAUDE_PROJECT_DIR、也找不到 .agent-team 时退回 cwd', () => {
+test('projectRootFrom：没有 CLAUDE_PROJECT_DIR、也找不到 .poundlock 时退回 cwd', () => {
   assert.equal(root({}, '/proj/web', having()), norm('/proj/web'))
 })
 
@@ -107,7 +107,7 @@ function setup(opts) {
   const sub = join(dirs.projectDir, 'src', 'server')
   mkdirSync(sub, { recursive: true })
   const env = { ...hermeticEnv(), CLAUDE_PROJECT_DIR: dirs.projectDir }
-  const runDir = join(dirs.projectDir, '.agent-team', 'runs', 'r1')
+  const runDir = join(dirs.projectDir, '.poundlock', 'runs', 'r1')
   const gate = (check, input) => run(check, input, GATE, sub, env)
   return { dirs, sub, runDir, gate }
 }
@@ -122,7 +122,7 @@ test('cwd 在子目录：H2 就绪门禁照样按项目根的 run 判定——�
   try {
     const { stdout } = f.gate('readiness', {
       tool_name: 'Agent',
-      tool_input: { subagent_type: 'agent-team:at-architect' },
+      tool_input: { subagent_type: 'poundlock:at-architect' },
     })
     assert.equal(decisionOf(stdout)?.permissionDecision, 'deny')
   } finally {
@@ -135,7 +135,7 @@ test('cwd 在子目录：H3 写路径门禁照样拦 at-backend 写 at-frontend 
   try {
     const { stdout } = f.gate('writepath', {
       tool_name: 'Write',
-      agent_type: 'agent-team:at-backend',
+      agent_type: 'poundlock:at-backend',
       tool_input: { file_path: join(f.dirs.projectDir, 'src', 'web', 'App.tsx'), content: 'x' },
     })
     assert.equal(decisionOf(stdout)?.permissionDecision, 'deny')
@@ -149,7 +149,7 @@ test('cwd 在子目录：H4 契约保护照样拦子代理写 00-contract.md', (
   try {
     const { stdout } = f.gate('contract', {
       tool_name: 'Write',
-      agent_type: 'agent-team:at-backend',
+      agent_type: 'poundlock:at-backend',
       tool_input: { file_path: join(f.runDir, '00-contract.md'), content: 'x' },
     })
     assert.equal(decisionOf(stdout)?.permissionDecision, 'deny')
@@ -185,7 +185,7 @@ test('cwd 在子目录：H5b 照样把没交产物就停下的子代理顶回去
   try {
     const { status } = f.gate('stop-gate', {
       hook_event_name: 'SubagentStop',
-      agent_type: 'agent-team:at-product',
+      agent_type: 'poundlock:at-product',
     })
     assert.equal(status, 2)
   } finally {
@@ -217,8 +217,8 @@ test('对照：CLAUDE_PROJECT_DIR 缺失、cwd 就是项目根时，门禁照旧
       'contract',
       {
         tool_name: 'Write',
-        agent_type: 'agent-team:at-backend',
-        tool_input: { file_path: join(dirs.projectDir, '.agent-team', 'runs', 'r1', '00-contract.md'), content: 'x' },
+        agent_type: 'poundlock:at-backend',
+        tool_input: { file_path: join(dirs.projectDir, '.poundlock', 'runs', 'r1', '00-contract.md'), content: 'x' },
       },
       GATE,
       dirs.projectDir,
@@ -234,13 +234,13 @@ test('对照：CLAUDE_PROJECT_DIR 缺失、cwd 就是项目根时，门禁照旧
 test('cwd 在子目录、没有 run：ledger 照样从项目根读 project.json、回传触达表——/at-init 那条通道', () => {
   const f = setup({ stage: 'S1' })
   try {
-    rmSync(join(f.dirs.projectDir, '.agent-team', 'current-run'))
-    rmSync(join(f.dirs.projectDir, '.agent-team', 'runs'), { recursive: true, force: true })
+    rmSync(join(f.dirs.projectDir, '.poundlock', 'current-run'))
+    rmSync(join(f.dirs.projectDir, '.poundlock', 'runs'), { recursive: true, force: true })
     const { stdout } = f.gate('ledger', {
       hook_event_name: 'PostToolUse',
       tool_name: 'Write',
       agent_type: 'at-pm',
-      tool_input: { file_path: join(f.dirs.projectDir, '.agent-team', 'project.json') },
+      tool_input: { file_path: join(f.dirs.projectDir, '.poundlock', 'project.json') },
     })
     assert.match(stdout, /reach\.json/)
   } finally {
@@ -255,7 +255,7 @@ test('cwd 在子目录、没有 run：ledger 照样从项目根读 project.json�
 // 这样（复核拿修复前后两份代码对照实测过）。
 
 test('/cd 到另一个项目之后：门禁认那个项目的 run——H4 照样拦子代理写那边的契约', () => {
-  const home = realpathSync(mkdtempSync(join(tmpdir(), 'agent-team-home-')))
+  const home = realpathSync(mkdtempSync(join(tmpdir(), 'poundlock-home-')))
   const dirs = makeRun({ project: PROJECT, stage: 'S5', roster: ['at-backend'], artifacts: ['00-contract.md'] })
   try {
     const sub = join(dirs.projectDir, 'src', 'server')
@@ -264,8 +264,8 @@ test('/cd 到另一个项目之后：门禁认那个项目的 run——H4 照样
       'contract',
       {
         tool_name: 'Write',
-        agent_type: 'agent-team:at-backend',
-        tool_input: { file_path: join(dirs.projectDir, '.agent-team', 'runs', 'r1', '00-contract.md'), content: 'x' },
+        agent_type: 'poundlock:at-backend',
+        tool_input: { file_path: join(dirs.projectDir, '.poundlock', 'runs', 'r1', '00-contract.md'), content: 'x' },
       },
       GATE,
       sub,

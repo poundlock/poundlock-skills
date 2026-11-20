@@ -61,7 +61,7 @@ function stageIdOf(stages, name) {
 // 「这一趟在 sid 那一段叫到过的产者」（calledIn）在 advance.mjs：participantsOf（有 stage_roles 看那一段，旧 run 看整趟 roster），复核二（G2）：
 // prior（写入前那一份）读得出时取并集——收口那一次挪走 stage_roles 里的人、或者旧 run 新加 stage_roles，都翻不成「没叫过」。
 
-// 前置由整段裁掉的段产出：那一段的产者都在 trimmed 里、记的就是那一段（PM 裁掉了 S6、S7 的人——测试那一段要用户的话，/agent-team:at 第 4 节），而且这一趟在那一段
+// 前置由整段裁掉的段产出：那一段的产者都在 trimmed 里、记的就是那一段（PM 裁掉了 S6、S7 的人——测试那一段要用户的话，/poundlock:at 第 4 节），而且这一趟在那一段
 // 一个都没叫过。复核（A-2）：原来只看 trimmed——叫过却没交的 at-qa，收口那一次补写 trimmed 就把一份没交的测试报告豁免了。
 // M4d：判定本身挪进 advance.mjs 的 wholeStageTrimmed（推进判据共用）。
 // M4d 复核：dispatched（门禁派发记录里每一段派出去过的角色）一并算进「叫过」——派出去过的人所在的段，补写 trimmed 也不算整段裁掉。
@@ -107,7 +107,7 @@ export function blockerLine(stages, b, state, prior, dispatched = null) {
     if (b.require && called.length) {
       // 文档核对（PG-2）：原来给「要放弃这一段，照第 4 节问用户」——第 4 节的答复不碰收口条件，照做之后照样被拒。说实话。
       return `${b.name}（${what}：${called.join('、')} 在 ${sid} 被叫到过、却没交——派它补交（不用记回退），trimmed 不是出路；` +
-        '交不出来（例如测试跑不起来），这一趟就收不了口：照 /agent-team:at 第 4 节把实情告诉用户）'
+        '交不出来（例如测试跑不起来），这一趟就收不了口：照 /poundlock:at 第 4 节把实情告诉用户）'
     }
     const trim = b.require && sid
       ? `；这一趟本来就不叫 ${who}（项目不用它，或者你裁掉了它）：把这个决定补记进 trimmed` +
@@ -124,7 +124,7 @@ export function blockerLine(stages, b, state, prior, dispatched = null) {
   }
   // M4k（docs/46）：验收结论首行没过、又没有门禁记下的照现状交付批准（verdict.mjs 的 acceptanceBlock）；整句由调用方算好挂在 fix 上。
   if (b.why === 'verdict') {
-    return `${b.name}（${typeof b.fix === 'string' ? b.fix : '验收结论没过：照 /agent-team:at 第 6 节第一步处理'}）`
+    return `${b.name}（${typeof b.fix === 'string' ? b.fix : '验收结论没过：照 /poundlock:at 第 6 节第一步处理'}）`
   }
   if (b.why === 'stale') {
     // 复核二（G9）：08-delivery.md 是 PM 自己的验证段产物——不说「让它的产者」。
@@ -136,10 +136,10 @@ export function blockerLine(stages, b, state, prior, dispatched = null) {
   return `${b.name}（在磁盘上但读不出来：修好再收口）`
 }
 
-// 复核（A-8）：与 H2 收口拒派同一条出路，同样给出 at.md 的路径（压缩之后上下文里不一定还有 /agent-team:at 的正文）。
+// 复核（A-8）：与 H2 收口拒派同一条出路，同样给出 at.md 的路径（压缩之后上下文里不一定还有 /poundlock:at 的正文）。
 const newRun = (atPath) =>
-  '交付之后的新改动或修复另起一趟：请用户用 /agent-team:at <改动>，或者' +
-  (typeof atPath === 'string' && atPath ? `先 Read ${inline(atPath)}、照第 0–2 节` : '照 /agent-team:at 第 0–2 节') +
+  '交付之后的新改动或修复另起一趟：请用户用 /poundlock:at <改动>，或者' +
+  (typeof atPath === 'string' && atPath ? `先 Read ${inline(atPath)}、照第 0–2 节` : '照 /poundlock:at 第 0–2 节') +
   '自己建新 run（契约第 1 节逐字照抄用户提出这次改动的那几条消息）。'
 
 function historyLength(state) {
@@ -148,7 +148,7 @@ function historyLength(state) {
 
 /**
  * H6 的收口判据（M4a）。diskSha(name) → { exists, sha }（读不出来时 sha 为 null），与 decideReworkBase 同一个注入。atPath：插件里
- * /agent-team:at 正文的路径（由插件根拼出），冻结的拒绝理由给它。
+ * /poundlock:at 正文的路径（由插件根拼出），冻结的拒绝理由给它。
  * @param {{ before: object|null, after: object, stages: object|null, diskSha: Function, atPath?: string }} args
  * @returns {{ ok: true } | { ok: false, reason: string }}
  */
@@ -166,7 +166,7 @@ export function decideClosing({ before, after, stages, diskSha, atPath, dispatch
       ok: false,
       reason:
         `closed_at 是收口标记，这次${got}。还没收口就写 JSON 的 null（不带引号）；收口时写成收口那一刻的 ISO 时间` +
-        `（照门禁给的写，门禁此刻是 "${gateClock()}"；照 /agent-team:at 第 6 节）。`,
+        `（照门禁给的写，门禁此刻是 "${gateClock()}"；照 /poundlock:at 第 6 节）。`,
     }
   }
 
@@ -193,7 +193,7 @@ export function decideClosing({ before, after, stages, diskSha, atPath, dispatch
   if (!last) {
     return {
       ok: false,
-      reason: '阶段链（插件的 stages.json）读不出来，判不了收口条件：插件可能装坏了——重装或更新 agent-team 插件之后再收口。',
+      reason: '阶段链（插件的 stages.json）读不出来，判不了收口条件：插件可能装坏了——重装或更新 poundlock 插件之后再收口。',
     }
   }
   const lastProduces = expandProduces(stages[last], stageRolesInRun(stages[last], participantsOf(after, last))).join('、')
@@ -202,7 +202,7 @@ export function decideClosing({ before, after, stages, diskSha, atPath, dispatch
       ok: false,
       reason:
         // 文档核对（PG-3）：原来说「先单独一次 Write 推进进 S8」——照做就从早段一步跳到最后一段，中间各段整段跳过。
-        `收口只在阶段链最后一段（${last}）：这次写入后 stage 是 ${quote(after.stage)}。这一趟还没走完：照 /agent-team:at 第 3 节` +
+        `收口只在阶段链最后一段（${last}）：这次写入后 stage 是 ${quote(after.stage)}。这一趟还没走完：照 /poundlock:at 第 3 节` +
         `逐段推进到 ${last}（每一段推进各一次 Write，离开的那一段照常记账），写完 ${lastProduces}，再单独一次 Write 收口。`,
     }
   }
@@ -235,13 +235,13 @@ export function decideClosing({ before, after, stages, diskSha, atPath, dispatch
       `收口要最后一段（${last}）的前置与产物都在、不是空文件、而且是这一轮的（整段裁掉、这一趟在那一段一个都没叫过的段产出的` +
       `前置不要求）。还不行的：\n` +
       blockers.map((b) => `  - ${blockerLine(stages, b, after, isPlainObject(before) ? before : undefined, dispatched)}`).join('\n') +
-      '\n补齐之后照 /agent-team:at 第 6 节从第一步重走一遍再收口（补交的验收结论要读，交付文档要照它改）。',
+      '\n补齐之后照 /poundlock:at 第 6 节从第一步重走一遍再收口（补交的验收结论要读，交付文档要照它改）。',
   }
 }
 
 /**
  * H2 的收口判据（M4a）：收口之后派花名册里的任何角色、最后一段没收口时派协调者 → 拒。roster 是 roster.json；runId 来自
- * current-run（磁盘上的值），atPath 是插件里 /agent-team:at 正文的路径（由插件根拼出）。
+ * current-run（磁盘上的值），atPath 是插件里 /poundlock:at 正文的路径（由插件根拼出）。
  * @returns {{ decision: 'allow' } | { decision: 'deny', reason: string }}
  */
 export function decideClosedDispatch({ stages, state, target, roster, callerCanWriteState = false, runId, atPath }) {
@@ -252,8 +252,8 @@ export function decideClosedDispatch({ stages, state, target, roster, callerCanW
       decision: 'deny',
       reason: callerCanWriteState
         ? `这一趟 run（${quote(runId)}）已经收口（closed_at ${quote(closed)}）：不再派人、不记回退、不重开。` +
-          `交付之后的新改动或修复另起一趟：请用户用 /agent-team:at <改动>，或者先 Read ${inline(atPath)}、照第 0–2 节自己建新 run` +
-          '（契约第 1 节逐字照抄用户提出这次改动的那几条消息）——新的那一趟会把 .agent-team/current-run 指过去；已经另起了的话，' +
+          `交付之后的新改动或修复另起一趟：请用户用 /poundlock:at <改动>，或者先 Read ${inline(atPath)}、照第 0–2 节自己建新 run` +
+          '（契约第 1 节逐字照抄用户提出这次改动的那几条消息）——新的那一趟会把 .poundlock/current-run 指过去；已经另起了的话，' +
           '核对 current-run 指着新的那一趟。只是要问点什么：不要派人，自己读这一趟的产物与代码。'
         : '这一趟 run 已经收口，不再派人：把这一条原样回报给派你的人。',
     }
@@ -266,7 +266,7 @@ export function decideClosedDispatch({ stages, state, target, roster, callerCanW
     decision: 'deny',
     reason: callerCanWriteState
       ? `state.stage 是阶段链最后一段（${last}），这一段由你自己收口，不再派协调者（${inline(target)}）。` +
-        '交付之后的新改动：先照 /agent-team:at 第 6 节收口，再另起一趟；这一趟的产物有问题要返工：先记一次回退' +
+        '交付之后的新改动：先照 /poundlock:at 第 6 节收口，再另起一趟；这一趟的产物有问题要返工：先记一次回退' +
         '（回到要重做的那一段，照第 3 节的「回退」——stage 一变就不再拦）；只是要问它点什么：自己读产物与代码。'
       : `state.stage 是阶段链最后一段（${last}），不再派协调者：把这一条原样回报给派你的人。`,
   }

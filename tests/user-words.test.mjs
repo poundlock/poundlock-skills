@@ -1,4 +1,4 @@
-// 第 20 条修法 A（docs/50，M4o）：门禁记下用户在 /agent-team:at 后面写的那段话（UserPromptExpansion 的 command_args——CLI 去掉了首尾空白，
+// 第 20 条修法 A（docs/50，M4o）：门禁记下用户在 /poundlock:at 后面写的那段话（UserPromptExpansion 的 command_args——CLI 去掉了首尾空白，
 // 就是 $ARGUMENTS 换进去的那一份），契约第 1 节对着它核。纯函数那一层：认事件、读记录、绑不绑、第 1 节对不对得上、说法。
 // 子进程那一层在 tests/gate-user-words.test.mjs。
 import { test } from 'node:test'
@@ -31,21 +31,21 @@ const pick = (m) => (m ? { kind: m.kind, line: m.line, want: m.want, got: m.got 
 const expansion = (over = {}) => ({
   hook_event_name: 'UserPromptExpansion',
   expansion_type: 'slash_command',
-  command_name: 'agent-team:at',
+  command_name: 'poundlock:at',
   command_args: '做一个待办应用',
   command_source: 'plugin',
-  prompt: '/agent-team:at 做一个待办应用',
+  prompt: '/poundlock:at 做一个待办应用',
   session_id: 's-1',
   ...over,
 })
 
-test('wordsOf：只认 /agent-team:at 这条命令展开、参数不是空白、带会话 id 的那一次', () => {
+test('wordsOf：只认 /poundlock:at 这条命令展开、参数不是空白、带会话 id 的那一次', () => {
   assert.deepEqual(wordsOf(expansion()), { args: '做一个待办应用', sessionId: 's-1', command: 'at' })
   assert.deepEqual(wordsOf(expansion({ command_args: '第一行' + NL + '  第二行  ' })), { args: '第一行' + NL + '  第二行  ', sessionId: 's-1', command: 'at' })
-  // 单个微调：/agent-team:at-tweak 的原话同样记，记下是哪条命令（建微调的一趟要靠它）。
-  assert.deepEqual(wordsOf(expansion({ command_name: 'agent-team:at-tweak', command_args: '标题改大' })), { args: '标题改大', sessionId: 's-1', command: 'at-tweak' })
-  assert.equal(blankAtSession(expansion({ command_name: 'agent-team:at-tweak', command_args: ' ' })), 's-1')
-  for (const name of ['agent-team:at-init', 'agent-team:at-resume', 'agent-team:at-status', 'at', 'probe:at', 'x:agent-team:at', '']) {
+  // 单个微调：/poundlock:at-tweak 的原话同样记，记下是哪条命令（建微调的一趟要靠它）。
+  assert.deepEqual(wordsOf(expansion({ command_name: 'poundlock:at-tweak', command_args: '标题改大' })), { args: '标题改大', sessionId: 's-1', command: 'at-tweak' })
+  assert.equal(blankAtSession(expansion({ command_name: 'poundlock:at-tweak', command_args: ' ' })), 's-1')
+  for (const name of ['poundlock:at-init', 'poundlock:at-resume', 'poundlock:at-status', 'at', 'probe:at', 'x:poundlock:at', '']) {
     assert.equal(wordsOf(expansion({ command_name: name })), null, name)
   }
   assert.equal(wordsOf(expansion({ expansion_type: 'mcp_prompt' })), null)
@@ -59,7 +59,7 @@ test('readWords：读得出的记录；剥 BOM；形状不对回 null；runs_bef
   const rec = pendingRecord({ at: '2026-10-07T00:00:00.000Z', sessionId: 's-1', args: '做一个待办应用', runsBefore: ['r0'] })
   assert.deepEqual(rec, { at: '2026-10-07T00:00:00.000Z', session_id: 's-1', args: '做一个待办应用', source: 'command', command: 'at', runs_before: ['r0'], binding: null, bound: null, dropped: null })
   assert.deepEqual(readWords(Buffer.from(JSON.stringify(rec))), rec)
-  // 没有 command 的（这一版之前记的）是 /agent-team:at；认不得的值也当 at。
+  // 没有 command 的（这一版之前记的）是 /poundlock:at；认不得的值也当 at。
   const { command, ...legacy } = rec
   assert.equal(readWords(JSON.stringify(legacy)).command, 'at')
   assert.equal(readWords(JSON.stringify({ ...rec, command: 'x' })).command, 'at')

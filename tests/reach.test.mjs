@@ -237,7 +237,7 @@ test('M4f：unrestricted 与写路径隔离第 1 步是同一个判断——标�
   const r = computeReach({ roster: REAL_ROSTER, paths: TEMPLATE.paths })
   const stages = { S1: { role: 'at-pm', requires: [], produces: ['00-contract.md'] } }
   for (const [role, v] of Object.entries(r)) {
-    const d = decideWritePath({ role, filePath: '/proj/nobody-claims/x.ts', project: TEMPLATE, runDir: '/proj/.agent-team/runs/r1', stages, agentTeamDir: '/proj/.agent-team', roster: REAL_ROSTER })
+    const d = decideWritePath({ role, filePath: '/proj/nobody-claims/x.ts', project: TEMPLATE, runDir: '/proj/.poundlock/runs/r1', stages, agentTeamDir: '/proj/.poundlock', roster: REAL_ROSTER })
     assert.equal(d.decision, v.unrestricted ? 'allow' : 'deny', `${role}：${JSON.stringify(d)}`)
   }
 })
@@ -246,6 +246,6 @@ test('M4f：unrestricted 与写路径隔离第 1 步是同一个判断——标�
 // 两份同体实现今天等价，可没有判据钉着，下一次只改一份就分叉（M4f 自己的理由正是「两处各写一份会分叉」）。
 test('M4f 复核：isContractWriter 与 exemptFromPaths 是同一个函数；空串、别的名字、别的插件前缀都不算项目经理', () => {
   assert.equal(isContractWriter, exemptFromPaths)
-  for (const r of [undefined, null, '__main__', 'at-pm', 'agent-team:at-pm']) assert.equal(exemptFromPaths(r), true, String(r))
-  for (const r of ['', ' ', 'agent-team:', 'at-qa', 'agent-team:at-qa', 'AT-PM', 'other:at-pm', 'at-pm ', 0, {}]) assert.equal(exemptFromPaths(r), false, JSON.stringify(r))
+  for (const r of [undefined, null, '__main__', 'at-pm', 'poundlock:at-pm']) assert.equal(exemptFromPaths(r), true, String(r))
+  for (const r of ['', ' ', 'poundlock:', 'at-qa', 'poundlock:at-qa', 'AT-PM', 'other:at-pm', 'at-pm ', 0, {}]) assert.equal(exemptFromPaths(r), false, JSON.stringify(r))
 })

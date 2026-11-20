@@ -19,14 +19,14 @@ test('tweaksNotice：at-tweak——这个会话已有一趟，出路「先收尾
   const mine = tweaksNotice({ command: 'at-tweak', mine: D('t1'), others: [D('t2')] })
   assert.match(mine, /"t1"/)
   assert.match(mine, /先收尾/)
-  assert.match(mine, /\/agent-team:at-tweak 第 1 节/)
+  assert.match(mine, /\/poundlock:at-tweak 第 1 节/)
   const others = tweaksNotice({ command: 'at-tweak', mine: null, others: [D('t2')] })
   assert.match(others, /并行/)
   assert.doesNotMatch(others, /先收尾/)
 })
 
 test('tweaksNotice：at-resume——这个会话的接着走；别的会话的给接手那条出路，题面带 run id', () => {
-  assert.match(tweaksNotice({ command: 'at-resume', mine: D('t1'), others: [] }), /\/agent-team:at-tweak/)
+  assert.match(tweaksNotice({ command: 'at-resume', mine: D('t1'), others: [] }), /\/poundlock:at-tweak/)
   const others = tweaksNotice({ command: 'at-resume', mine: null, others: [D('t2')] })
   assert.match(others, /在这个会话接手/)
   assert.match(others, /run id/)
@@ -47,7 +47,7 @@ test('decideExclusion：不是建 run 一律放行', () => {
 test('decideExclusion：建微调——读不到会话 id 拒', () => {
   const r = decideExclusion({ creating: true, mode: 'tweak', sessionId: null, pointerRun: null, openTweaks: [] })
   assert.equal(r.ok, false)
-  assert.match(r.reason, /^agent-team H6 互斥：/)
+  assert.match(r.reason, /^poundlock H6 互斥：/)
   assert.match(r.reason, /会话 id/)
 })
 
@@ -55,7 +55,7 @@ test('decideExclusion：建微调——current-run 指着一趟没收口的完�
   const r = decideExclusion({ creating: true, mode: 'tweak', sessionId: 's-1', pointerRun: { id: 'f1', open: true, tweak: false }, openTweaks: [] })
   assert.equal(r.ok, false)
   assert.match(r.reason, /"f1"/)
-  assert.match(r.reason, /\/agent-team:at-tweak 第 1 节/)
+  assert.match(r.reason, /\/poundlock:at-tweak 第 1 节/)
   assert.equal(decideExclusion({ creating: true, mode: 'tweak', sessionId: 's-1', pointerRun: { id: 'f1', open: false, tweak: false }, openTweaks: [] }).ok, true)
   assert.equal(decideExclusion({ creating: true, mode: 'tweak', sessionId: 's-1', pointerRun: { id: 't0', open: true, tweak: true }, openTweaks: [] }).ok, true)
 })

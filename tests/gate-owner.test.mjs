@@ -25,7 +25,7 @@ const stateOf = (id, stage = 'S1', history = H('S1')) => ({
   escalations: [],
   history,
 })
-const PM = 'agent-team:at-pm'
+const PM = 'poundlock:at-pm'
 const preWrite = (file, content, sid = 's-1', over = {}) => ({
   hook_event_name: 'PreToolUse',
   tool_name: 'Write',
@@ -44,7 +44,7 @@ const posted = (file, sid = 's-1', over = {}) => ({
 })
 const ownerPath = (runDir) => join(runDir, OWNER_FILE)
 const ownerOf = (runDir) => JSON.parse(readFileSync(ownerPath(runDir), 'utf8'))
-const point = (projectDir, id) => writeFileSync(join(projectDir, '.agent-team', 'current-run'), id)
+const point = (projectDir, id) => writeFileSync(join(projectDir, '.poundlock', 'current-run'), id)
 
 function cleanup(dirs) {
   rmSync(dirs.projectDir, { recursive: true, force: true })
@@ -55,8 +55,8 @@ function cleanup(dirs) {
 function world(body) {
   const dirs = makeRun({ runId: 'r0', stage: 'S1' })
   try {
-    rmSync(join(dirs.projectDir, '.agent-team', 'runs', 'r0'), { recursive: true, force: true })
-    rmSync(join(dirs.projectDir, '.agent-team', 'current-run'), { force: true })
+    rmSync(join(dirs.projectDir, '.poundlock', 'runs', 'r0'), { recursive: true, force: true })
+    rmSync(join(dirs.projectDir, '.poundlock', 'current-run'), { force: true })
     return body(dirs)
   } finally {
     cleanup(dirs)
@@ -65,7 +65,7 @@ function world(body) {
 
 // 照项目经理的做法建一趟：H6 放行 → 落盘 → 账本 → 写指针。
 function createRun(projectDir, id, { sid = 's-1', pointTo = true } = {}) {
-  const dir = join(projectDir, '.agent-team', 'runs', id)
+  const dir = join(projectDir, '.poundlock', 'runs', id)
   const content = JSON.stringify(stateOf(id), null, 2)
   const d = decisionOf(run('rework', preWrite(join(dir, 'state.json'), content, sid), GATE, projectDir).stdout)
   assert.equal(d, null, '建 run 的那一次 H6 放行：' + JSON.stringify(d))
@@ -93,7 +93,7 @@ test('建 run 的那一次（H6 → 落盘 → 账本）记下归属：owner.jso
 test('已有门禁专属文件的 run（升级之前就在跑的）被写 state.json，不补归属', () => {
   const dirs = makeRun({ runId: 'r1', stage: 'S5' })
   try {
-    const runDir = join(dirs.projectDir, '.agent-team', 'runs', 'r1')
+    const runDir = join(dirs.projectDir, '.poundlock', 'runs', 'r1')
     writeFileSync(join(runDir, 'dispatches.jsonl'), '')
     run('ledger', posted(join(runDir, 'state.json'), 's-2'), GATE, dirs.projectDir)
     assert.equal(existsSync(ownerPath(runDir)), false)
@@ -104,7 +104,7 @@ test('已有门禁专属文件的 run（升级之前就在跑的）被写 state.
 
 test('用 Bash 建的 run（门禁没见到建的那一次）：项目经理写的不是 state.json 时不记归属', () => {
   world(({ projectDir }) => {
-    const dir = join(projectDir, '.agent-team', 'runs', 'r1')
+    const dir = join(projectDir, '.poundlock', 'runs', 'r1')
     mkdirSync(dir, { recursive: true })
     writeFileSync(join(dir, 'state.json'), JSON.stringify(stateOf('r1'), null, 2))
     point(projectDir, 'r1')
@@ -124,7 +124,7 @@ test('账本输入里没有 session_id：不记归属，stderr 留一行痕', ()
 
 test('子代理（带 agent_id）写 state.json 不记归属', () => {
   world(({ projectDir }) => {
-    const dir = join(projectDir, '.agent-team', 'runs', 'r1')
+    const dir = join(projectDir, '.poundlock', 'runs', 'r1')
     mkdirSync(dir, { recursive: true })
     writeFileSync(join(dir, 'state.json'), JSON.stringify(stateOf('r1'), null, 2))
     run('ledger', posted(join(dir, 'state.json'), 's-1', { agent_id: 'a0123456789abcdef' }), GATE, projectDir)
@@ -135,7 +135,7 @@ test('子代理（带 agent_id）写 state.json 不记归属', () => {
 test('owner.json 任何人用 Edit/Write 都拒，项目经理也拒', () => {
   world(({ projectDir }) => {
     const { dir } = createRun(projectDir, 'r1', { sid: 's-1' })
-    for (const agent_type of [PM, 'agent-team:at-backend', undefined]) {
+    for (const agent_type of [PM, 'poundlock:at-backend', undefined]) {
       const input = preWrite(ownerPath(dir), '{"session_id":"s-9","via":"create"}', 's-1', { agent_type })
       if (agent_type === undefined) delete input.agent_type
       const d = decisionOf(run('writepath', input, GATE, projectDir).stdout)
@@ -162,7 +162,7 @@ test('别的会话写这一趟的 state.json、契约、04-dispatch.md，H3 拒�
         const out = writeBy(projectDir, join(dir, f), 's-2', over)
         assert.equal(decisionOf(out.stdout)?.permissionDecision, 'deny', f)
         assert.match(reasonOf(out), /归另一个会话/, f)
-        assert.match(reasonOf(out), /\/agent-team:at-resume/, f)
+        assert.match(reasonOf(out), /\/poundlock:at-resume/, f)
         assert.match(reasonOf(out), /别的会话的一趟/, f)
       }
     }
@@ -187,7 +187,7 @@ test('已收口的一趟不按会话拦', () => {
 test('没有 owner.json 的旧 run 不按会话拦', () => {
   const dirs = makeRun({ runId: 'r1', stage: 'S1' })
   try {
-    const dir = join(dirs.projectDir, '.agent-team', 'runs', 'r1')
+    const dir = join(dirs.projectDir, '.poundlock', 'runs', 'r1')
     assert.equal(decisionOf(writeBy(dirs.projectDir, join(dir, '00-contract.md'), 's-2').stdout), null)
   } finally {
     cleanup(dirs)
@@ -207,7 +207,7 @@ test('owner.json 坏了：不按会话拦，stderr 留痕', () => {
 test('别的会话另建一趟（写 runs/r2/state.json，写之前不在），拒，理由含「不能另建一趟」；主人自己另建放行', () => {
   world(({ projectDir }) => {
     createRun(projectDir, 'r1', { sid: 's-1' })
-    const r2 = join(projectDir, '.agent-team', 'runs', 'r2', 'state.json')
+    const r2 = join(projectDir, '.poundlock', 'runs', 'r2', 'state.json')
     const out = run('writepath', preWrite(r2, JSON.stringify(stateOf('r2')), 's-2'), GATE, projectDir)
     assert.equal(decisionOf(out.stdout)?.permissionDecision, 'deny')
     assert.match(reasonOf(out), /不能另建一趟/)
@@ -218,7 +218,7 @@ test('别的会话另建一趟（写 runs/r2/state.json，写之前不在），�
 test('别的会话写 current-run（切到 r2、或原样写 r1），拒；主人放行', () => {
   world(({ projectDir }) => {
     createRun(projectDir, 'r1', { sid: 's-1' })
-    const ptr = join(projectDir, '.agent-team', 'current-run')
+    const ptr = join(projectDir, '.poundlock', 'current-run')
     for (const content of ['r2', 'r1']) {
       const out = run('writepath', preWrite(ptr, content, 's-2'), GATE, projectDir)
       assert.equal(decisionOf(out.stdout)?.permissionDecision, 'deny', content)
@@ -232,7 +232,7 @@ test('current-run 里写的 id 与目录名大小写不同（非 Linux）：照�
   world(({ projectDir }) => {
     createRun(projectDir, 'r1', { sid: 's-1' })
     point(projectDir, 'R1')
-    const r2 = join(projectDir, '.agent-team', 'runs', 'r2', 'state.json')
+    const r2 = join(projectDir, '.poundlock', 'runs', 'r2', 'state.json')
     assert.match(reasonOf(run('writepath', preWrite(r2, JSON.stringify(stateOf('r2')), 's-2'), GATE, projectDir)), /不能另建一趟/)
   })
 })
@@ -241,7 +241,7 @@ test('别的会话用带流后缀、结尾带点的写法写 current-run，照�
   world(({ projectDir }) => {
     createRun(projectDir, 'r1', { sid: 's-1' })
     for (const leaf of ['current-run::$DATA', 'current-run.']) {
-      const out = run('writepath', preWrite(join(projectDir, '.agent-team', leaf), 'r2', 's-2'), GATE, projectDir)
+      const out = run('writepath', preWrite(join(projectDir, '.poundlock', leaf), 'r2', 's-2'), GATE, projectDir)
       assert.equal(decisionOf(out.stdout)?.permissionDecision, 'deny', leaf)
       assert.match(reasonOf(out), /current-run/, leaf)
     }
@@ -251,9 +251,9 @@ test('别的会话用带流后缀、结尾带点的写法写 current-run，照�
 test('经一个指向 current-run 的文件链接写指针（叶名不是 current-run），照样认成指针、拒', (t) => {
   world(({ projectDir }) => {
     createRun(projectDir, 'r1', { sid: 's-1' })
-    const alias = join(projectDir, '.agent-team', 'ptr')
+    const alias = join(projectDir, '.poundlock', 'ptr')
     try {
-      symlinkSync(join(projectDir, '.agent-team', 'current-run'), alias, 'file')
+      symlinkSync(join(projectDir, '.poundlock', 'current-run'), alias, 'file')
     } catch (e) {
       t.skip('建不了文件链接：' + e.code)
       return
@@ -267,7 +267,7 @@ test('经一个指向 current-run 的文件链接写指针（叶名不是 curren
 // 两趟：r0 归 s-2（指针指着它），r1 归 s-1、没收口。
 function twoRuns(projectDir) {
   createRun(projectDir, 'r1', { sid: 's-1' })
-  const r0 = join(projectDir, '.agent-team', 'runs', 'r0')
+  const r0 = join(projectDir, '.poundlock', 'runs', 'r0')
   mkdirSync(r0, { recursive: true })
   writeFileSync(join(r0, 'state.json'), JSON.stringify(stateOf('r0'), null, 2))
   writeFileSync(ownerPath(r0), JSON.stringify({ session_id: 's-2', at: 't', via: 'create', previous: null }))
@@ -278,7 +278,7 @@ const editPointer = (projectDir, old_string, new_string, sid) => ({
   tool_name: 'Edit',
   agent_type: PM,
   session_id: sid,
-  tool_input: { file_path: join(projectDir, '.agent-team', 'current-run'), old_string, new_string },
+  tool_input: { file_path: join(projectDir, '.poundlock', 'current-run'), old_string, new_string },
 })
 
 test('别的会话用 Edit 把 current-run 从别的会话的一趟切走（算不算得出改完是什么都一样），拒', () => {
@@ -298,7 +298,7 @@ test('指针指着自己的一趟时，把 current-run 改指到别的会话的�
     twoRuns(projectDir)
     assert.equal(decisionOf(run('writepath', editPointer(projectDir, 'r0', 'r1', 's-2'), GATE, projectDir).stdout), null)
     point(projectDir, 'r1')
-    assert.match(reasonOf(writeBy(projectDir, join(projectDir, '.agent-team', 'runs', 'r1', '00-contract.md'), 's-2')), /归另一个会话/)
+    assert.match(reasonOf(writeBy(projectDir, join(projectDir, '.poundlock', 'runs', 'r1', '00-contract.md'), 's-2')), /归另一个会话/)
     assert.match(reasonOf(dispatchBy(projectDir, 's-2')), /归另一个会话/)
   })
 })
@@ -306,12 +306,12 @@ test('指针指着自己的一趟时，把 current-run 改指到别的会话的�
 test('丢了指针之后，另一个会话把 current-run 写回那一趟（放行）、选「在这个会话接手」（记下），之后照常写', () => {
   world(({ projectDir }) => {
     const { dir } = createRun(projectDir, 'r1', { sid: 's-1' })
-    rmSync(join(projectDir, '.agent-team', 'current-run'))
+    rmSync(join(projectDir, '.poundlock', 'current-run'))
     // 指针不在时接手：不记，回传叫它先把指针指过去。
     const early = run('approval-ask', askTakeover(TAKEOVER_LABEL, 's-2'), GATE, projectDir)
     assert.match(JSON.parse(early.stdout).hookSpecificOutput.additionalContext, /current-run 指到/)
     assert.equal(ownerOf(dir).session_id, 's-1')
-    const ptr = join(projectDir, '.agent-team', 'current-run')
+    const ptr = join(projectDir, '.poundlock', 'current-run')
     assert.equal(decisionOf(run('writepath', preWrite(ptr, 'r1', 's-2'), GATE, projectDir).stdout), null)
     point(projectDir, 'r1')
     run('approval-ask', askTakeover(TAKEOVER_LABEL, 's-2'), GATE, projectDir)
@@ -325,7 +325,7 @@ test('放弃了的那一趟（指针指着同一个会话另起的、已收口�
     const { dir: r1 } = createRun(projectDir, 'r1', { sid: 's-1' })
     const { dir: r2 } = createRun(projectDir, 'r2', { sid: 's-1' })
     writeFileSync(join(r2, 'state.json'), JSON.stringify({ ...stateOf('r2'), closed_at: '2026-11-05T12:00:00Z' }, null, 2))
-    const ptr = join(projectDir, '.agent-team', 'current-run')
+    const ptr = join(projectDir, '.poundlock', 'current-run')
     assert.equal(decisionOf(run('writepath', preWrite(ptr, 'r1', 's-2'), GATE, projectDir).stdout), null)
     point(projectDir, 'r1')
     run('approval-ask', askTakeover(TAKEOVER_LABEL, 's-2'), GATE, projectDir)
@@ -336,7 +336,7 @@ test('放弃了的那一趟（指针指着同一个会话另起的、已收口�
 test('经一个名字不合 run id 格式的链接写进那一趟：照样认成那一趟、按会话拒', (t) => {
   world(({ projectDir }) => {
     const { dir } = createRun(projectDir, 'r1', { sid: 's-1' })
-    const alias = join(projectDir, '.agent-team', 'runs', 'al@ias')
+    const alias = join(projectDir, '.poundlock', 'runs', 'al@ias')
     try {
       symlinkSync(dir, alias, process.platform === 'win32' ? 'junction' : 'dir')
     } catch (e) {
@@ -352,7 +352,7 @@ test('经一个名字不合 run id 格式的链接写进那一趟：照样认成
 test('run 目录名写成 Windows 会去掉的样子（结尾带空格）：照样认成那一趟、拒', { skip: process.platform !== 'win32' }, () => {
   world(({ projectDir }) => {
     createRun(projectDir, 'r1', { sid: 's-1' })
-    const out = writeBy(projectDir, join(projectDir, '.agent-team', 'runs', 'r1 ', '00-contract.md'), 's-2')
+    const out = writeBy(projectDir, join(projectDir, '.poundlock', 'runs', 'r1 ', '00-contract.md'), 's-2')
     assert.equal(decisionOf(out.stdout)?.permissionDecision, 'deny')
   })
 })
@@ -367,7 +367,7 @@ test('hook 输入没有 session_id：不按会话拦，碰到有主人、没收�
       hook_event_name: 'PreToolUse',
       tool_name: 'Agent',
       agent_type: PM,
-      tool_input: { subagent_type: 'agent-team:at-product', description: 'x', prompt: 'x' },
+      tool_input: { subagent_type: 'poundlock:at-product', description: 'x', prompt: 'x' },
     }
     const d = run('readiness', input, GATE, projectDir)
     assert.doesNotMatch(reasonOf(d), OWNED)
@@ -376,7 +376,7 @@ test('hook 输入没有 session_id：不按会话拦，碰到有主人、没收�
   // 没有归属的旧 run：不留这行痕（正常的一趟不多一行）。
   const dirs = makeRun({ runId: 'r1', stage: 'S1' })
   try {
-    const w = writeBy(dirs.projectDir, join(dirs.projectDir, '.agent-team', 'runs', 'r1', '00-contract.md'), null)
+    const w = writeBy(dirs.projectDir, join(dirs.projectDir, '.poundlock', 'runs', 'r1', '00-contract.md'), null)
     assert.doesNotMatch(w.stderr, /读不到会话 id/)
   } finally {
     cleanup(dirs)
@@ -389,21 +389,21 @@ const ARGS = '做一个记账应用：能记收入和支出'
 const expand = (command, sid, args = '列表页加一个导出按钮') => ({
   hook_event_name: 'UserPromptExpansion',
   expansion_type: 'slash_command',
-  command_name: 'agent-team:' + command,
+  command_name: 'poundlock:' + command,
   command_args: args,
   command_source: 'plugin',
-  prompt: '/agent-team:' + command + ' ' + args,
+  prompt: '/poundlock:' + command + ' ' + args,
   session_id: sid,
 })
 const noticeOf = (out) => (out.stdout.trim() ? JSON.parse(out.stdout).hookSpecificOutput?.additionalContext ?? '' : '')
 
-// s-1 发了 /agent-team:at（原话记下、建 run 时绑上），建 r1。
+// s-1 发了 /poundlock:at（原话记下、建 run 时绑上），建 r1。
 function ownedRun(projectDir) {
   run('user-words', expand('at', 's-1', ARGS), GATE, projectDir)
   return createRun(projectDir, 'r1', { sid: 's-1' }).dir
 }
 
-test('别的会话展开 /agent-team:at：回传【会话】，带 run id、起的时间、原话开头，指向第 1 节「别的会话的一趟」', () => {
+test('别的会话展开 /poundlock:at：回传【会话】，带 run id、起的时间、原话开头，指向第 1 节「别的会话的一趟」', () => {
   world(({ projectDir }) => {
     ownedRun(projectDir)
     const out = run('session-notice', expand('at', 's-2'), GATE, projectDir)
@@ -413,7 +413,7 @@ test('别的会话展开 /agent-team:at：回传【会话】，带 run id、起�
     assert.match(n, /"r1"/)
     assert.match(n, /"2026-11-05T10:00:00Z"/)
     assert.match(n, /"做一个记账应用：能记收入和支出"/)
-    assert.match(n, /\/agent-team:at 第 1 节「别的会话的一趟」/)
+    assert.match(n, /\/poundlock:at 第 1 节「别的会话的一趟」/)
     assert.doesNotMatch(n, /只差收口/)
   })
 })
@@ -428,19 +428,19 @@ test('那一趟停在最后一段、交付文档写了：回传里说只差收�
   })
 })
 
-test('别的会话展开 /agent-team:at-tweak：同样回传【会话】，指向 /agent-team:at 第 1 节「别的会话的一趟」', () => {
+test('别的会话展开 /poundlock:at-tweak：同样回传【会话】，指向 /poundlock:at 第 1 节「别的会话的一趟」', () => {
   world(({ projectDir }) => {
     ownedRun(projectDir)
     const n = noticeOf(run('session-notice', expand('at-tweak', 's-2'), GATE, projectDir))
     assert.match(n, /【会话】/)
-    assert.match(n, /\/agent-team:at 第 1 节「别的会话的一趟」/)
+    assert.match(n, /\/poundlock:at 第 1 节「别的会话的一趟」/)
   })
 })
 
-test('展开 /agent-team:at-resume：指向 at-resume 第 1 节；展开 /agent-team:at-status：只陈述归属', () => {
+test('展开 /poundlock:at-resume：指向 at-resume 第 1 节；展开 /poundlock:at-status：只陈述归属', () => {
   world(({ projectDir }) => {
     ownedRun(projectDir)
-    assert.match(noticeOf(run('session-notice', expand('at-resume', 's-2', ''), GATE, projectDir)), /\/agent-team:at-resume 第 1 节「别的会话的一趟」/)
+    assert.match(noticeOf(run('session-notice', expand('at-resume', 's-2', ''), GATE, projectDir)), /\/poundlock:at-resume 第 1 节「别的会话的一趟」/)
     const st = noticeOf(run('session-notice', expand('at-status', 's-2', ''), GATE, projectDir))
     assert.match(st, /归另一个会话/)
     assert.doesNotMatch(st, /问用户/)
@@ -585,7 +585,7 @@ test('没有 owner.json 的旧 run：选了接手就补上归属（via takeover�
   const dirs = makeRun({ runId: 'r1', stage: 'S2' })
   try {
     run('approval-ask', askTakeover(TAKEOVER_LABEL, 's-2'), GATE, dirs.projectDir)
-    const o = ownerOf(join(dirs.projectDir, '.agent-team', 'runs', 'r1'))
+    const o = ownerOf(join(dirs.projectDir, '.poundlock', 'runs', 'r1'))
     assert.equal(o.session_id, 's-2')
     assert.equal(o.via, 'takeover')
     assert.equal(o.previous, null)
@@ -604,7 +604,7 @@ const dispatchBy = (projectDir, sid, over = {}) =>
       tool_name: 'Agent',
       agent_type: PM,
       session_id: sid,
-      tool_input: { subagent_type: 'agent-team:at-product', description: 'x', prompt: 'x' },
+      tool_input: { subagent_type: 'poundlock:at-product', description: 'x', prompt: 'x' },
       ...over,
     },
     GATE,
@@ -632,9 +632,9 @@ test('带 agent_id 的协调者往下派，不走这一道', () => {
   world(({ projectDir }) => {
     createRun(projectDir, 'r1', { sid: 's-1' })
     const out = dispatchBy(projectDir, 's-2', {
-      agent_type: 'agent-team:at-product',
+      agent_type: 'poundlock:at-product',
       agent_id: 'a0123456789abcdef',
-      tool_input: { subagent_type: 'agent-team:at-ui', description: 'x', prompt: 'x' },
+      tool_input: { subagent_type: 'poundlock:at-ui', description: 'x', prompt: 'x' },
     })
     assert.doesNotMatch(reasonOf(out), OWNED)
   })
@@ -643,7 +643,7 @@ test('带 agent_id 的协调者往下派，不走这一道', () => {
 test('带 agent_id 的子代理写 run 目录：不走这一道（照原来的写路径隔离判）', () => {
   world(({ projectDir }) => {
     const { dir } = createRun(projectDir, 'r1', { sid: 's-1' })
-    const out = writeBy(projectDir, join(dir, '01-prd.md'), 's-2', { agent_type: 'agent-team:at-product', agent_id: 'a0123456789abcdef' })
+    const out = writeBy(projectDir, join(dir, '01-prd.md'), 's-2', { agent_type: 'poundlock:at-product', agent_id: 'a0123456789abcdef' })
     assert.doesNotMatch(reasonOf(out), OWNED)
   })
 })

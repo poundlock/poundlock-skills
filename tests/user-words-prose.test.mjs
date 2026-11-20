@@ -1,4 +1,4 @@
-// 第 20 条修法 A（docs/50，M4o）：正文跟上门禁记下的原话——/agent-team:at 第 2 节说清门禁记下了 $ARGUMENTS、哪两刻核、引用块也认、
+// 第 20 条修法 A（docs/50，M4o）：正文跟上门禁记下的原话——/poundlock:at 第 2 节说清门禁记下了 $ARGUMENTS、哪两刻核、引用块也认、
 // 哪几种情形不核；契约格式 skill 与契约模板第 1 节各一句；README 两半的目录树列上两份记录。正文说「行尾空白不计、整段写成引用块也认」，
 // 门禁就得真这么认（同一条判据核门禁的 section1Mismatch）。
 import { test } from 'node:test'
@@ -14,13 +14,13 @@ const squash = (s) => s.replace(/\s+/g, '')
 const has = (text, k) => squash(text).includes(squash(k))
 
 const AT = [
-  '命令带了参数的，门禁在它展开时记下了 `$ARGUMENTS`（`.agent-team/user-words.json`；你用 Write 建这一趟的 `state.json` 那一次，记进它的 run 目录',
+  '命令带了参数的，门禁在它展开时记下了 `$ARGUMENTS`（`.poundlock/user-words.json`；你用 Write 建这一趟的 `state.json` 那一次，记进它的 run 目录',
   '两份都是门禁专属：Edit/Write 一律被拒，也不要用别的办法改',
   '还在 `S1` 时写契约，第 1 节对不上它，回传里的【契约】当场说是哪一行；推进出 `S1` 那一次 H6 拒',
   '行尾空白、空白的写法不计，整段写成引用块（每行前面一个 `>`）也认',
   '命令没带参数的、收口之后照第 6 节自己另起的一趟、这条命令之后续跑了别的一趟再另起的，门禁没有记下这一趟的原话，不核',
 ]
-test('第 20 条修法 A：/agent-team:at 第 2 节——门禁记下了 $ARGUMENTS、哪两刻核、引用块也认、哪几种不核', () => {
+test('第 20 条修法 A：/poundlock:at 第 2 节——门禁记下了 $ARGUMENTS、哪两刻核、引用块也认、哪几种不核', () => {
   const at = read('commands/at.md')
   const s1 = at.slice(at.indexOf('## 2. S1 录入'), at.indexOf('## 3.'))
   assert.ok(s1.length > 0, '前置：找不到第 2 节')
@@ -32,7 +32,7 @@ test('第 20 条修法 A：契约格式 skill 与契约模板第 1 节各说一�
   assert.ok(
     has(
       read('skills/at-contract-format/SKILL.md'),
-      '**推进出 S1 那一次，门禁拿第 1 节对用户在 `/agent-team:at` 后面写的那段话**（命令带了参数时，展开那一刻它记下的 `user-words.json`）：对不上就拒，' +
+      '**推进出 S1 那一次，门禁拿第 1 节对用户在 `/poundlock:at` 后面写的那段话**（命令带了参数时，展开那一刻它记下的 `user-words.json`）：对不上就拒，' +
         '还在 S1 时写契约，回传（【契约】）当场说是哪一行。',
     ),
     'skill',
@@ -53,8 +53,8 @@ test('第 20 条修法 A：README 两半的目录树都列上两份原话记录�
     assert.ok(lines.some((l) => l.startsWith('├── ')) && lines.some((l) => l.startsWith('    ')), `${half}：${lines.join(' | ')}`)
     // 复核（docs/50 §9，正文低 5）：说明也钉住——原来只核行数与缩进，改坏说明照样全绿。
     const want = half === '中文'
-      ? ['你最近一次在 /agent-team:at 后面写的原话，或者批准的需求稿（门禁自己记）', '这一趟的需求原话（门禁记下，契约第 1 节对着它核）']
-      : ['the words you last wrote after /agent-team:at, or the request write-up you approved (recorded by the gates)', "this run's request in your words (recorded by the gates; the contract's first section is checked against it)"]
+      ? ['你最近一次在 /poundlock:at 后面写的原话，或者批准的需求稿（门禁自己记）', '这一趟的需求原话（门禁记下，契约第 1 节对着它核）']
+      : ['the words you last wrote after /poundlock:at, or the request write-up you approved (recorded by the gates)', "this run's request in your words (recorded by the gates; the contract's first section is checked against it)"]
     for (const w of want) assert.ok(lines.some((l) => l.includes(w)), `${half}：缺「${w}」`)
   }
 })
@@ -67,10 +67,10 @@ test('第 20 条修法 A：正文说的「行尾空白不计、整段写成引�
 })
 
 test('第 20 条修法 A（复核 docs/50 §9，正文低 7）：项目经理的角色正文说推进出 S1 那一次要对得上原话；续跑停在 S1 时照拒绝理由改第 1 节、原话在哪', () => {
-  assert.ok(has(read('agents/at-pm.md'), '推进出 S1 那一次，它还要对得上用户在 `/agent-team:at` 后面写的原话（命令带了参数时门禁记下的，在这一趟 run 目录的 `user-words.json` 里），对不上推进不出去'), 'at-pm')
+  assert.ok(has(read('agents/at-pm.md'), '推进出 S1 那一次，它还要对得上用户在 `/poundlock:at` 后面写的原话（命令带了参数时门禁记下的，在这一趟 run 目录的 `user-words.json` 里），对不上推进不出去'), 'at-pm')
   const resume = read('commands/at-resume.md')
   for (const k of [
-    '推进出 `S1` 被 H6 以「契约第 1 节对不上用户在 /agent-team:at 后面写的原话」拒的（写契约时的【契约】也这么说），照拒绝理由把第 1 节改成那段原话',
+    '推进出 `S1` 被 H6 以「契约第 1 节对不上用户在 /poundlock:at 后面写的原话」拒的（写契约时的【契约】也这么说），照拒绝理由把第 1 节改成那段原话',
     '原话在这一趟 run 目录的 `user-words.json` 里（args 那一项），这是照抄、不是改契约',
     '还停在 `S1`、契约还没写的：先 `Read` `${CLAUDE_PLUGIN_ROOT}/commands/at.md` 第 2 节再写，第 1 节照抄这一趟 run 目录 `user-words.json` 里的原话；没有这份文件的，问用户这一趟的需求原话',
   ]) assert.ok(has(resume, k), `at-resume 缺「${k}」`)

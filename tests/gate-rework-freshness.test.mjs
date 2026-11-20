@@ -44,7 +44,7 @@ const baseOf = (...names) => Object.fromEntries(names.map((n) => [n, sha(R1[n])]
 // 一趟返工中的 run：files 落盘，state.json 照给定的 stage / history / rework_base 写（rework 由 history 派生）。
 function fixture({ stage, history, reworkBase, files = R1, roster = ROSTER, extra = {} }) {
   const dirs = makeRun({ runId: 'r1', stage, roster, project: PROJECT })
-  const runDir = join(dirs.projectDir, '.agent-team', 'runs', 'r1')
+  const runDir = join(dirs.projectDir, '.poundlock', 'runs', 'r1')
   for (const [rel, text] of Object.entries(files)) {
     mkdirSync(dirname(join(runDir, rel)), { recursive: true })
     writeFileSync(join(runDir, rel), text, 'utf8')
@@ -110,7 +110,7 @@ const AT_S5 = { stage: 'S5', history: [...FIRST, ...H('S5')], reworkBase: baseOf
 test('M3y H2：回退到 S5、实现记录还是上一轮的、04-dispatch.md 不在 → 拒（旧产物不再让 S5 判齐、跳过前置）', () => {
   const { ['04-dispatch.md']: _gone, ...files } = R1
   using({ ...AT_S5, files }, (fx) => {
-    const r = run('readiness', dispatch('agent-team:at-backend'), GATE, fx.p)
+    const r = run('readiness', dispatch('poundlock:at-backend'), GATE, fx.p)
     assert.ok(denied(r), r.stdout)
     assert.match(reasonOf(r), /04-dispatch\.md（S4 的产物）/)
   })
@@ -119,7 +119,7 @@ test('M3y H2：回退到 S5、实现记录还是上一轮的、04-dispatch.md �
 test('M3y H2：回退到 S4、04-dispatch.md 还是上一轮的，PM 派 at-backend → 拒，出路给「标 accepted」', () => {
   const reworkBase = baseOf('04-dispatch.md', '05-impl/at-backend.md', '06-test.md')
   using({ stage: 'S4', history: [...FIRST, ...H('S4')], reworkBase }, (fx) => {
-    const r = run('readiness', dispatch('agent-team:at-backend'), GATE, fx.p)
+    const r = run('readiness', dispatch('poundlock:at-backend'), GATE, fx.p)
     assert.ok(denied(r), r.stdout)
     assert.match(reasonOf(r), /04-dispatch\.md（S4 的产物）还是上一轮的/)
     assert.match(reasonOf(r), /改成 "accepted"/)
@@ -129,7 +129,7 @@ test('M3y H2：回退到 S4、04-dispatch.md 还是上一轮的，PM 派 at-back
 test('M3y H2：同一格由架构师派 → 叫它冒泡，不叫它改 rework_base', () => {
   const reworkBase = baseOf('04-dispatch.md', '05-impl/at-backend.md', '06-test.md')
   using({ stage: 'S4', history: [...FIRST, ...H('S4')], reworkBase }, (fx) => {
-    const r = run('readiness', dispatch('agent-team:at-backend', 'agent-team:at-architect'), GATE, fx.p)
+    const r = run('readiness', dispatch('poundlock:at-backend', 'poundlock:at-architect'), GATE, fx.p)
     assert.ok(denied(r), r.stdout)
     assert.match(reasonOf(r), /冒泡/)
     assert.doesNotMatch(reasonOf(r), /改成 "accepted"/)
@@ -139,16 +139,16 @@ test('M3y H2：同一格由架构师派 → 叫它冒泡，不叫它改 rework_b
 // 放行的几格：返工轮里正常的派发不能被多拦。
 test('M3y H2：返工轮里正常的派发放行——S5 派 at-backend、S6 原地重来派 at-qa、S2 派 at-product', () => {
   using(AT_S5, (fx) => {
-    assert.equal(run('readiness', dispatch('agent-team:at-backend'), GATE, fx.p).stdout.trim(), '')
+    assert.equal(run('readiness', dispatch('poundlock:at-backend'), GATE, fx.p).stdout.trim(), '')
   })
   using({ stage: 'S6', history: [...FIRST, ...H('S6')], reworkBase: baseOf('06-test.md') }, (fx) => {
-    assert.equal(run('readiness', dispatch('agent-team:at-qa'), GATE, fx.p).stdout.trim(), '')
+    assert.equal(run('readiness', dispatch('poundlock:at-qa'), GATE, fx.p).stdout.trim(), '')
   })
   const atS2 = baseOf('01-prd.md', '02-ui-spec.md', '02-wireframe.html', '03-arch.md', '03-alignment.md', '04-dispatch.md', '05-impl/at-backend.md', '06-test.md')
   using({ stage: 'S2', history: [...FIRST, ...H('S2')], reworkBase: atS2 }, (fx) => {
-    assert.equal(run('readiness', dispatch('agent-team:at-product'), GATE, fx.p).stdout.trim(), '')
+    assert.equal(run('readiness', dispatch('poundlock:at-product'), GATE, fx.p).stdout.trim(), '')
     // 反面：同一格提前派架构师——01-prd.md 还是上一轮的，S3 的前置不算在。
-    const r = run('readiness', dispatch('agent-team:at-architect'), GATE, fx.p)
+    const r = run('readiness', dispatch('poundlock:at-architect'), GATE, fx.p)
     assert.ok(denied(r), r.stdout)
     assert.match(reasonOf(r), /01-prd\.md（S2 的产物）还是上一轮的/)
   })
@@ -158,7 +158,7 @@ test('M3y H2：返工轮里正常的派发放行——S5 派 at-backend、S6 原
 
 test('M3y H5b：回退到 S5、at-backend 零改动停下 → 拦下，说清是上一轮的、给两条出口', () => {
   using(AT_S5, (fx) => {
-    const r = run('stop-gate', stopped('agent-team:at-backend'), GATE, fx.p)
+    const r = run('stop-gate', stopped('poundlock:at-backend'), GATE, fx.p)
     assert.equal(r.status, 2, r.stderr)
     assert.match(r.stderr, /05-impl\/at-backend\.md 还是上一轮的/)
     assert.match(r.stderr, /末尾追加一节/)
@@ -167,7 +167,7 @@ test('M3y H5b：回退到 S5、at-backend 零改动停下 → 拦下，说清是
 
 test('M3y H5b：重写过之后停下 → 放行', () => {
   using({ ...AT_S5, files: { ...R1, '05-impl/at-backend.md': 'backend r2\n' } }, (fx) => {
-    const r = run('stop-gate', stopped('agent-team:at-backend'), GATE, fx.p)
+    const r = run('stop-gate', stopped('poundlock:at-backend'), GATE, fx.p)
     assert.equal(r.status, 0, r.stderr)
   })
 })
@@ -175,7 +175,7 @@ test('M3y H5b：重写过之后停下 → 放行', () => {
 test('M3y H5b：上一轮的是 .html → 出口说用 HTML 注释追加', () => {
   const atS2 = baseOf('01-prd.md', '02-ui-spec.md', '02-wireframe.html', '03-arch.md', '03-alignment.md', '04-dispatch.md', '05-impl/at-backend.md', '06-test.md')
   using({ stage: 'S2', history: [...FIRST, ...H('S2')], reworkBase: atS2, files: { ...R1, '02-ui-spec.md': 'ui spec r2\n' } }, (fx) => {
-    const r = run('stop-gate', stopped('agent-team:at-ui'), GATE, fx.p)
+    const r = run('stop-gate', stopped('poundlock:at-ui'), GATE, fx.p)
     assert.equal(r.status, 2, r.stderr)
     assert.match(r.stderr, /02-wireframe\.html 还是上一轮的/)
     assert.match(r.stderr, /<!-- -->/)
@@ -185,7 +185,7 @@ test('M3y H5b：上一轮的是 .html → 出口说用 HTML 注释追加', () =>
 
 test('M3y H5a：PM 收件 → 说是上一轮的，出路有「标 accepted」', () => {
   using(AT_S5, (fx) => {
-    const c = contextOf(run('deliverable', returned('agent-team:at-backend'), GATE, fx.p))
+    const c = contextOf(run('deliverable', returned('poundlock:at-backend'), GATE, fx.p))
     assert.match(c, /05-impl\/at-backend\.md 还是上一轮的/)
     assert.match(c, /改成 "accepted"/)
     // M4d（docs/38，全量审查第 19 条）：前台派发跑完（status completed）它已经停下了，不再说「等它写完（异步派发时）」。
@@ -197,7 +197,7 @@ test('M3y H5a：PM 收件 → 说是上一轮的，出路有「标 accepted」',
 
 test('M3y H5a：架构师收件 → 叫它冒泡，不叫它改 rework_base', () => {
   using(AT_S5, (fx) => {
-    const c = contextOf(run('deliverable', returned('agent-team:at-backend', 'agent-team:at-architect'), GATE, fx.p))
+    const c = contextOf(run('deliverable', returned('poundlock:at-backend', 'poundlock:at-architect'), GATE, fx.p))
     assert.match(c, /05-impl\/at-backend\.md 还是上一轮的/)
     assert.match(c, /冒泡给派你的人，由项目经理标 "accepted"/)
     assert.doesNotMatch(c, /改成 "accepted"/)
@@ -206,7 +206,7 @@ test('M3y H5a：架构师收件 → 叫它冒泡，不叫它改 rework_base', ()
 
 test('M3y H5a「停在旧阶段」：S5 的产物都还是上一轮的，架构师返回不报「停在旧阶段」', () => {
   using({ ...AT_S5, extra: { stage_roles: { S2: ['at-product', 'at-ui'], S3: ['at-architect'], S5: ['at-architect', 'at-backend'], S6: ['at-qa'] } } }, (fx) => {
-    const c = contextOf(run('deliverable', returned('agent-team:at-architect'), GATE, fx.p))
+    const c = contextOf(run('deliverable', returned('poundlock:at-architect'), GATE, fx.p))
     assert.doesNotMatch(c, /停在旧阶段/)
   })
 })
@@ -295,7 +295,7 @@ test('M3y H6：拍快照时某一份读不出来 → 不核它（不写放行）
       writeState(fx, restartTo(fx, 'S5', baseOf('06-test.md'))),
       GATE,
       fx.p,
-      { ...hermeticEnv(), AGENT_TEAM_TEST_THROW: 'read:05-impl/at-backend.md' },
+      { ...hermeticEnv(), POUNDLOCK_TEST_THROW: 'read:05-impl/at-backend.md' },
       { nodeArgs: ['-r', INJECT] },
     )
     assert.equal(r.stdout.trim(), '', r.stdout)
@@ -305,7 +305,7 @@ test('M3y H6：拍快照时某一份读不出来 → 不核它（不写放行）
 
 // 阶段链读不出来、形状不对：回退快照那几条跳过、留痕；decideRework 那几条照拦。
 function withPlugin(fx, stagesText) {
-  const plugin = realpathSync(mkdtempSync(join(tmpdir(), 'agent-team-m3y-plug-')))
+  const plugin = realpathSync(mkdtempSync(join(tmpdir(), 'poundlock-m3y-plug-')))
   cpSync(new URL('hooks', REPO), join(plugin, 'hooks'), { recursive: true })
   cpSync(new URL('roster.json', REPO), join(plugin, 'roster.json'))
   writeFileSync(join(plugin, 'stages.json'), stagesText, 'utf8')
@@ -335,7 +335,7 @@ test('M3y H5a：一份没写、一份是上一轮的 → PM 收到的回传两�
   const atS2 = baseOf('01-prd.md', '02-ui-spec.md', '02-wireframe.html', '03-arch.md', '03-alignment.md', '04-dispatch.md', '05-impl/at-backend.md', '06-test.md')
   const { ['02-ui-spec.md']: _gone, ...files } = R1
   using({ stage: 'S2', history: [...FIRST, ...H('S2')], reworkBase: atS2, files }, (fx) => {
-    const c = contextOf(run('deliverable', returned('agent-team:at-ui'), GATE, fx.p))
+    const c = contextOf(run('deliverable', returned('poundlock:at-ui'), GATE, fx.p))
     assert.match(c, /02-ui-spec\.md 还没有/)
     assert.match(c, /02-wireframe\.html 还是上一轮的/)
   })
@@ -343,7 +343,7 @@ test('M3y H5a：一份没写、一份是上一轮的 → PM 收到的回传两�
 
 test('M3y H5a：非 PM 收件时出路有重派，不只是等', () => {
   using(AT_S5, (fx) => {
-    const c = contextOf(run('deliverable', returned('agent-team:at-backend', 'agent-team:at-architect'), GATE, fx.p))
+    const c = contextOf(run('deliverable', returned('poundlock:at-backend', 'poundlock:at-architect'), GATE, fx.p))
     assert.match(c, /重派 at-backend/)
   })
 })
@@ -353,11 +353,11 @@ test('M3y H5a：非 PM 收件时出路有重派，不只是等', () => {
 test('M3y H5a「不是当前阶段的执行者」：返工出路按收件人分，首轮与返工轮都发', () => {
   for (const opts of [AT_S5, { stage: 'S6', history: FIRST, reworkBase: {} }]) {
     using(opts, (fx) => {
-      const pm = contextOf(run('deliverable', returned(opts.stage === 'S5' ? 'agent-team:at-qa' : 'agent-team:at-product'), GATE, fx.p))
+      const pm = contextOf(run('deliverable', returned(opts.stage === 'S5' ? 'poundlock:at-qa' : 'poundlock:at-product'), GATE, fx.p))
       assert.match(pm, /记一次回退/)
       assert.match(pm, /记完之后把它们标 "accepted"，不必再派一遍/)
       assert.doesNotMatch(pm, /记回退是项目经理的事/)
-      const arch = contextOf(run('deliverable', returned(opts.stage === 'S5' ? 'agent-team:at-qa' : 'agent-team:at-product', 'agent-team:at-architect'), GATE, fx.p))
+      const arch = contextOf(run('deliverable', returned(opts.stage === 'S5' ? 'poundlock:at-qa' : 'poundlock:at-product', 'poundlock:at-architect'), GATE, fx.p))
       assert.match(arch, /记回退是项目经理的事/)
       assert.doesNotMatch(arch, /记一次回退/)
     })
@@ -403,7 +403,7 @@ test('M3y H6：stat 报别的错（注入 EACCES）→ 在、但读不出来：�
       writeState(fx, restartTo(fx, 'S5', { ...baseOf('05-impl/at-backend.md'), '06-test.md': sha('whatever') })),
       GATE,
       fx.p,
-      { ...hermeticEnv(), AGENT_TEAM_TEST_THROW: 'stat:EACCES:06-test.md' },
+      { ...hermeticEnv(), POUNDLOCK_TEST_THROW: 'stat:EACCES:06-test.md' },
       { nodeArgs: ['-r', INJECT] },
     )
     assert.equal(r.stdout.trim(), '', r.stdout)
@@ -419,7 +419,7 @@ test('M3y H6：stat 报 ENOTDIR（注入）→ 算不在，给它写 sha 是多�
       writeState(fx, restartTo(fx, 'S5', { ...baseOf('05-impl/at-backend.md'), '06-test.md': sha('x') })),
       GATE,
       fx.p,
-      { ...hermeticEnv(), AGENT_TEAM_TEST_THROW: 'stat:ENOTDIR:06-test.md' },
+      { ...hermeticEnv(), POUNDLOCK_TEST_THROW: 'stat:ENOTDIR:06-test.md' },
       { nodeArgs: ['-r', INJECT] },
     )
     assert.ok(denied(r), r.stdout)
@@ -429,11 +429,11 @@ test('M3y H6：stat 报 ENOTDIR（注入）→ 算不在，给它写 sha 是多�
 
 // M4b（docs/36）：钉住的 PM 在 hook 输入里的原始 agent_type 是插件全名（docs/22），用户显式 --agent at-pm 时是裸名。H2 给 PM 的
 // 「标 accepted」出路经 isContractWriter 认 PM，两种都要拿到——把调用点改成只认某一种写法，这条就红。
-for (const caller of ['at-pm', 'agent-team:at-pm']) {
+for (const caller of ['at-pm', 'poundlock:at-pm']) {
   test(`M4b H2：回退到 S4、04-dispatch.md 还是上一轮的，PM（agent_type ${caller}）派 at-backend → 拒，出路给「标 accepted」`, () => {
     const reworkBase = baseOf('04-dispatch.md', '05-impl/at-backend.md', '06-test.md')
     using({ stage: 'S4', history: [...FIRST, ...H('S4')], reworkBase }, (fx) => {
-      const r = run('readiness', dispatch('agent-team:at-backend', caller), GATE, fx.p)
+      const r = run('readiness', dispatch('poundlock:at-backend', caller), GATE, fx.p)
       assert.ok(denied(r), r.stdout)
       assert.match(reasonOf(r), /改成 "accepted"/)
     })

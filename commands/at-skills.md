@@ -7,7 +7,7 @@ argument-hint: 给 <角色> 加 <skill>、去掉 <skill>、检查更新，或者
 
 $ARGUMENTS
 
-带 `${CLAUDE_PLUGIN_ROOT}` 前缀的路径在**插件目录**里，连着前缀一起读；以 `.agent-team/` 开头的
+带 `${CLAUDE_PLUGIN_ROOT}` 前缀的路径在**插件目录**里，连着前缀一起读；以 `.poundlock/` 开头的
 路径才在用户项目里。插件装在用户项目之外，去掉前缀的裸相对路径按会话工作目录
 解析，那样什么都读不到。
 
@@ -25,7 +25,7 @@ node "${CLAUDE_PLUGIN_ROOT}/hooks/skills-cli.mjs" <子命令> [名字…] [--rol
 子命令：`list`（本机装了哪些、登记了哪些）、`sync`（整份复制进项目并登记；不带 `--roles` 时沿用原来分给谁；已登记、本机那份又变了的要带 `--update`，
 带之前照第 7 节问过用户）、`assign`（只改分给谁：`--add` 加、`--remove` 减、`--roles` 整份换）、`check`（本机原件变没变、项目里的副本被改过没有）、
 `remove`（去掉登记）。它输出一份 JSON；退出码是 2 的，照 `error` 里的话告诉用户，
-不要自己去改 `.agent-team/skills.json`。登记清单在 `.agent-team/skills.json`，副本在 `.agent-team/skills/<dir>/`。
+不要自己去改 `.poundlock/skills.json`。登记清单在 `.poundlock/skills.json`，副本在 `.poundlock/skills/<dir>/`。
 登记、同步、去掉之后再跑一次 `list` 核磁盘上的结果，不凭记忆说已经办好了。
 
 ## 2. 不带参数：列现状
@@ -60,7 +60,7 @@ node "${CLAUDE_PLUGIN_ROOT}/hooks/skills-cli.mjs" <子命令> [名字…] [--rol
 
 ## 6. 一趟进行中
 
-`.agent-team/current-run` 指着的那一趟还没收口时登记或同步：照做，但告诉用户：这一趟已经用旧版做过的部分不会自动重做；要让前面的段按新 skill 重做，是用户主动改需求，照 `/agent-team:at` 的修订与回退走。
+`.poundlock/current-run` 指着的那一趟还没收口时登记或同步：照做，但告诉用户：这一趟已经用旧版做过的部分不会自动重做；要让前面的段按新 skill 重做，是用户主动改需求，照 `/poundlock:at` 的修订与回退走。
 
 ## 7. 同步本机的新版
 

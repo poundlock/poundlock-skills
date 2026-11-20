@@ -4,7 +4,7 @@
 这个仓库是产品 poundlock 的组件 plugin（类型 plugin），由 Wellyard 管理。产品层面的事（组件表、环境、决定）写在主仓库 poundlock 的 CLAUDE.md；IP、端口、登录用户名这类敏感的环境信息只写在那里，不写进这个仓库：它以后可能开源。
 <!-- /wellyard:component -->
 
-agent-team：一个 Claude Code 插件，十角色的软件开发 agent team。项目经理（`at-pm`）就是主会话，沿阶段链 `S1`→`S8` 分层派发，执行顺序由 hook 门禁强制，业务验收独立成线。默认分支 `main`。
+poundlock：一个 Claude Code 插件，十角色的软件开发 agent team。项目经理（`at-pm`）就是主会话，沿阶段链 `S1`→`S8` 分层派发，执行顺序由 hook 门禁强制，业务验收独立成线。默认分支 `main`。
 
 这份文件只记读代码和 git 历史推不出来的事。拿它当线索；与实时的 Git、测试或文件状态冲突时，以实时证据为准。
 
@@ -12,7 +12,7 @@ agent-team：一个 Claude Code 插件，十角色的软件开发 agent team。�
 
 - 零 npm 依赖，不建 `package.json`。运行时的前提只有 PATH 上的 Node，下限是 `hooks/boot.mjs` 的 `MIN_NODE`；门禁用的是 Claude Code 启动时 PATH 上的那个 Node。
 - 推送 GitHub 要本机 `gh` 已登录；凭据在系统 keyring 里，不进仓库。仓库地址、安装命令里的地址、只在某台电脑上成立的事，都记在主仓库 `CLAUDE.md` 的「环境」一节。
-- `AGENT_TEAM_GATE_TRACE`（可选）：等于 `1` 时每道门禁每次 `exit 0` 往 stderr 留一行痕，默认关。`--bg` 会话必须经 `--settings` 的 `env` 传入，在 shell 里 export 传不到 hook（实测）。判读见 `docs/00-现行参考.md` §1，来历在 `docs/21`。
+- `POUNDLOCK_GATE_TRACE`（可选）：等于 `1` 时每道门禁每次 `exit 0` 往 stderr 留一行痕，默认关。`--bg` 会话必须经 `--settings` 的 `env` 传入，在 shell 里 export 传不到 hook（实测）。判读见 `docs/00-现行参考.md` §1，来历在 `docs/21`。
 - `CLAUDE_PLUGIN_ROOT` 由 CLI 注入，插件内部路径都从它解析，不用手动设。
 
 ## 构建
@@ -30,7 +30,7 @@ agent-team：一个 Claude Code 插件，十角色的软件开发 agent team。�
 
 这一节自包含：发布这个插件只要照这里做。
 
-- 形态是 Claude Code 插件，不部署任何服务、不监听任何端口。**推 `main` 就是发布**：用户在自己的项目目录下经 `claude plugin marketplace add <仓库> --scope local` 与 `claude plugin install agent-team@agent-team-marketplace --scope local` 安装，`<仓库>` 的写法在 README 的「安装」里，也记在主仓库 `CLAUDE.md` 的「环境」一节。
+- 形态是 Claude Code 插件，不部署任何服务、不监听任何端口。**推 `main` 就是发布**：用户在自己的项目目录下经 `claude plugin marketplace add <仓库> --scope local` 与 `claude plugin install poundlock@poundlock --scope local` 安装，`<仓库>` 的写法在 README 的「安装」里，也记在主仓库 `CLAUDE.md` 的「环境」一节。
 - 当前版本以 `.claude-plugin/plugin.json` 的 `version` 为准。
 - **每次推 `main` 都挪 `version`**：只碰散文 / `docs/` / `tests/` 挪最后一位，碰插件会加载的东西挪中间一位，任何一位不长到 `10`。理由：`claude plugin update` 比的是 `version` 字符串，不是 commit。「插件会加载的」清单的单一真源是 `scripts/lib/version-bump.mjs` 的 `PLUGIN_LOADED`。
 - 每挪一次，在 `CHANGELOG.md` 最上面加一行「- x.y.z：这一版改了什么」，版本检查核它。
@@ -47,7 +47,7 @@ node --test
 ```
 
 - 开发期加载：`claude --plugin-dir .`
-- 打开门禁留痕：`claude --settings '{"env":{"AGENT_TEAM_GATE_TRACE":"1"}}'`
+- 打开门禁留痕：`claude --settings '{"env":{"POUNDLOCK_GATE_TRACE":"1"}}'`
 - 推 main 之前自查版本号：`node scripts/check-version-bump.mjs origin/main HEAD`
 - 看 CI：`gh run list --branch <分支>`、`gh run view <id> --log-failed`
 
@@ -58,7 +58,7 @@ node --test
 - `docs/11-M1b-遗留与已知边界.md` 是已知边界登记簿；`docs/16-M2b-裁定记录.md` 是裁定记录，它的 §3 是方法论语料。
 - `docs/13` 往后是带日期的实测记录。`docs/24` §5 是 2026-09-28 那次全量审查的冻结表，之后的现状写在它前面那串「更新」里；`docs/39` 是 2026-10-05 对照 v2.2.0 的逐条核验与排序，它排的六轮到 `docs/48` 做完。
 - `stages.produces.md` 是 at-resume 与 at-status 运行时让模型读的；`stages.README.md` 只给维护者（理由、消费方表、开发史）。
-- 带日期的记录里出现的提交号、老仓库地址和安装命令说的是迁移之前的事，原样保留、不改。
+- 带日期的记录里出现的提交号、老仓库地址和安装命令说的是迁移之前的事，原样保留、不改；插件 9.0.0 之前叫 `agent-team`，记录里的 `/agent-team:*` 命令、`agent-team:at-*` 角色全名、`.agent-team/` 目录和 `AGENT_TEAM_*` 变量就是现在的 `/poundlock:*`、`poundlock:at-*`、`.poundlock/`、`POUNDLOCK_*`，同样不改。判据拿字面量去核带日期的记录时（例如 `tests/readme-sync.test.mjs` 钉的 `docs/19` 那条老安装命令），字面量跟着记录写旧名字。
 
 ## 决定
 
@@ -80,16 +80,16 @@ node --test
 
 ### 角色与工具面
 
-- **任何角色都不授予 `Skill` / `SendMessage` / `ListAgents`。** frontmatter 的 `skills:` 键是另一回事，允许，一律写全名 `agent-team:at-*`（裸名会被用户或项目层的同名 skill 抢先，实测在 `docs/97` §3）。插件自带的 skill 不得声明 `context: fork`。外部的设计方法只改写进自己的 skill（`at-ui-craft`，声明在 `THIRD_PARTY_NOTICES.md`），不跨插件引用（`docs/97` §1）。
+- **任何角色都不授予 `Skill` / `SendMessage` / `ListAgents`。** frontmatter 的 `skills:` 键是另一回事，允许，一律写全名 `poundlock:at-*`（裸名会被用户或项目层的同名 skill 抢先，实测在 `docs/97` §3）。插件自带的 skill 不得声明 `context: fork`。外部的设计方法只改写进自己的 skill（`at-ui-craft`，声明在 `THIRD_PARTY_NOTICES.md`），不跨插件引用（`docs/97` §1）。
 - **`at-outsider` 永远不进任何角色的 `Agent(...)` 宇宙，也不进任何 `can_delegate_to`。**
-- **主线程的 `tools:` 只封顶派发宇宙与主会话自己的工具面，不封顶子代理的工具**：每个角色拿自己 `tools:` 里的工具（实测），禁授的三样靠每一份自己的 `tools:` 行（`tests/tool-surface.test.mjs`）。`at-pm` 拿不到用户的 MCP 与网页工具，README 两半写着。验证段的产者（主会话除外）不持 `Edit`——摩擦，不是屏障。插件 `settings.json` 的 `agent` 写全名 `agent-team:at-pm`（裸名会被项目或用户层同名的 `at-pm.md` 抢先当上主会话，`tests/plugin-name-sync.test.mjs`）。门禁按剥前缀的名字认 PM，不收紧。`docs/36`。
+- **主线程的 `tools:` 只封顶派发宇宙与主会话自己的工具面，不封顶子代理的工具**：每个角色拿自己 `tools:` 里的工具（实测），禁授的三样靠每一份自己的 `tools:` 行（`tests/tool-surface.test.mjs`）。`at-pm` 拿不到用户的 MCP 与网页工具，README 两半写着。验证段的产者（主会话除外）不持 `Edit`——摩擦，不是屏障。插件 `settings.json` 的 `agent` 写全名 `poundlock:at-pm`（裸名会被项目或用户层同名的 `at-pm.md` 抢先当上主会话，`tests/plugin-name-sync.test.mjs`）。门禁按剥前缀的名字认 PM，不收紧。`docs/36`。
 - **MCP 只给叶子角色 `at-ui`，而且只到官方插件市场 Playwright 插件的具体工具**：只列看页面要的那几个（打开、改尺寸、模拟媒体特性、截图、快照、关浏览器），不授整台服务器，执行脚本、上传文件、拖放、对话框不给，持 `Agent` 的角色不给；`WebSearch`、`WebFetch` 谁都不给。用户没装那个插件时名字静默不在、角色照常起（实测）。截图与快照落在项目根的 `.playwright-mcp/`，写路径隔离与账本看不见：只开本机起的页面、不带 `filename`、在记录里列出、用完关浏览器都靠正文，门禁不核（付了三样）；`at-qa` 审改动时跳过那个目录。`docs/98`。
-- **用户的 skill 只经登记、复制进项目、当文件读**：`/agent-team:at-skills` 经 `hooks/skills-cli.mjs`（项目经理用 `Bash` 调，不是门禁）把本机的 skill 整份复制进 `.agent-team/skills/`、记进 `.agent-team/skills.json`；角色照正文「登记给你的 skill」一节读来用，仍然不授 `Skill`。登记的 skill 在做法上盖得过插件自带的，管不了做什么，盖不过门禁与红线、要交哪几份、下游要读的项、读文件与截图的开销规矩；点名只认契约里用户的话。新版只在起新一趟、建 run 之前比对，变了问用户、`sync --update` 才换，一趟进行中与续跑都不换。副本目录一律由名字推出、不信清单里的 `dir`；skill 里的软链接与会被自动加载的位置不复制。角色正文不写 `${CLAUDE_PLUGIN_ROOT}` 以外的占位符字面，也不拿它当「skill 里的那个占位符」说——平台会把正文里的它换成本插件的目录。`docs/102`。
+- **用户的 skill 只经登记、复制进项目、当文件读**：`/poundlock:at-skills` 经 `hooks/skills-cli.mjs`（项目经理用 `Bash` 调，不是门禁）把本机的 skill 整份复制进 `.poundlock/skills/`、记进 `.poundlock/skills.json`；角色照正文「登记给你的 skill」一节读来用，仍然不授 `Skill`。登记的 skill 在做法上盖得过插件自带的，管不了做什么，盖不过门禁与红线、要交哪几份、下游要读的项、读文件与截图的开销规矩；点名只认契约里用户的话。新版只在起新一趟、建 run 之前比对，变了问用户、`sync --update` 才换，一趟进行中与续跑都不换。副本目录一律由名字推出、不信清单里的 `dir`；skill 里的软链接与会被自动加载的位置不复制。角色正文不写 `${CLAUDE_PLUGIN_ROOT}` 以外的占位符字面，也不拿它当「skill 里的那个占位符」说——平台会把正文里的它换成本插件的目录。`docs/102`。
 - **项目经理只能是主会话，调用者认不出就拒**：`agent_type` 在却不是非空字符串的拒；任何调用者派 `at-pm` 一律拒；受管辖的派发带非空 `name`（agent teams 的 teammate）拒，与 `isolation` 同形。主会话被设置里别的 agent 或启动时的 `--agent` 换掉时，自检与几道门禁的拒绝理由末尾都说清身份与出路。还没有 run 时 H3 对谁都放行，那是 at-init 自举的既有设计。`state.json` 里的角色名写裸名。`docs/44`。
 - **插件自带的 frontmatter 只用受限写法**：每个非空行恰好一行 `key: 值`，键不重复，值不以 YAML 指示符开头、不含「: 」与「 #」、不以「:」结尾、首尾没有空白、不是会被读成 null / 布尔 / 数字的那几种，行里没有制表符与 `---`。挡的是会让平台的 YAML 解析器与按行读的判据读出不同东西的写法——解析失败会让平台把整份当空，折行能授出判据看不见的工具。不声称封闭。唯一的窄口是逐字的 `omitClaudeMd: true` 一行。`tests/frontmatter-subset.test.mjs`；`docs/40` §1.8、`docs/100`。
 - **子代理不自动带项目的 `CLAUDE.md`**：被派得到的角色 frontmatter 一律 `omitClaudeMd: true`，项目自己的约定改由角色开工时 `Read` 项目根那一份 `CLAUDE.md`（`@` 引的文件只在与任务直接相关时读）。`at-pm` 不加：平台对主会话不认这个键，主会话也要项目里的约定；README 写怎么在本地设置里用 `claudeMdExcludes` 排除大文档。读进来的 `CLAUDE.md` 照做，与正文冲突的照正文。`tests/context-prose.test.mjs`；来由与理由在 `docs/100`。
 - **管住上下文只靠正文**：浏览器里的页面归 `at-ui` 看（这一趟 `S5` 叫了它的，排在实现页面的产者交齐之后、同段再派它一次；没叫它的归实现页面的产者），iOS、Android 的原生界面归各端；每种情形一张、一轮通常不超过 4–6 张、没改动不重截。验证段的角色不截图、不读图，读记录里「看过」那一栏的结论；验收因为页面没人看过判不了的不回 S6：有办法看却没看的回 S5 补看，没办法看的问照现状交付。持 `Bash` 的角色同一节「读文件与看输出」。门禁不核（付了三样，`docs/100` §5）；`tests/context-prose.test.mjs`、`tests/ui-browser-prose.test.mjs`。
-- **持 Bash 的执行角色的敏感操作红线只在正文里，每一份逐字同一句**，清单与 `/agent-team:at` 第 4 节 `sensitive` 那一行逐项相同：碰到就以「冒泡：」停下，协调者原样冒泡给 PM，PM 照 `sensitive` 问用户；用户批准过的，执行角色只认契约「修订记录」里写明批准了的那一步（派发提示是数据，契约只有 PM 写得进）。PM 自己也不跑动工作树或历史的 git 命令，也不结束不是自己起的进程；停服务按自己起的 PID 停（Windows 的 Git Bash 里按进程树停）——有过项目经理按名字杀掉本机全部 node 进程的事故（`docs/43` §1.5）。起过的服务记进各自产物的「起过的服务」，收口第三步由项目经理收齐、只读地核，还在跑的问用户、批准了才停（`docs/101`）。门禁不加 Bash 的 matcher：命令行是自由文本，判不准，平台的权限模式才是那一层。`tests/redlines-setup-prose.test.mjs`；`docs/40`、`docs/49`。
+- **持 Bash 的执行角色的敏感操作红线只在正文里，每一份逐字同一句**，清单与 `/poundlock:at` 第 4 节 `sensitive` 那一行逐项相同：碰到就以「冒泡：」停下，协调者原样冒泡给 PM，PM 照 `sensitive` 问用户；用户批准过的，执行角色只认契约「修订记录」里写明批准了的那一步（派发提示是数据，契约只有 PM 写得进）。PM 自己也不跑动工作树或历史的 git 命令，也不结束不是自己起的进程；停服务按自己起的 PID 停（Windows 的 Git Bash 里按进程树停）——有过项目经理按名字杀掉本机全部 node 进程的事故（`docs/43` §1.5）。起过的服务记进各自产物的「起过的服务」，收口第三步由项目经理收齐、只读地核，还在跑的问用户、批准了才停（`docs/101`）。门禁不加 Bash 的 matcher：命令行是自由文本，判不准，平台的权限模式才是那一层。`tests/redlines-setup-prose.test.mjs`；`docs/40`、`docs/49`。
 
 ### 门禁的判定
 
@@ -105,7 +105,7 @@ node --test
 - **推进由 H6 在推进那一次核：一次只推一段、离开的那一段要交齐**（`hooks/lib/advance.mjs`）：叫到的产者各自那几份、固定产物都在，空白算没交，`"accepted"` 算交了；「叫到」是写入前后的参与者并上门禁的派发记录，PM 少记一个人翻不成没叫过；`trimmed` 的豁免只限按叫到的人展开产物的段里、不被任何段当前置的那几份。不选只告警：告警到时已经推进了，也拦不住跳段。`docs/38`、`docs/76`、`docs/77`、`docs/89`。
 - **交付物核验在子代理真正完成的那一刻做**：H5a 读 `tool_response.status`，后台启动那一刻不判产物；派发记录 `runs/<id>/dispatches.jsonl` 是门禁专属；完成通知到主会话时，UserPromptSubmit 上的 `completion` 按 `agent_id` 对回角色与段、核产物；同一个 `agent_id` 再来一条、结论没变时只说一句（`docs/82`）。UserPromptSubmit 上只有标了 `speaks` 的检查项说话，永不 exit 2。auto 模式下把交回消息当成一条完成通知核（`docs/99`）。`docs/38`。
 - **按设计不认领路径的 `at-qa`、`at-acceptance` 只写 run 目录里自己那份产物**：没有 `paths` 键时写路径隔离在 run 目录之外拒；拒绝理由点名它自己那份产物、叫它照实写进那份结论、不用为这个冒泡。不受 `paths` 管的只剩项目经理与主线程（`hooks/lib/decide.mjs` 的 `exemptFromPaths`）。正文说拒，门禁就得真拒，判据同时核两边。`docs/41`。
-- **认领一个目录不连带它下面会被自动加载或执行的位置**：认领的前缀之下新出现 `CLAUDE.md`、`CLAUDE.local.md`、`.claude`、`.git`、嵌套的 `.agent-team` 就拒（`hooks/lib/writepath.mjs` 的 `guardedBelow`）；前缀本身写明了的照放行；`.agent-team` 不划给任何角色，写明了也拒。拼出裸仓库布局那一路不按文件名拒，登在 `docs/53` §4。`docs/53`。
+- **认领一个目录不连带它下面会被自动加载或执行的位置**：认领的前缀之下新出现 `CLAUDE.md`、`CLAUDE.local.md`、`.claude`、`.git`、嵌套的 `.poundlock` 就拒（`hooks/lib/writepath.mjs` 的 `guardedBelow`）；前缀本身写明了的照放行；`.poundlock` 不划给任何角色，写明了也拒。拼出裸仓库布局那一路不按文件名拒，登在 `docs/53` §4。`docs/53`。
 - **sha 一律用门禁给的值**：门禁的回传带它按磁盘算的值（先剥 BOM、折 CRLF），PM 照抄、不自己算、不照着磁盘改账。PM 写完 `reach.json`，门禁按当前 `project.json` 与花名册重算核对，每趟开头再核一次；核不了的时候也说一句「这一次没有核」。问用户之前先记一条 `answer` 为空串的 escalation，答复之后补上；用户主动改需求不记 escalation，修订块标「用户主动提出」。`docs/42`、`docs/79`、`docs/83`、`docs/87`、`docs/88`。
 - **整段裁掉与切走指针**：缺的前置是整段裁掉的那一段的产物时，H2 说清是整段裁掉、给两条路（回退到那一段补回来，或把要它当前置的段也整段裁掉）；「整段裁掉」在 H2、推进、收口三处同一个口径（`advance.mjs` 的 `wholeStageTrimmed`）。PM 写 `current-run` 时门禁列出别的、没收口的 run 里没停下的派发。停下、完成、再往下派人时按 `agent_id` 认回派它的那一趟（`completion.mjs` 的 `elsewhereRunOf`）。项目经理把契约或阶段产物写进一趟不是 `current-run` 的 run 目录时，账本回传【指针】、按情形给出路。`docs/43`、`docs/49`、`docs/51`。
 - **外部值进模型读得到的文字，按值从哪来决定怎么引**：磁盘上谁都写得进的一律 `quote`；调用方自己这次给的参数与由项目根拼出的路径用 `inline`；记录的 sha 用 `shaOrNote`；原样落盘的 JSON 用 `safeJson`。不按「值干不干净」判：一句祈使句不需要任何特殊字符。看不见的字写成码点。那张表在 `docs/27` §2.1，判据是 `tests/trusted-echo.test.mjs`——新拼一个外部值，它的入口清单跟着补。`docs/57`、`docs/59`。
@@ -113,15 +113,15 @@ node --test
 ### 契约、测试与收口
 
 - **契约的账由门禁记**：推进出第一段之后门禁第一次见到 `state.json` 时，把契约第 1 节的原文、修订指纹与第 4 节修订块的标题记进门禁专属的 `contract-base.json`（契约自己的四个编号节按结构认，`docs/90`）。改不改需求按这次新加的修订块标题认：`kind:` 全是 `ADMIN_KINDS` 的不算，别的都算，门禁不读内容。第 1 节变了，或验证段的结论是对着上一版契约出的，写契约时【契约】当场说，H6 不放行推进与收口，H2 不把它们当交了的前置（`docs/61`）。改第 1 节不算修订；推进出第一段之前不核。`docs/45`。
-- **契约第 1 节对着用户原话核**：`/agent-team:at` 带参数展开时记录器把原话、会话 id、那一刻已有的 run 记进项目一级的 `.agent-team/user-words.json`；只在这个会话用 Write 建出一趟新 run 的 `state.json` 的那一次绑进它的 run 目录，不晚绑（晚绑会跨会话绑错）。绑分两步：H6 只记 `binding`，同一次 Write 落盘之后账本才标 `bound`——H6 那一刻 run 目录还不在、这次写入还可能被用户拒掉，真实会话里这一格坏过（`docs/58`）。比之前折空白、去掉默认不可见的字（`docs/59`）。记录器不拦任何东西、stdout 不写。`docs/50`。
-- **需求稿经用户批准才是原话，门禁记题面**：`/agent-team:at` 建 run 之前问清需求，用户在 `AskUserQuestion` 里选规范标签「照这份需求开始」，批准记录器把那道题的题面原样记成原话；那道题要单独问，题面里不许有界面上可能看不见的内容；对话里打字批准不认（门禁看不到批的是哪一份）；要不要测试、没过的测试算不算不主动问；不另加命令。`docs/95`。
+- **契约第 1 节对着用户原话核**：`/poundlock:at` 带参数展开时记录器把原话、会话 id、那一刻已有的 run 记进项目一级的 `.poundlock/user-words.json`；只在这个会话用 Write 建出一趟新 run 的 `state.json` 的那一次绑进它的 run 目录，不晚绑（晚绑会跨会话绑错）。绑分两步：H6 只记 `binding`，同一次 Write 落盘之后账本才标 `bound`——H6 那一刻 run 目录还不在、这次写入还可能被用户拒掉，真实会话里这一格坏过（`docs/58`）。比之前折空白、去掉默认不可见的字（`docs/59`）。记录器不拦任何东西、stdout 不写。`docs/50`。
+- **需求稿经用户批准才是原话，门禁记题面**：`/poundlock:at` 建 run 之前问清需求，用户在 `AskUserQuestion` 里选规范标签「照这份需求开始」，批准记录器把那道题的题面原样记成原话；那道题要单独问，题面里不许有界面上可能看不见的内容；对话里打字批准不认（门禁看不到批的是哪一份）；要不要测试、没过的测试算不算不主动问；不另加命令。`docs/95`。
 - **新行为的自动化测试归 S5 的产者写**：照落盘清单定的位置写，实现记录带「测试」一节；`at-qa` 核缺测试、判「不通过：缺测试」、不写不冒泡；缺测试的回退回 S5。不写测试只认两种情形——这一次没有新行为，或契约第 1 节用户原话、第 4 节修订记录里用户说了不要；被验的一方不能单方面关掉它，所以契约第 3 节、架构方案、派发提示、产品定义都不算。「缺测试」只认两种：一条新行为没有测试、测试碰不到它；断言偏弱、变异没杀死的只进「审查」。变异测试只在契约里用户要了才做。这一趟之前就挂着的用例同一个口径。门禁不读内容。`docs/41`、`docs/67`、`docs/68`、`docs/70`、`docs/72`、`docs/85`、`docs/86`、`docs/100`。
 - **收口读验收结论，照现状交付由门禁记**：`07-acceptance.md` 的第一个非空行固定写「结论：通过」「结论：不通过」「结论：判不了」之一（`hooks/lib/verdict.mjs`）；测试报告 `06-test.md` 同一个做法、窄一号，首行写「结论：通过」「结论：不通过」「结论：跑不起来」之一（`hooks/lib/test-verdict.mjs`，`docs/66`）。首行读不出时 H5b 拦产者（`docs/62`）。没过的只有用户经规范标签「照现状交付」批准过才放行，批准按 sha 绑在那一刻的结论上，一份只记一次；它之后的第一次改契约不算改需求——不靠修订块标题里的标记（漏写会绕圈、冒充只要一行字）。`docs/46`、`docs/71`。
 
 ### 会话、微调与并行
 
 - **一趟只归一个会话，门禁按会话认**：建 run 的那一次由账本记下主人（`runs/<id>/owner.json`，门禁专属）。主线程对有主人、没收口、主人不是自己的一趟——写它的文件、另建一趟、把 `current-run` 从它切走——H3 拒，以它的名义派人 H2 拒；子代理照旧按派发记录认。`/clear` 会换会话 id（`--resume` 与压缩不换），同一个窗口清空之后要接手一次。接手只认 `AskUserQuestion` 里的规范标签，题面里要原样写着那一趟的 run id。没有 `owner.json` 的旧 run 一切照旧。单一真源是 `hooks/lib/owner.mjs`。`docs/103`；这是边看边改微调那份设计（`docs/superpowers/specs/2026-11-05-边看边改微调与会话归属-design.md`）的第一步。
-- **微调是一趟 `mode` 为 `tweak` 的 run，门禁按短链判**（`/agent-team:at-tweak` 起）：`mode` 只认 `"tweak"`，建好之后不许改；写成 `"tweak"` 要有门禁记下的 `/agent-team:at-tweak` 原话记录——不然项目经理写一个 `mode` 就绕开了产品定义与架构。短链是 S1、S4、S5、S6、S8，段号与产物名沿用正常链，没有验收段，收口读测试报告。推出实现段要用户对现在这份契约说过「可以了，收尾」。微调不写 `current-run`。`hooks/lib/tweak.mjs`、`stages.tweak.json`；`docs/104`。
+- **微调是一趟 `mode` 为 `tweak` 的 run，门禁按短链判**（`/poundlock:at-tweak` 起）：`mode` 只认 `"tweak"`，建好之后不许改；写成 `"tweak"` 要有门禁记下的 `/poundlock:at-tweak` 原话记录——不然项目经理写一个 `mode` 就绕开了产品定义与架构。短链是 S1、S4、S5、S6、S8，段号与产物名沿用正常链，没有验收段，收口读测试报告。推出实现段要用户对现在这份契约说过「可以了，收尾」。微调不写 `current-run`。`hooks/lib/tweak.mjs`、`stages.tweak.json`；`docs/104`。
 - **并行微调：门禁每一次先挑这一趟**（`hooks/lib/runpick.mjs`）：子代理按派发记录认回派它的那一趟微调，主线程认这个会话名下没收尾的那一趟，都不是照 `current-run`；`gate.mjs` 里读运行上下文只经 `runCtxFor`。互斥在 H6 建 run 那一次判：`current-run` 指着没收口的完整一趟时不能起微调，有没收尾的微调时不能起完整一趟，一个会话同一时刻只有一趟微调。认领（`claims.mjs`）：子代理第一次写一个项目文件，落盘之后记进这一趟的 `claims.jsonl`，别的没收尾的微调再写它 H3 拒；派发时预先认领不做。放弃收尾（`abandon.mjs`）：用户在 `AskUserQuestion` 里选「放弃这一趟」，之后一次写入记 `closed_at` 与 `abandoned: true`，H6 不核产物。前台派发的派发记录跑完才记（实测），所以认不出时按 hook 输入里的会话 id 认。`docs/105`、`docs/106`。
 
 ### 几个前提与取舍
@@ -136,7 +136,7 @@ node --test
 
 ### 测试与夹具
 
-- **门禁的项目根不是 cwd**：从 cwd 往上找最近的 `.agent-team`（位于某个 `.agent-team` 目录里的不算），cwd 在启动项目（`CLAUDE_PROJECT_DIR`）里时不越过它（`hooks/lib/runctx.mjs` 的 `projectRootFrom`）。子进程测试的环境由 `tests/helpers/gate-runner.mjs` 的 `hermeticEnv` 剥掉 `CLAUDE_PROJECT_DIR` 与留痕开关；要测「变量生效」的用例自己加回来。
+- **门禁的项目根不是 cwd**：从 cwd 往上找最近的 `.poundlock`（位于某个 `.poundlock` 目录里的不算），cwd 在启动项目（`CLAUDE_PROJECT_DIR`）里时不越过它（`hooks/lib/runctx.mjs` 的 `projectRootFrom`）。子进程测试的环境由 `tests/helpers/gate-runner.mjs` 的 `hermeticEnv` 剥掉 `CLAUDE_PROJECT_DIR` 与留痕开关；要测「变量生效」的用例自己加回来。
 - **只在一台机器上成立的假设，CI 一跑就露**：macOS 的 `tmpdir()` 在 `/var` 软链接下，子进程 `process.cwd()` 给的是解析后的路径；GitHub 的 Windows runner 签出在 D 盘；macOS 的 APFS 不收文件名里未分配的码点（`mkdir` 报 ENOENT，`docs/59` §8），载荷当文件名时先去掉它们。夹具一律发 realpath，不写死盘符。还开着的路径别名边角登在 `docs/25` §4。
 - **夹具别比真实会话多做一步**：`docs/58` 那个 bug 就是因为子进程判据先建好了 run 目录，而真实会话里项目经理直接 Write `runs/<id>/state.json`。判一件「第一次」发生的事，夹具照真实顺序造。PreToolUse 放行也不等于落了盘（几道门禁并行、用户还能在权限确认里拒），要在落盘之后才成立的事放到同一次写入的 PostToolUse 上做。
 - **`hooks/` 下的模块加载时不调会被注入异常的内建**（例如 `String.prototype.normalize`）：失败策略那几条判据往这些内建里注入异常来造「判定中途崩溃」，加载那一步就倒的话 `boot.mjs` 报「门禁代码加载失败」、PreToolUse 一律拒，判据红在别处（`docs/95` §3）。用到时再算。
@@ -182,7 +182,7 @@ node --test
 
 ## 遗留事项
 
-- 下一步是等用户正常使用插件、带回真实会话的项目目录：读 `.agent-team/runs/` 与会话转录，照结果按原流程修补、回归。不再从开放边界索引逐条挑（`docs/91`）。
+- 下一步是等用户正常使用插件、带回真实会话的项目目录：读 `.poundlock/runs/` 与会话转录，照结果按原流程修补、回归。不再从开放边界索引逐条挑（`docs/91`）。
 - 下一次真实会话要核的两件：
   - 走一遍「先把需求问清楚」——不带参数或话没说清、问清、批准、建 run、第 1 节照抄需求稿、推进出 S1；看长题面在界面上显示全不全（`docs/95` §5）。
   - 收口那一次还改不改已经写下的时间；派出去的角色的请求被拒之后会不会同样停下（`docs/94` §5）。

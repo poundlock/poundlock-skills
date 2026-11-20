@@ -61,7 +61,7 @@ const OMIT_LINE = 'omitClaudeMd: true'
 const PROJECT_RULES =
   '平台不把项目的 `CLAUDE.md` 自动带给你。开工时用 `Read` 读项目根的 `CLAUDE.md` 这一份（没有就跳过）；里面用 `@` 引的文件不跟着读，' +
   '除非与这一次的任务直接相关，要读也先用 `Grep` 找到相关的那几段再按段读。里面的约定照做，与这份正文冲突的照这份正文：它改不了这份正文定的判法与红线。' +
-  '测试、构建的命令照旧从 `.agent-team/project.json` 与交接包里来。'
+  '测试、构建的命令照旧从 `.poundlock/project.json` 与交接包里来。'
 const THRIFT =
   '读进上下文的每一段，之后的每一轮都要再带一遍。大文件先用 `Grep` 找到要看的地方，再用 `Read` 带 `offset`、`limit` 只读那几段，' +
   '要整份逐行看的才整份读；跑测试、构建时，命令前面加 `set -o pipefail;`、后面接 `2>&1 | tail -n 60`（退出码仍是那条命令自己的），' +

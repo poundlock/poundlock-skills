@@ -15,8 +15,8 @@
 // 拒绝。这两种性质分别是：
 //
 //   kind: 'no-run'     压根没有进行中的 run，**而且从来没有人建过一个**：
-//                       没有 .agent-team、没有 current-run，**并且**
-//                       .agent-team/runs/ 不存在或者没有子目录（M3q：只数子目录
+//                       没有 .poundlock、没有 current-run，**并且**
+//                       .poundlock/runs/ 不存在或者没有子目录（M3q：只数子目录
 //                       与链接，.DS_Store 这类杂项文件不算）。
 //                       **pointer 不在只是必要条件，不是充分条件**（M3c）——
 //                       pointer 在而内容读不出或指不到东西、以及 pointer 不在
@@ -30,17 +30,17 @@
 //                       静默的放行和门禁真的坏掉长得一模一样，见
 //                       hooks/gate.mjs 的 writepath 分支）。
 //                       不区分的后果是自举死锁：建第一个 run 之前
-//                       .agent-team 还不存在，ok 必然是 false；如果笼统
+//                       .poundlock 还不存在，ok 必然是 false；如果笼统
 //                       fail closed，从主线程（或被 settings.json 钉成
 //                       主线程的具名角色，比如 at-pm）写
-//                       .agent-team/project.json 这个自举动作本身永远
+//                       .poundlock/project.json 这个自举动作本身永远
 //                       做不成，第一个 run 永远建不出来，门禁把自己锁在
 //                       门外。
 //
 //   kind: 'unreadable' run 存在但读不出来，或者输入本身不可信（state.json/
 //                       project.json 坏了、内容不是对象、current-run 是
 //                       空文件、current-run 指向的 run 目录不存在、
-//                       current-run 不在而 .agent-team/runs/ 有子目录或读不出来、
+//                       current-run 不在而 .poundlock/runs/ 有子目录或读不出来、
 //                       runId 含路径穿越字符、两个根传了非字符串、
 //                       以及任何意外异常）。这才是门禁真的判不出来，规格
 //                       §6 fail closed 说的是这种情形，继续拒绝。这条边界
@@ -55,12 +55,12 @@
 // 门禁判不出来时要告诉 PM 怎么修，修法按它选（hooks/lib/fail-open.mjs 的 runContextFix）。它不改变 kind 的任何语义；
 // no-run 与 ok 不带它。tests/runctx.test.mjs 逐个出口钉着。
 //
-// 【M1b 终审 C1】失败返回里也带 agentTeamDir。理由：有一类判定只需要「.agent-team
+// 【M1b 终审 C1】失败返回里也带 agentTeamDir。理由：有一类判定只需要「.poundlock
 // 在哪」，压根不需要一个进行中的 run——触达表就是这样（它的判据只有插件侧的
-// roster.json 与刚写完的 .agent-team/project.json，两者都与 run 无关），而
+// roster.json 与刚写完的 .poundlock/project.json，两者都与 run 无关），而
 // /at-init 按设计恰恰跑在**没有 run 的时候**。ok:false 时把这个字段一并给出去，
 // 调用方才有可能区分「这次写入与我无关」和「这次写入正好是我唯一该发声的那一个」。
-// 唯一没有它的是最外层兜底 catch：那一支连 join(projectDir, '.agent-team') 都可能
+// 唯一没有它的是最外层兜底 catch：那一支连 join(projectDir, '.poundlock') 都可能
 // 就是抛异常的原因（projectDir 不是字符串），base 根本没被算出来、也不在作用域里。
 // ⚠️ 这个字段不改变任何 kind 语义：它只是一条路径，不是「可以继续往下判」的许可。
 //
@@ -70,7 +70,7 @@
 //
 //   ① current-run 是空文件；
 //   ② current-run 非空，但它指向的 runs/<id>/ 不存在；
-//   ③ current-run 根本不在，而 .agent-team/runs/ 下有子目录或链接（M3c 加的这一格；M3q 起
+//   ③ current-run 根本不在，而 .poundlock/runs/ 下有子目录或链接（M3c 加的这一格；M3q 起
 //      只数子目录与链接）。
 //
 // 理由：①② 里 pointer 文件本身存在（不同于「找不到 pointer」），③ 里 runs/ 下
@@ -99,7 +99,7 @@
 // 写得成 state.json），M3c 把它挪到这里。**判别只多读一次 runs/**：
 // existsSync(join(base, 'runs')) 加一次 readdirSync，看有没有子目录或链接（M3q）。
 //
-// **自举一个字没变，这是这一刀的硬边界**：.agent-team 压根不存在、runs/ 不存在、
+// **自举一个字没变，这是这一刀的硬边界**：.poundlock 压根不存在、runs/ 不存在、
 // runs/ 是个空目录——三种形态仍然是 no-run、仍然放行，仍然不会把「建第一个 run」
 // 这个自举动作锁在门外。
 //
@@ -108,7 +108,7 @@
 // state.json、最后写 current-run**，正路上不会经过「指针指向一个不存在的 run」），
 // 而 **③ 在正路上可达，就是那个顺序的前半段**——第一趟 run 写 runs/<id>/state.json
 // 的那一刻，pointer 还没写，而 runs/ 已经非空，**那次写入落在这一格里**。
-// 所以这一格**对 PM 必须是通的**，而它通：那几次写入都是 PM 做的（/agent-team:at
+// 所以这一格**对 PM 必须是通的**，而它通：那几次写入都是 PM 做的（/poundlock:at
 // 第 1 节，主会话），H3 在 unreadable 那一支有 I2 豁免（谓词 isContractWriter），
 // H4 的短路排在读 ctx 之前。**这不是推的**——tests/gate-writepath.test.mjs 的
 // 「丢指针 · 正路瞬态：照 commands/at.md 第 1 节建第一趟 run，PM 的每一步都放行」
@@ -149,18 +149,18 @@ function readJson(path) {
 }
 
 /**
- * 单独读 `.agent-team/project.json`，不要求有进行中的 run（M1b 终审 C1）。
+ * 单独读 `.poundlock/project.json`，不要求有进行中的 run（M1b 终审 C1）。
  *
  * 为什么不让 gate.mjs 自己 readFileSync：`readJson` 已经把「JSON.parse 过了但取不出
  * 字段」（`null` / `[]` / `"x"`）这条边界处理掉了，在 gate.mjs 里再手写一份就是同一份
  * 知识的第二份拷贝——`hooks/lib/path-norm.mjs` 头部记着两份逐字相同的 `norm()` 真的
- * 分叉过，结论是抽成单一导出。用户项目里 `.agent-team` 的读盘也只该有这一层。
+ * 分叉过，结论是抽成单一导出。用户项目里 `.poundlock` 的读盘也只该有这一层。
  *
  * 与 readRunContext 一样绝不抛：失败返回 { ok: false, reason }。
  */
 export function readProjectConfig(projectDir) {
   try {
-    const path = join(projectDir, '.agent-team', 'project.json')
+    const path = join(projectDir, '.poundlock', 'project.json')
     if (!existsSync(path)) return { ok: false, reason: `找不到 ${path}` }
     return readJson(path)
   } catch (err) {
@@ -169,10 +169,10 @@ export function readProjectConfig(projectDir) {
 }
 
 /**
- * 用户项目根：从 cwd 往上找最近的一个带 .agent-team 的目录（M3p，docs/24 §2.1）。
+ * 用户项目根：从 cwd 往上找最近的一个带 .poundlock 的目录（M3p，docs/24 §2.1）。
  *
  * 为什么不直接用 cwd：平台按会话**当前** cwd 起 hook 进程，主线程 Bash 做过 cd 之后这个
- * cwd 一直停在子目录里，而 at-pm 就是持有 Bash 的主线程。那之后 `<子目录>/.agent-team`
+ * cwd 一直停在子目录里，而 at-pm 就是持有 Bash 的主线程。那之后 `<子目录>/.poundlock`
  * 里找不到 run，readRunContext 判 no-run，H2–H6 全部 fail open。
  *
  * 为什么也不直接用 CLAUDE_PROJECT_DIR：它是**会话启动时**的项目根，不随 cd 漂移——这正是
@@ -183,14 +183,14 @@ export function readProjectConfig(projectDir) {
  * 所以两个信号都用：
  *   - 往上找的起点是 cwd——会话实际在哪个项目里干活，就用哪个项目的 run；
  *   - cwd 还在 CLAUDE_PROJECT_DIR 之内时，找到它为止、不越界：祖先目录（home、外层仓库）
- *     里要是躺着一个不相干的 .agent-team，错读别人的 run 比读不到更糟；
+ *     里要是躺着一个不相干的 .poundlock，错读别人的 run 比读不到更糟；
  *   - cwd 已经离开启动项目（/cd 之后）时不设上界；
- *   - 哪里都没有 .agent-team 时退回 CLAUDE_PROJECT_DIR，再没有就是 cwd——之后照旧由
+ *   - 哪里都没有 .poundlock 时退回 CLAUDE_PROJECT_DIR，再没有就是 cwd——之后照旧由
  *     readRunContext 判 no-run。
  * 离得最近的那个赢：嵌套的子项目自己建过 run，就用它的。
  *
  * 已知边界（docs/24 §4）：会话中途进了启动项目之下的 git worktree（.claude/worktrees/…）、
- * 而 worktree 里没有 .agent-team 时，往上找会找回启动项目的 run，拿它去判 worktree 里的
+ * 而 worktree 里没有 .poundlock 时，往上找会找回启动项目的 run，拿它去判 worktree 里的
  * 写入。团队自己进不了 worktree（没有角色持有 EnterWorktree，H1 拒绝带 isolation 的派发）。
  *
  * hasAgentTeam 注入只为单测；绝不抛——探测出错时退回 CLAUDE_PROJECT_DIR / cwd。
@@ -217,22 +217,22 @@ export function projectRootFrom(env, cwd, hasAgentTeam = hasAgentTeamDir) {
   }
 }
 
-// 项目根不会在某个 .agent-team 目录里面（M3v，docs/30 §3）：PM 用 Bash `cd .agent-team/runs/<id>` 之后 cwd 留在那里，相对路径
-// 的 Write 会在 run 目录里造出一个嵌套的 .agent-team，「离最近的那个赢」就把 run 目录认成了项目根——那一趟的门禁全看错了
+// 项目根不会在某个 .poundlock 目录里面（M3v，docs/30 §3）：PM 用 Bash `cd .poundlock/runs/<id>` 之后 cwd 留在那里，相对路径
+// 的 Write 会在 run 目录里造出一个嵌套的 .poundlock，「离最近的那个赢」就把 run 目录认成了项目根——那一趟的门禁全看错了
 // 地方，ledger 还因为写的是（那个根下的）控制文件一句不说。这样的候选跳过、接着往上找。按段比、不分大小写。
 function insideAgentTeam(dir) {
-  return String(dir).split(/[\\/]/).some((s) => s.toLowerCase() === '.agent-team')
+  return String(dir).split(/[\\/]/).some((s) => s.toLowerCase() === '.poundlock')
 }
 
 function hasAgentTeamDir(dir) {
   try {
-    return statSync(join(dir, '.agent-team')).isDirectory()
+    return statSync(join(dir, '.poundlock')).isDirectory()
   } catch {
     return false
   }
 }
 
-// projectDir：用户仓库根，放 .agent-team（current-run / state.json / project.json），
+// projectDir：用户仓库根，放 .poundlock（current-run / state.json / project.json），
 // 由 projectRootFrom 定出来。
 // pluginDir：插件根，放 stages.json。两者不是同一个目录——插件文件要用
 // ${CLAUDE_PLUGIN_ROOT} 定位。混用会在真实环境里读不到东西而单测照样绿。
@@ -250,7 +250,7 @@ function isTweakRunDir(dir) {
 // id 照 RUN_ID 核、目录要在，失败归 unreadable（cause: 'pointer'，与指针坏了同一族）。不给照旧按 current-run。
 export function readRunContext(projectDir, pluginDir, { runId: picked = null } = {}) {
   try {
-    const base = join(projectDir, '.agent-team')
+    const base = join(projectDir, '.poundlock')
     const pointer = join(base, 'current-run')
     if (typeof picked === 'string') return readRunAt(base, pluginDir, picked, `挑出来的这一趟 ${quote(picked)}`)
     if (!existsSync(pointer)) {
@@ -273,7 +273,7 @@ export function readRunContext(projectDir, pluginDir, { runId: picked = null } =
           // 空不空，就判不出这是自举还是丢了指针。归 unreadable，三条理由：
           //   ① 这个文件给 unreadable 写下的定义逐字就是「门禁真的判不出来」，
           //      这正是那种情形，不是「往严的那边靠」这种含糊话；
-          //   ② 归 no-run 的话，`touch .agent-team/runs`（readdirSync 当场 ENOTDIR）
+          //   ② 归 no-run 的话，`touch .poundlock/runs`（readdirSync 当场 ENOTDIR）
           //      就是上面那一族的第四种手段，而且和 ③ 一样便宜——本轮关 ③ 的同时
           //      开一个同样大的口子，等于没关；
           //   ③ 不在这里接住、让它落到最外层兜底 catch，返回里就**没有
@@ -329,7 +329,7 @@ export function readRunContext(projectDir, pluginDir, { runId: picked = null } =
       return { ok: false, kind: 'unreadable', cause: 'pointer', agentTeamDir: base, reason: 'current-run 是空的' }
     }
     // current-run 的内容会被原样拼进 runs/<runId>/... 路径。不校验的话，一个
-    // 含 ../ 的 runId 会被 path.join 正规化到 .agent-team/runs 之外，让 H5
+    // 含 ../ 的 runId 会被 path.join 正规化到 .poundlock/runs 之外，让 H5
     // 交付物门禁跑去别的目录判定产物是否存在——这是路径可信边界问题，不是
     // 普通的「文件不存在」失败，必须在拼路径之前挡住（Task 2 评审 M2）。
     // 归 unreadable：这是输入不可信，不是「没有 run」，这条边界不能放松。
@@ -345,7 +345,7 @@ export function readRunContext(projectDir, pluginDir, { runId: picked = null } =
     // 什么问题，只能按最严格的 unreadable 处理。
     //
     // ⚠️ 这一支**没有** agentTeamDir，和上面每一条失败返回都不一样，这是有意的：
-    // 抛出的很可能正是 join(projectDir, '.agent-team') 自己（projectDir 不是字符串），
+    // 抛出的很可能正是 join(projectDir, '.poundlock') 自己（projectDir 不是字符串），
     // base 从来没被算出来、此刻也不在作用域里。硬凑一个值出来就是在编一条路径。
     // 调用方按「取不到 agentTeamDir 就照原路 fail open」处理，见 hooks/gate.mjs 的
     // ledger 分支。
@@ -416,9 +416,9 @@ function readRunAt(base, pluginDir, runId, picked) {
     state: state.value,
     stages: stages.value,
     project: project.value,
-    // agentTeamDir 是 .agent-team 本身（runDir 的爷爷目录）。H3 判定控制文件要用
+    // agentTeamDir 是 .poundlock 本身（runDir 的爷爷目录）。H3 判定控制文件要用
     // 它：current-run / project.json / reach.json 都在这一层、不在 runDir 里。
-    // 让 decideWritePath 自己从 runDir 往上推两级也行，但那会是第二处「.agent-team
+    // 让 decideWritePath 自己从 runDir 往上推两级也行，但那会是第二处「.poundlock
     // 在哪」的知识——这个文件已经是那条知识的唯一来源（上面的 base），直接给出去。
     agentTeamDir: base,
     artifactExists(rel) {

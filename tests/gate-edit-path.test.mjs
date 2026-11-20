@@ -29,9 +29,9 @@ for (const tool of PATH_TOOLS('ledger')) {
   test(`M4b ledger · ${tool}：写文档的角色改自己的产物，回传带磁盘实算的 sha`, () => {
     const { projectDir, pluginDir } = makeRun({ runId: 'r1', stage: 'S2', artifacts: ['00-contract.md'], roster: ['at-product'] })
     try {
-      const p = join(projectDir, '.agent-team', 'runs', 'r1', '01-prd.md')
+      const p = join(projectDir, '.poundlock', 'runs', 'r1', '01-prd.md')
       writeFileSync(p, '# PRD\n\n追加的一段\n', 'utf8')
-      const { stdout } = run('ledger', inputFor(tool, 'agent-team:at-product', p), GATE, projectDir)
+      const { stdout } = run('ledger', inputFor(tool, 'poundlock:at-product', p), GATE, projectDir)
       assert.ok(ctxOf(stdout).includes(sha256OfContract(readFileSync(p))), `${tool} 之后的【产物】回传里没有这份文件的 sha`)
     } finally {
       rmSync(projectDir, { recursive: true, force: true })
@@ -42,9 +42,9 @@ for (const tool of PATH_TOOLS('ledger')) {
   test(`M4b ledger · ${tool}：PM 往契约追加修订块，回传新的 contract_sha`, () => {
     const { projectDir, pluginDir } = makeRun({ runId: 'r1', stage: 'S3', artifacts: ['00-contract.md', '01-prd.md'] })
     try {
-      const p = join(projectDir, '.agent-team', 'runs', 'r1', '00-contract.md')
+      const p = join(projectDir, '.poundlock', 'runs', 'r1', '00-contract.md')
       writeFileSync(p, '# 契约\n\n## 修订 2026-10-04\n用户补充\n', 'utf8')
-      const { stdout } = run('ledger', inputFor(tool, 'agent-team:at-pm', p), GATE, projectDir)
+      const { stdout } = run('ledger', inputFor(tool, 'poundlock:at-pm', p), GATE, projectDir)
       assert.ok(ctxOf(stdout).includes(sha256OfContract(readFileSync(p))), `${tool} 之后 PM 拿不到新的 contract_sha`)
     } finally {
       rmSync(projectDir, { recursive: true, force: true })
@@ -57,8 +57,8 @@ for (const tool of PATH_TOOLS('contract')) {
   test(`M4b contract（H4）· ${tool}：子代理改 00-contract.md 被拒`, () => {
     const dirs = makeRun({ runId: 'r1' })
     try {
-      const p = join(dirs.projectDir, '.agent-team', 'runs', 'r1', '00-contract.md')
-      const out = decisionOf(run('contract', inputFor(tool, 'agent-team:at-product', p), undefined, dirs.projectDir).stdout)
+      const p = join(dirs.projectDir, '.poundlock', 'runs', 'r1', '00-contract.md')
+      const out = decisionOf(run('contract', inputFor(tool, 'poundlock:at-product', p), undefined, dirs.projectDir).stdout)
       assert.equal(out?.permissionDecision, 'deny', `${tool} 改契约没有被 H4 拒`)
     } finally {
       rmSync(dirs.projectDir, { recursive: true, force: true })
@@ -71,9 +71,9 @@ test('M4b ledger · NotebookEdit：路径从 notebook_path 取，回传带磁盘
   assert.ok(CHECKS.ledger.toolNames.includes('NotebookEdit'))
   const { projectDir, pluginDir } = makeRun({ runId: 'r1', stage: 'S2', artifacts: ['00-contract.md'], roster: ['at-product'] })
   try {
-    const p = join(projectDir, '.agent-team', 'runs', 'r1', '01-prd.md')
+    const p = join(projectDir, '.poundlock', 'runs', 'r1', '01-prd.md')
     writeFileSync(p, ['# PRD', '', '笔记本里改的一段', ''].join(String.fromCharCode(10)), 'utf8')
-    const { stdout } = run('ledger', { tool_name: 'NotebookEdit', agent_type: 'agent-team:at-product', tool_input: { notebook_path: p, new_source: 'x' } }, GATE, projectDir)
+    const { stdout } = run('ledger', { tool_name: 'NotebookEdit', agent_type: 'poundlock:at-product', tool_input: { notebook_path: p, new_source: 'x' } }, GATE, projectDir)
     assert.ok(ctxOf(stdout).includes(sha256OfContract(readFileSync(p))), 'NotebookEdit 之后的【产物】回传里没有这份文件的 sha')
   } finally {
     rmSync(projectDir, { recursive: true, force: true })

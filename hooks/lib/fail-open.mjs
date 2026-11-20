@@ -19,7 +19,7 @@ import { quote, trustedBlock } from './trusted.mjs'
 
 // 最外层 catch 发现这次进程已经写出结果（拒绝或回传）时，往 stderr 补的那一句：再写一份，两份 JSON 会让拒绝失效、回传
 // 全丢；照那个结果的退出码退出。只有注入（process.exit 被换成抛异常）走得到，tests/helpers/gate-runner.mjs 的出口契约见到它就红。
-export const SECOND_WRITE_NOTE = 'agent-team：这次进程已经写出过结果，崩溃之后照那个结果退出，不再写第二份。'
+export const SECOND_WRITE_NOTE = 'poundlock：这次进程已经写出过结果，崩溃之后照那个结果退出，不再写第二份。'
 
 // hooks/lib/runctx.mjs 的 unreadable 出口带的 cause。
 export const CAUSES = ['pointer', 'runs', 'state', 'project', 'plugin', 'agent']
@@ -43,52 +43,52 @@ const RECORDERS = new Set(Object.keys(CHECKS).filter((c) => CHECKS[c].recorder =
 
 const CAUSE_PHRASE = {
   pointer: 'current-run 指针丢了或坏了',
-  runs: '.agent-team/runs 读不出来',
+  runs: '.poundlock/runs 读不出来',
   state: '当前 run 的 state.json 读不出来',
-  project: '.agent-team/project.json 读不出来',
+  project: '.poundlock/project.json 读不出来',
   plugin: '插件自己的文件读不出来',
   agent: '项目里开着微调，这个子代理哪一趟的派发记录里都没有',
 }
 const causePhrase = (cause) => CAUSE_PHRASE[cause] ?? '运行状态读不出来'
 
 const POINTER_FIND =
-  '用 Glob 找 `.agent-team/runs/*/state.json`（只 Glob `runs/*` 列不出目录）。只有一趟，就把它的目录名写回 ' +
-  '`.agent-team/current-run`；不止一趟时，指针原本指向最后建的那一趟（run id 以日期时刻开头）：读各自的 state.json ' +
+  '用 Glob 找 `.poundlock/runs/*/state.json`（只 Glob `runs/*` 列不出目录）。只有一趟，就把它的目录名写回 ' +
+  '`.poundlock/current-run`；不止一趟时，指针原本指向最后建的那一趟（run id 以日期时刻开头）：读各自的 state.json ' +
   '核实，拿不准就问用户，不要把较早、没走完的那一趟当成当前 run；'
 
 const FIX = {
-  // 「一趟都没有」那半句在派发与写入时这么说：PM 正在干活，多半是偏离了 /agent-team:at 第 1 节的顺序（先写了契约）。
-  pointer: POINTER_FIND + '一趟都没有 state.json，就照 /agent-team:at 第 1 节先写 state.json，再写 current-run。',
-  runs: '`.agent-team/runs` 读不出来（比如它是一个文件，不是目录）：把这件事告诉用户，由用户处理，不要自己删改它。',
+  // 「一趟都没有」那半句在派发与写入时这么说：PM 正在干活，多半是偏离了 /poundlock:at 第 1 节的顺序（先写了契约）。
+  pointer: POINTER_FIND + '一趟都没有 state.json，就照 /poundlock:at 第 1 节先写 state.json，再写 current-run。',
+  runs: '`.poundlock/runs` 读不出来（比如它是一个文件，不是目录）：把这件事告诉用户，由用户处理，不要自己删改它。',
   // 写明它在哪：真实会话里只说「当前 run 的 state.json」时，模型把它写到了项目根（docs/30 §3）。
   // 认不出来的 contract_sha：真实会话里 PM 用 Bash 自己算，LF 的契约上碰巧对得上，CRLF 签出的就对不上（门禁先统一行尾）。
   state:
-    '用 Write 写回一份合法的完整 `.agent-team/runs/<current-run 里的 run id>/state.json`（顶层键照 /agent-team:at 第 1 节）；' +
+    '用 Write 写回一份合法的完整 `.poundlock/runs/<current-run 里的 run id>/state.json`（顶层键照 /poundlock:at 第 1 节）；' +
     '能从原文认出来的 history、rework、artifacts、stage_roles、rework_base、closed_at 照原样保留（原文里没有 stage_roles 的旧 run 不要加）——返工计数只许增；认不出来的 contract_sha 写 PENDING，' +
     '写回之后原样重写一次 00-contract.md、从回传里拿 sha，不要用 Bash 自己算（门禁先统一行尾再算，自己算的对不上）。' +
     '写回之后告诉用户 state.json 是重建的、哪些字段是照猜补的。',
-  project: '用 Write 写回一份合法的完整 `.agent-team/project.json`（照 /agent-team:at-init 第 2、3 节）。',
-  plugin: '改 `.agent-team` 修不好它：停下，告诉用户重装或更新 agent-team 插件，不要去改插件目录下的文件。',
+  project: '用 Write 写回一份合法的完整 `.poundlock/project.json`（照 /poundlock:at-init 第 2、3 节）。',
+  plugin: '改 `.poundlock` 修不好它：停下，告诉用户重装或更新 poundlock 插件，不要去改插件目录下的文件。',
   agent: '这个子代理不是门禁记下的派发（派发记录在派的那一刻由门禁写）：让它以「冒泡：」停下，项目经理照它那一趟重新派它。',
 }
 const FALLBACK = '把这件事告诉用户：门禁读不出这个项目的运行状态，原因不明。'
 
 // 命令开头（门禁自检的追加句）按命令分（docs/30 §3 的两轮复核）：
-//   - /agent-team:at 要建新 run，不该碰原来那趟：第二轮真实会话里，通用修法排在前、「照建」排在后时，8 次里 3 次先改了旧 run，
+//   - /poundlock:at 要建新 run，不该碰原来那趟：第二轮真实会话里，通用修法排在前、「照建」排在后时，8 次里 3 次先改了旧 run，
 //     两次还用新需求覆盖了旧契约（旧 state 读不出来时 H6 没有基线，H3、H4 对 PM 放行，门禁挡不住）。所以这一支排第一、明写不写
 //     原来那趟 run 目录；告诉用户不挂在「收尾」上——那个词撞上 commands/at.md 第 6 节的标题，停在 S1 时到不了，0/4 生效。
-//   - /agent-team:at-resume 才修；那里没有用户的需求，「一趟都没有 state.json」时补建 run 连契约的「用户原话」都填不了。
-//   - /agent-team:at-init 不在那里修 run（project.json 坏了例外：at-init 就是修它的）。
+//   - /poundlock:at-resume 才修；那里没有用户的需求，「一趟都没有 state.json」时补建 run 连契约的「用户原话」都填不了。
+//   - /poundlock:at-init 不在那里修 run（project.json 坏了例外：at-init 就是修它的）。
 const AT_BRANCH =
-  '这条命令是 /agent-team:at 的话：不要写原来那趟 run 目录下的任何文件，照第 1 节另起一个 run id 建新 run；' +
+  '这条命令是 /poundlock:at 的话：不要写原来那趟 run 目录下的任何文件，照第 1 节另起一个 run id 建新 run；' +
   '这一轮回复用户时（不论停在哪一步）把原来那趟 run 的问题与它的 run id 告诉用户。'
-const atResume = (fix) => `这条命令是 /agent-team:at-resume 的话：${fix}`
+const atResume = (fix) => `这条命令是 /poundlock:at-resume 的话：${fix}`
 const POINTER_NONE_AT_RESUME =
-  '一趟都没有 state.json 的话，照 /agent-team:at-resume 第 1 节告诉用户没有可续的 run，并照实说 runs/ 下那几个目录里有什么' +
+  '一趟都没有 state.json 的话，照 /poundlock:at-resume 第 1 节告诉用户没有可续的 run，并照实说 runs/ 下那几个目录里有什么' +
   '（空目录、只有契约……），不要自己补 state.json，也不要删目录。'
 const AT_START_PLUGIN =
-  '改 `.agent-team` 修不好它：告诉用户重装或更新 agent-team 插件，不要去改插件目录下的文件；要建或续 run 的命令在这里停下。'
-const AT_INIT = '这条命令是 /agent-team:at-init 的话，不在这里修，收尾时告诉用户。'
+  '改 `.poundlock` 修不好它：告诉用户重装或更新 poundlock 插件，不要去改插件目录下的文件；要建或续 run 的命令在这里停下。'
+const AT_INIT = '这条命令是 /poundlock:at-init 的话，不在这里修，收尾时告诉用户。'
 
 /**
  * 按原因给的修法。H5a、ledger 与门禁自检共用这一份。atStart：门禁自检的追加句用，那时 PM 在一条命令的开头，按命令分（见上）；
@@ -122,11 +122,11 @@ export function dispatchUnreadableNotice(cause) {
 /** H5a：PM 在没有 run 时派发一个团队角色——有意的放行，说一次。 */
 export function dispatchNoRunNotice() {
   return (
-    '【门禁】这次派发没有做前置就绪校验，交付物核验也不会做——当前没有进行中的 run（找不到 .agent-team/current-run，' +
+    '【门禁】这次派发没有做前置就绪校验，交付物核验也不会做——当前没有进行中的 run（找不到 .poundlock/current-run，' +
     'runs/ 下也没有 run）。这是有意的放行：没有 run 时，团队角色写文件不受写路径隔离、契约保护与交付物核验约束。' +
-    '用户只是要一次临时派发的话照常做完，并把这一点告诉用户；要按团队流程走，告诉用户可以用 /agent-team:at 起一趟 run。' +
-    '你以为这里有进行中的 run 的话：门禁从会话当前目录往上找 .agent-team，核对当前目录在不在那个项目里；在的话，看 .agent-team/current-run ' +
-    '与 .agent-team/runs/ 还在不在——没进版本库的这几份会被 git clean、git stash -u 这类命令一起清掉或藏起：告诉用户（藏起的他能用 ' +
+    '用户只是要一次临时派发的话照常做完，并把这一点告诉用户；要按团队流程走，告诉用户可以用 /poundlock:at 起一趟 run。' +
+    '你以为这里有进行中的 run 的话：门禁从会话当前目录往上找 .poundlock，核对当前目录在不在那个项目里；在的话，看 .poundlock/current-run ' +
+    '与 .poundlock/runs/ 还在不在——没进版本库的这几份会被 git clean、git stash -u 这类命令一起清掉或藏起：告诉用户（藏起的他能用 ' +
     'git stash pop 找回，清掉的找不回），这些 git 命令你不要自己跑。'
   )
 }
@@ -226,8 +226,8 @@ export function crashContext(check, err, recipientIsPm) {
 }
 
 /**
- * 门禁自检（writepath 对 .agent-team/gate-check 的拒绝）理由末尾的追加句。只在调用者是 PM、自检写在门禁认的项目根下
- * 时由 gate.mjs 调用。丢指针时 PM 在 /agent-team:at-resume 里只读不写、/agent-team:at 只写控制文件，别的落点都开不了口，
+ * 门禁自检（writepath 对 .poundlock/gate-check 的拒绝）理由末尾的追加句。只在调用者是 PM、自检写在门禁认的项目根下
+ * 时由 gate.mjs 调用。丢指针时 PM 在 /poundlock:at-resume 里只读不写、/poundlock:at 只写控制文件，别的落点都开不了口，
  * 旧 run 会无声地变成孤儿（critique behavior 0）。no-run 不追加：那是「没有 run」，不是「判不出来」。
  */
 export function selfCheckAppendix(ctx) {
@@ -247,58 +247,58 @@ export function selfCheckAppendix(ctx) {
 
 /** 给用户看的那一行。只许固定文字（见文件头）。 */
 export function systemMessage(kind, { cause, check } = {}) {
-  const tail = cause === 'plugin' ? '需要重装或更新 agent-team 插件。' : '项目经理已收到修法。'
+  const tail = cause === 'plugin' ? '需要重装或更新 poundlock 插件。' : '项目经理已收到修法。'
   switch (kind) {
     case 'dispatch-unreadable':
-      return `agent-team 前置就绪、交付物核验：这次派发没有做——${causePhrase(cause)}。${tail}`
+      return `poundlock 前置就绪、交付物核验：这次派发没有做——${causePhrase(cause)}。${tail}`
     case 'dispatch-no-run':
-      return 'agent-team 前置就绪、交付物核验：当前没有进行中的 run，这次派发不受门禁约束（有意的放行）。'
+      return 'poundlock 前置就绪、交付物核验：当前没有进行中的 run，这次派发不受门禁约束（有意的放行）。'
     case 'ledger-unreadable':
-      return `agent-team 账本：这次写入没有回传哈希——${causePhrase(cause)}。${tail}`
+      return `poundlock 账本：这次写入没有回传哈希——${causePhrase(cause)}。${tail}`
     case 'unknown-stage':
-      return 'agent-team 交付物核验：这次派发没有做——state.stage 不在阶段链里。项目经理已收到修法。'
+      return 'poundlock 交付物核验：这次派发没有做——state.stage 不在阶段链里。项目经理已收到修法。'
     case 'approval-recorded':
-      return 'agent-team 返工批准：已记下，项目经理已收到。'
+      return 'poundlock 返工批准：已记下，项目经理已收到。'
     case 'approval-skipped':
-      return 'agent-team 返工批准：这次的回答没有记成批准，项目经理已收到原因。'
+      return 'poundlock 返工批准：这次的回答没有记成批准，项目经理已收到原因。'
     // M4k（docs/46）：同两个记录器记下的照现状交付批准。
     case 'deliver-recorded':
-      return 'agent-team 照现状交付：已记下你的批准（只对批准那一刻的那份结论有效），项目经理已收到。'
+      return 'poundlock 照现状交付：已记下你的批准（只对批准那一刻的那份结论有效），项目经理已收到。'
     case 'deliver-skipped':
-      return 'agent-team 照现状交付：这次的回答没有记成批准，项目经理已收到原因。'
-    // docs/95：批准记录器记下的需求稿（用户在 /agent-team:at 建 run 之前批准的那一份，契约第 1 节照它核）。
+      return 'poundlock 照现状交付：这次的回答没有记成批准，项目经理已收到原因。'
+    // docs/95：批准记录器记下的需求稿（用户在 /poundlock:at 建 run 之前批准的那一份，契约第 1 节照它核）。
     case 'brief-recorded':
-      return 'agent-team 需求稿：已记下你批准的这份需求稿，契约第 1 节照它核，项目经理已收到。'
+      return 'poundlock 需求稿：已记下你批准的这份需求稿，契约第 1 节照它核，项目经理已收到。'
     case 'brief-skipped':
-      return 'agent-team 需求稿：这次的回答没有记成批准，项目经理已收到原因。'
+      return 'poundlock 需求稿：这次的回答没有记成批准，项目经理已收到原因。'
     // 一趟只归一个会话：批准记录器记下的接手（用户选了「在这个会话接手」或「接手并收口，再开始这次」）。
     case 'takeover-recorded':
-      return 'agent-team 会话归属：已记下这一趟改归这个会话，原来那个会话再写它会被拒，项目经理已收到。'
+      return 'poundlock 会话归属：已记下这一趟改归这个会话，原来那个会话再写它会被拒，项目经理已收到。'
     case 'takeover-skipped':
-      return 'agent-team 会话归属：这次的回答没有记成接手，项目经理已收到原因。'
+      return 'poundlock 会话归属：这次的回答没有记成接手，项目经理已收到原因。'
     // 单个微调：批准记录器记下的「可以了，收尾」。
     case 'tweak-done-recorded':
-      return 'agent-team 微调：已记下你说的「可以了，收尾」（只对现在这份需求有效），项目经理已收到。'
+      return 'poundlock 微调：已记下你说的「可以了，收尾」（只对现在这份需求有效），项目经理已收到。'
     case 'tweak-done-skipped':
-      return 'agent-team 微调：这次的回答没有记成「可以了，收尾」，项目经理已收到原因。'
+      return 'poundlock 微调：这次的回答没有记成「可以了，收尾」，项目经理已收到原因。'
     // 放弃收尾：批准记录器记下的「放弃这一趟」。
     case 'abandon-recorded':
-      return 'agent-team 放弃：已记下你批准放弃这一趟，项目经理照这个收尾、冻结它，项目经理已收到。'
+      return 'poundlock 放弃：已记下你批准放弃这一趟，项目经理照这个收尾、冻结它，项目经理已收到。'
     case 'abandon-skipped':
-      return 'agent-team 放弃：这次的回答没有记成放弃，项目经理已收到原因。'
+      return 'poundlock 放弃：这次的回答没有记成放弃，项目经理已收到原因。'
     case 'input':
       if (RECORDERS.has(check)) {
-        return 'agent-team 批准记录：读不出这次的 hook 输入，这次的回答没有记下。Claude Code 与插件的版本可能不匹配，两者都更新后再试。'
+        return 'poundlock 批准记录：读不出这次的 hook 输入，这次的回答没有记下。Claude Code 与插件的版本可能不匹配，两者都更新后再试。'
       }
       return (
-        `agent-team ${GATE_NAME[check] ?? '门禁'}：读不出这次的 hook 输入，没有做校验、放行。` +
+        `poundlock ${GATE_NAME[check] ?? '门禁'}：读不出这次的 hook 输入，没有做校验、放行。` +
         'Claude Code 与插件的版本可能不匹配，两者都更新后再试。'
       )
     case 'crash':
-      if (RECORDERS.has(check)) return 'agent-team 批准记录：门禁这次出错，这次的回答没有记下。'
+      if (RECORDERS.has(check)) return 'poundlock 批准记录：门禁这次出错，这次的回答没有记下。'
       return check === 'readiness'
-        ? 'agent-team 前置就绪：门禁这次出错，这次派发没有做前置产物校验、放行。'
-        : `agent-team ${GATE_NAME[check] ?? '门禁'}：门禁这次出错，没有做完校验、放行。`
+        ? 'poundlock 前置就绪：门禁这次出错，这次派发没有做前置产物校验、放行。'
+        : `poundlock ${GATE_NAME[check] ?? '门禁'}：门禁这次出错，没有做完校验、放行。`
     default:
       return null
   }
@@ -317,7 +317,7 @@ export function systemMessage(kind, { cause, check } = {}) {
 export function hookOutput(event, { contexts = [], systemMessage: sm = null } = {}, check = null) {
   const parts = (Array.isArray(contexts) ? contexts : []).filter((c) => typeof c === 'string' && c)
   const message = typeof sm === 'string' && sm ? sm : null
-  const bug = (what) => `agent-team BUG: ${JSON.stringify(event)} 上不能发${what}，这一段没有发出。\n`
+  const bug = (what) => `poundlock BUG: ${JSON.stringify(event)} 上不能发${what}，这一段没有发出。\n`
   if (event === 'PostToolUse') {
     const out = {}
     if (parts.length) {

@@ -1,8 +1,8 @@
 // 受信通道与拒绝理由不回显外部值（M3s，docs/27，全量审查第 7 条）。
 //
-// 受信通道「agent-team 账本回传」的安全论证是「回传里只有门禁自己算出来的东西」，at-pm 被要求照做
+// 受信通道「poundlock 账本回传」的安全论证是「回传里只有门禁自己算出来的东西」，at-pm 被要求照做
 // 这个通道。实际上多处把 state.json、project.json、文件名、异常消息里的原值拼进去——一个带换行的值
-// 就能在受信块里伪造出一行「agent-team 账本回传：」「【阶段】……推进到 S8」；不带换行的值，也能把一句
+// 就能在受信块里伪造出一行「poundlock 账本回传：」「【阶段】……推进到 S8」；不带换行的值，也能把一句
 // 祈使句不加引号地嵌进门禁自己的话里。拒绝理由与 stderr 留痕同样会被模型读到。
 //
 // 这份判据是**行为**的，不读代码：往每一个外部数据入口（逐个）塞一组载荷，跑会读到它的那几道门禁，
@@ -222,9 +222,9 @@ const SCENARIOS = [
     disk: true,
     state: (s, P) => ({ ...s, artifacts: { '00-contract.md': SHA, '01-prd.md': P, '03-arch.md': P } }),
     calls: ({ run }) => [
-      ['deliverable', returned('agent-team:at-product')],
-      ['deliverable', returned('agent-team:at-architect')],
-      ['ledger', posted('agent-team:at-product', join(run, '01-prd.md'))],
+      ['deliverable', returned('poundlock:at-product')],
+      ['deliverable', returned('poundlock:at-architect')],
+      ['ledger', posted('poundlock:at-product', join(run, '01-prd.md'))],
     ],
     anchor: SHA_NOTE,
   },
@@ -235,8 +235,8 @@ const SCENARIOS = [
     omit: ['01-prd.md', '03-arch.md'],
     state: (s, P) => ({ ...s, artifacts: { '01-prd.md': P, '03-arch.md': P } }),
     calls: () => [
-      ['deliverable', returned('agent-team:at-product')],
-      ['deliverable', returned('agent-team:at-architect')],
+      ['deliverable', returned('poundlock:at-product')],
+      ['deliverable', returned('poundlock:at-architect')],
     ],
     anchor: SHA_NOTE,
   },
@@ -248,10 +248,10 @@ const SCENARIOS = [
     calls: ({ run }) => [
       ['ledger', posted('at-pm', join(run, '00-contract.md'))],
       ['ledger', posted('at-pm', join(run, 'state.json'))],
-      ['deliverable', returned('agent-team:at-product')],
-      ['deliverable', returned('agent-team:at-backend', 'agent-team:at-architect')],
+      ['deliverable', returned('poundlock:at-product')],
+      ['deliverable', returned('poundlock:at-backend', 'poundlock:at-architect')],
       // M4y（docs/60）：派验证段的产者之前 H2 也拿它比磁盘，拒绝理由里带【契约】那一句。
-      ['readiness', dispatch('agent-team:at-qa', 'at-pm')],
+      ['readiness', dispatch('poundlock:at-qa', 'at-pm')],
     ],
     anchor: SHA_NOTE,
   },
@@ -263,8 +263,8 @@ const SCENARIOS = [
     state: (s, P) => ({ ...s, contract_sha: P }),
     calls: ({ run }) => [
       ['ledger', posted('at-pm', join(run, 'state.json'))],
-      ['deliverable', returned('agent-team:at-product')],
-      ['readiness', dispatch('agent-team:at-qa', 'at-pm')],
+      ['deliverable', returned('poundlock:at-product')],
+      ['readiness', dispatch('poundlock:at-qa', 'at-pm')],
     ],
     anchor: SHA_NOTE,
   },
@@ -352,10 +352,10 @@ const SCENARIOS = [
     calls: ({ p, run }) => [
       ['ledger', posted('at-pm', join(run, 'state.json'))],
       // M3v：unknown-stage 的【门禁】（PM 收件、协调者收件）、H5b 的留痕、门禁自检的追加句。
-      ['deliverable', returned('agent-team:at-product')],
-      ['deliverable', returned('agent-team:at-backend', 'agent-team:at-architect')],
-      ['stop-gate', stopped('agent-team:at-product')],
-      ['writepath', write('at-pm', join(p, '.agent-team', 'gate-check'))],
+      ['deliverable', returned('poundlock:at-product')],
+      ['deliverable', returned('poundlock:at-backend', 'poundlock:at-architect')],
+      ['stop-gate', stopped('poundlock:at-product')],
+      ['writepath', write('at-pm', join(p, '.poundlock', 'gate-check'))],
     ],
   },
   {
@@ -364,9 +364,9 @@ const SCENARIOS = [
     disk: true,
     state: (s, P) => ({ ...s, stage: P, history: [...s.history, { stage: P, at: 't' }], rework: {} }),
     calls: ({ p }) => [
-      ['deliverable', returned('agent-team:at-product')],
-      ['deliverable', returned('agent-team:at-backend', 'agent-team:at-architect')],
-      ['writepath', write('at-pm', join(p, '.agent-team', 'gate-check'))],
+      ['deliverable', returned('poundlock:at-product')],
+      ['deliverable', returned('poundlock:at-backend', 'poundlock:at-architect')],
+      ['writepath', write('at-pm', join(p, '.poundlock', 'gate-check'))],
     ],
   },
   {
@@ -446,8 +446,8 @@ const SCENARIOS = [
     state: (s, P) => ({ ...s, closed_at: P }),
     calls: ({ run }, P) => [
       ['rework', stateWrite(run, { ...baseState(), closed_at: P, stage: 'S4', history: baseState().history.slice(0, 4) })],
-      ['readiness', dispatch('agent-team:at-architect', 'at-pm')],
-      ['readiness', dispatch('agent-team:at-backend', 'agent-team:at-architect')],
+      ['readiness', dispatch('poundlock:at-architect', 'at-pm')],
+      ['readiness', dispatch('poundlock:at-backend', 'poundlock:at-architect')],
       ['ledger', posted('at-pm', join(run, 'state.json'))],
     ],
   },
@@ -546,10 +546,10 @@ const SCENARIOS = [
     disk: true,
     project: (P) => ({ ...PROJECT, paths: { ...PROJECT.paths, [P]: ['nowhere/'], 'at-backend': ['src/server/', P] } }),
     calls: ({ p }) => [
-      ['writepath', write('agent-team:at-frontend', join(p, 'nowhere', 'a.md'))],
+      ['writepath', write('poundlock:at-frontend', join(p, 'nowhere', 'a.md'))],
       // M4b：「没人认领」那一支逐条引调用者自己的认领清单——载荷在 at-backend 的条目里，at-backend 写一份没人认领的文件。
-      ['writepath', write('agent-team:at-backend', join(p, 'nowhere', 'b.md'))],
-      ['ledger', posted('at-pm', join(p, '.agent-team', 'project.json'))],
+      ['writepath', write('poundlock:at-backend', join(p, 'nowhere', 'b.md'))],
+      ['ledger', posted('at-pm', join(p, '.poundlock', 'project.json'))],
     ],
   },
   {
@@ -558,14 +558,14 @@ const SCENARIOS = [
     name: '别的 run 的派发记录里的角色与段（写 current-run 时的【派发】）',
     disk: true,
     calls: ({ p }, P) => {
-      const old = join(p, '.agent-team', 'runs', 'r0')
+      const old = join(p, '.poundlock', 'runs', 'r0')
       mkdirSync(old, { recursive: true })
       writeFileSync(join(old, 'state.json'), JSON.stringify({ run_id: 'r0', stage: 'S5', closed_at: null }))
       writeFileSync(
         join(old, 'dispatches.jsonl'),
         JSON.stringify({ kind: 'dispatch', at: 't', agent_id: 'a0000000000000009', tool_use_id: null, role: P, stage: P, caller: P, caller_id: null, mode: 'background' }) + '\n',
       )
-      return [['ledger', posted('at-pm', join(p, '.agent-team', 'current-run'))]]
+      return [['ledger', posted('at-pm', join(p, '.poundlock', 'current-run'))]]
     },
     anchor: (all) => all.includes('一条认不出角色或段的派发'),
   },
@@ -576,7 +576,7 @@ const SCENARIOS = [
     name: '别的 run 的派发记录里的角色与段（按 agent_id 认回那一趟：完成核验与 H5b）',
     disk: true,
     calls: ({ p }, P) => {
-      const old = join(p, '.agent-team', 'runs', 'r0')
+      const old = join(p, '.poundlock', 'runs', 'r0')
       mkdirSync(old, { recursive: true })
       writeFileSync(join(old, 'state.json'), JSON.stringify({ run_id: 'r0', stage: 'S5', closed_at: null }))
       writeFileSync(
@@ -591,7 +591,7 @@ const SCENARIOS = [
         ['completion', notify()],
         ['completion', notify({ taskId: 'a0000000000000003', toolUseId: 'toolu_03' })],
         ['completion', notify({ taskId: 'a0000000000000004', toolUseId: 'toolu_04' })],
-        ['stop-gate', { ...stopped('agent-team:at-backend'), agent_id: 'a0000000000000001' }],
+        ['stop-gate', { ...stopped('poundlock:at-backend'), agent_id: 'a0000000000000001' }],
       ]
     },
     anchor: (all) => all.split('一条认不出角色或段的派发').length - 1 >= 3 && all.includes('那一趟派出去的，current-run 指着别的一趟'),
@@ -600,20 +600,20 @@ const SCENARIOS = [
     // M4n：那一趟的协调者在指针切走之后又往下派人——目标角色是它自己这次给的参数（不查④），花名册认不得就不说出来。
     name: '别的 run 的协调者往下派人时的目标角色（按 agent_id 认回那一趟：H5a 的回传）',
     calls: ({ p }, P) => {
-      const old = join(p, '.agent-team', 'runs', 'r0')
+      const old = join(p, '.poundlock', 'runs', 'r0')
       mkdirSync(old, { recursive: true })
       writeFileSync(join(old, 'state.json'), JSON.stringify({ run_id: 'r0', stage: 'S5', closed_at: null }))
       writeFileSync(
         join(old, 'dispatches.jsonl'),
         JSON.stringify({ kind: 'dispatch', at: 't', agent_id: 'a00000000000000c0', tool_use_id: null, role: 'at-architect', stage: 'S5', caller: '__main__', caller_id: null, mode: 'background' }) + '\n',
       )
-      const input = { ...returned(P, 'agent-team:at-architect'), agent_id: 'a00000000000000c0', tool_response: { status: 'async_launched', isAsync: true, agentId: 'a0000000000000002' } }
+      const input = { ...returned(P, 'poundlock:at-architect'), agent_id: 'a00000000000000c0', tool_response: { status: 'async_launched', isAsync: true, agentId: 'a0000000000000002' } }
       return [['deliverable', input]]
     },
     anchor: (all) => all.includes('那一趟不是当前 run'),
   },
   {
-    // M4o（docs/50，审查第 20 条修法 A）：用户在 /agent-team:at 后面写的原话（门禁专属的 user-words.json，Bash 写得进）与契约第 1 节的行，经写契约时
+    // M4o（docs/50，审查第 20 条修法 A）：用户在 /poundlock:at 后面写的原话（门禁专属的 user-words.json，Bash 写得进）与契约第 1 节的行，经写契约时
     // 的【契约】、写 state.json 时【阶段】的补句、H6 推进出第一段的拒绝理由回到文字里——一律过 quote。对不上的放在原话的最后一行：载荷里
     // 不按 \n 断开的那几种整个落在那一行，按 \n 断开的那一种，标签落在最后一行。
     name: '原话记录里的原话与契约第 1 节的行（【契约】、【阶段】补句、H6 推进出第一段的拒绝理由）',
@@ -630,14 +630,14 @@ const SCENARIOS = [
       },
     },
     calls: ({ run }) => [
-      ['ledger', posted('agent-team:at-pm', join(run, '00-contract.md'))],
-      ['ledger', posted('agent-team:at-pm', join(run, 'state.json'))],
+      ['ledger', posted('poundlock:at-pm', join(run, '00-contract.md'))],
+      ['ledger', posted('poundlock:at-pm', join(run, 'state.json'))],
       [
         'rework',
         {
           hook_event_name: 'PreToolUse',
           tool_name: 'Write',
-          agent_type: 'agent-team:at-pm',
+          agent_type: 'poundlock:at-pm',
           session_id: 's',
           tool_input: {
             file_path: join(run, 'state.json'),
@@ -646,7 +646,7 @@ const SCENARIOS = [
         },
       ],
     ],
-    anchor: (all, P) => reached(all, P) && all.split('对不上用户在 /agent-team:at 后面写的原话').length - 1 >= 3,
+    anchor: (all, P) => reached(all, P) && all.split('对不上用户在 /poundlock:at 后面写的原话').length - 1 >= 3,
   },
   {
     // 一趟只归一个会话：命令展开时的【会话】引用 current-run 指着的那一趟 history 第一条的时间与原话开头（run 目录的 user-words.json）——都在磁盘上、
@@ -664,10 +664,10 @@ const SCENARIOS = [
         {
           hook_event_name: 'UserPromptExpansion',
           expansion_type: 'slash_command',
-          command_name: 'agent-team:at',
+          command_name: 'poundlock:at',
           command_args: 'x',
           command_source: 'plugin',
-          prompt: '/agent-team:at x',
+          prompt: '/poundlock:at x',
           session_id: 's-2',
         },
       ],
@@ -684,7 +684,7 @@ const SCENARIOS = [
       'owner.json': () => JSON.stringify({ session_id: 's-1', at: 't', via: 'create', previous: null }),
     } },
     calls: () => [
-      ['session-notice', { hook_event_name: 'UserPromptExpansion', expansion_type: 'slash_command', command_name: 'agent-team:at', command_args: 'x', command_source: 'plugin', prompt: '/agent-team:at x', session_id: 's-2' }],
+      ['session-notice', { hook_event_name: 'UserPromptExpansion', expansion_type: 'slash_command', command_name: 'poundlock:at', command_args: 'x', command_source: 'plugin', prompt: '/poundlock:at x', session_id: 's-2' }],
     ],
     anchor: (all, P) => reached(all, P) && all.includes('【微调】'),
   },
@@ -709,9 +709,9 @@ const SCENARIOS = [
     },
     },
     calls: ({ p }) => [
-      ['writepath', { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'agent-team:at-backend', agent_id: 'a2', session_id: 's-2', tool_input: { file_path: join(p, 'src', 'server', 'x.ts'), content: 'x' } }],
+      ['writepath', { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'poundlock:at-backend', agent_id: 'a2', session_id: 's-2', tool_input: { file_path: join(p, 'src', 'server', 'x.ts'), content: 'x' } }],
     ],
-    anchor: (all, P) => reached(all, P) && all.includes('agent-team 认领'),
+    anchor: (all, P) => reached(all, P) && all.includes('poundlock 认领'),
   },
   {
     // docs/95：同一个入口的另一个来源——用户批准的需求稿（批准记录器把 AskUserQuestion 的题面记进同一份 user-words.json，source 是 ask）。对不上时
@@ -730,14 +730,14 @@ const SCENARIOS = [
       },
     },
     calls: ({ run }) => [
-      ['ledger', posted('agent-team:at-pm', join(run, '00-contract.md'))],
-      ['ledger', posted('agent-team:at-pm', join(run, 'state.json'))],
+      ['ledger', posted('poundlock:at-pm', join(run, '00-contract.md'))],
+      ['ledger', posted('poundlock:at-pm', join(run, 'state.json'))],
       [
         'rework',
         {
           hook_event_name: 'PreToolUse',
           tool_name: 'Write',
-          agent_type: 'agent-team:at-pm',
+          agent_type: 'poundlock:at-pm',
           session_id: 's',
           tool_input: {
             file_path: join(run, 'state.json'),
@@ -759,13 +759,13 @@ const SCENARIOS = [
       '00-contract.md': (P) => ['## 1. 用户原话', '', '做一个待办应用', ...P.split(/\r?\n/).filter((l) => l.trim() !== '').slice(-1), '', '## 2. PM 的理解（可改）', ''].join('\n'),
     },
     calls: ({ run }) => [
-      ['ledger', posted('agent-team:at-pm', join(run, '00-contract.md'))],
+      ['ledger', posted('poundlock:at-pm', join(run, '00-contract.md'))],
       [
         'rework',
         {
           hook_event_name: 'PreToolUse',
           tool_name: 'Write',
-          agent_type: 'agent-team:at-pm',
+          agent_type: 'poundlock:at-pm',
           session_id: 's',
           tool_input: {
             file_path: join(run, 'state.json'),
@@ -783,7 +783,7 @@ const SCENARIOS = [
     disk: true,
     project: (P) => ({ ...PROJECT, paths: { ...PROJECT.paths, 'at-backend': ['src/server/', P] } }),
     raw: { 'reach.json': () => '{}' },
-    calls: ({ p }) => [['ledger', posted('at-pm', join(p, '.agent-team', 'reach.json'))]],
+    calls: ({ p }) => [['ledger', posted('at-pm', join(p, '.poundlock', 'reach.json'))]],
     anchor: (all, P) => P.includes(':') || reached(all, P),
   },
   {
@@ -792,8 +792,8 @@ const SCENARIOS = [
     disk: true,
     project: (P) => ({ ...PROJECT, paths: { ...PROJECT.paths, 'at-backend': ['src/server/', P] } }),
     raw: { 'reach.json': () => '{}' },
-    calls: ({ p }) => [['ledger', posted('at-pm', join(p, '.agent-team', 'current-run'))]],
-    anchor: (all, P) => P.includes(':') || (reached(all, P) && all.includes('重写进 .agent-team/reach.json')),
+    calls: ({ p }) => [['ledger', posted('at-pm', join(p, '.poundlock', 'current-run'))]],
+    anchor: (all, P) => P.includes(':') || (reached(all, P) && all.includes('重写进 .poundlock/reach.json')),
   },
   {
     // M4b 第二轮复核：「没人认领」与「归 X」两支会把调用者自己条目里「要改」档的前缀说出来（own.fix）。载荷末尾加一个空格，
@@ -802,8 +802,8 @@ const SCENARIOS = [
     disk: true,
     project: (P) => ({ ...PROJECT, paths: { ...PROJECT.paths, 'at-backend': ['src/server/', `${P} `] } }),
     calls: ({ p }) => [
-      ['writepath', write('agent-team:at-backend', join(p, 'nowhere', 'b.md'))],
-      ['ledger', posted('at-pm', join(p, '.agent-team', 'project.json'))],
+      ['writepath', write('poundlock:at-backend', join(p, 'nowhere', 'b.md'))],
+      ['ledger', posted('at-pm', join(p, '.poundlock', 'project.json'))],
     ],
   },
   {
@@ -811,13 +811,13 @@ const SCENARIOS = [
     name: 'project.paths 的元素落在要改档（H3「归 X」那一支的 own.fix）',
     disk: true,
     project: (P) => ({ ...PROJECT, paths: { ...PROJECT.paths, 'at-backend': ['src/server/', `${P} `] } }),
-    calls: ({ p }) => [['writepath', write('agent-team:at-backend', join(p, 'src', 'web', 'a.ts'))]],
+    calls: ({ p }) => [['writepath', write('poundlock:at-backend', join(p, 'src', 'web', 'a.ts'))]],
   },
   {
     name: 'project.paths 里某个角色的值不是数组（H3 的配置错误）',
     disk: true,
     project: (P) => ({ ...PROJECT, paths: { ...PROJECT.paths, 'at-backend': P } }),
-    calls: ({ p }) => [['writepath', write('agent-team:at-backend', join(p, 'src', 'server', 'a.ts'))]],
+    calls: ({ p }) => [['writepath', write('poundlock:at-backend', join(p, 'src', 'server', 'a.ts'))]],
   },
   {
     // M3u（docs/29）：paths 本身不是对象时，H3 第 6 步的拒绝理由与【project.json】都带着它。
@@ -825,15 +825,15 @@ const SCENARIOS = [
     disk: true,
     project: (P) => ({ ...PROJECT, paths: P }),
     calls: ({ p }) => [
-      ['writepath', write('agent-team:at-backend', join(p, 'src', 'server', 'a.ts'))],
-      ['ledger', posted('at-pm', join(p, '.agent-team', 'project.json'))],
+      ['writepath', write('poundlock:at-backend', join(p, 'src', 'server', 'a.ts'))],
+      ['ledger', posted('at-pm', join(p, '.poundlock', 'project.json'))],
     ],
   },
   {
     name: 'project.available_roles 本身是载荷（【project.json】）',
     disk: true,
     project: (P) => ({ ...PROJECT, available_roles: P }),
-    calls: ({ p }) => [['ledger', posted('at-pm', join(p, '.agent-team', 'project.json'))]],
+    calls: ({ p }) => [['ledger', posted('at-pm', join(p, '.poundlock', 'project.json'))]],
   },
   {
     // 嵌套提醒里两条前缀各过一次 quote。嵌套只在 H3 会判的键之间比（M3u），键是花名册里的角色名，载荷只能放在前缀里。
@@ -841,7 +841,7 @@ const SCENARIOS = [
     name: 'project.paths 的嵌套提醒（【project.json】）',
     disk: true,
     project: (P) => ({ ...PROJECT, paths: { ...PROJECT.paths, 'at-product': [P + '/'], 'at-architect': [P + '/y/'] } }),
-    calls: ({ p }) => [['ledger', posted('at-pm', join(p, '.agent-team', 'project.json'))]],
+    calls: ({ p }) => [['ledger', posted('at-pm', join(p, '.poundlock', 'project.json'))]],
     anchor: (all, P) => reached(all, P) && (P.includes(':') || all.includes('包含')),
   },
   {
@@ -849,15 +849,15 @@ const SCENARIOS = [
     disk: true,
     raw: { 'state.json': (P) => P.slice(0, 18) },
     calls: ({ p, run }) => [
-      ['writepath', write('agent-team:at-backend', join(p, 'src', 'server', 'a.ts'))],
-      ['contract', write('agent-team:at-backend', join(run, '00-contract.md'))],
-      ['readiness', dispatch('agent-team:at-architect')],
-      ['stop-gate', stopped('agent-team:at-product')],
+      ['writepath', write('poundlock:at-backend', join(p, 'src', 'server', 'a.ts'))],
+      ['contract', write('poundlock:at-backend', join(run, '00-contract.md'))],
+      ['readiness', dispatch('poundlock:at-architect')],
+      ['stop-gate', stopped('poundlock:at-product')],
       ['ledger', posted('at-pm', join(run, 'state.json'))],
       // M3v：读不到运行上下文时 PM 收到的【门禁】（派发、写产物）与自检的追加句——reason 不拼进去。
-      ['deliverable', returned('agent-team:at-product')],
+      ['deliverable', returned('poundlock:at-product')],
       ['ledger', posted('at-pm', join(run, '01-prd.md'))],
-      ['writepath', write('at-pm', join(p, '.agent-team', 'gate-check'))],
+      ['writepath', write('at-pm', join(p, '.poundlock', 'gate-check'))],
     ],
     anchor: UNREADABLE,
   },
@@ -872,7 +872,7 @@ const SCENARIOS = [
         return s.slice(0, -1) + ',' + k + ':{' + k + ':1,' + k + ':2}}'
       },
     },
-    calls: ({ p }) => [['ledger', posted('at-pm', join(p, '.agent-team', 'project.json'))]],
+    calls: ({ p }) => [['ledger', posted('at-pm', join(p, '.poundlock', 'project.json'))]],
     anchor: (all) => all.includes('写了不止一次'),
   },
   {
@@ -880,10 +880,10 @@ const SCENARIOS = [
     disk: true,
     raw: { 'project.json': (P) => P.slice(0, 18) },
     calls: ({ p, run }) => [
-      ['writepath', write('agent-team:at-backend', join(p, 'src', 'server', 'a.ts'))],
-      ['deliverable', returned('agent-team:at-product')],
+      ['writepath', write('poundlock:at-backend', join(p, 'src', 'server', 'a.ts'))],
+      ['deliverable', returned('poundlock:at-product')],
       ['ledger', posted('at-pm', join(run, '01-prd.md'))],
-      ['writepath', write('at-pm', join(p, '.agent-team', 'gate-check'))],
+      ['writepath', write('at-pm', join(p, '.poundlock', 'gate-check'))],
     ],
     anchor: UNREADABLE,
   },
@@ -892,33 +892,33 @@ const SCENARIOS = [
     disk: true,
     pointer: (P) => P,
     calls: ({ p, run }) => [
-      ['writepath', write('agent-team:at-backend', join(p, 'src', 'server', 'a.ts'))],
-      ['deliverable', returned('agent-team:at-product')],
+      ['writepath', write('poundlock:at-backend', join(p, 'src', 'server', 'a.ts'))],
+      ['deliverable', returned('poundlock:at-product')],
       ['ledger', posted('at-pm', join(run, '01-prd.md'))],
-      ['writepath', write('at-pm', join(p, '.agent-team', 'gate-check'))],
+      ['writepath', write('at-pm', join(p, '.poundlock', 'gate-check'))],
     ],
   },
   {
     name: 'hook 输入的 subagent_type',
     calls: (_, P) => [
-      ['delegation', dispatch('agent-team:' + P)],
-      ['deliverable', returned('agent-team:' + P)],
+      ['delegation', dispatch('poundlock:' + P)],
+      ['deliverable', returned('poundlock:' + P)],
     ],
   },
   {
     name: 'hook 输入的 isolation',
-    calls: (_, P) => [['delegation', dispatch('agent-team:at-product', undefined, { isolation: P })]],
+    calls: (_, P) => [['delegation', dispatch('poundlock:at-product', undefined, { isolation: P })]],
   },
   {
     // M4i（docs/44，审查第 42 条）：带 name 的派发被 H1 拒，理由里回显 name（调用方自己这次给的参数，inline）。
     name: 'hook 输入的 name（带 name 的派发）',
-    calls: (_, P) => [['delegation', dispatch('agent-team:at-product', undefined, { name: P })]],
+    calls: (_, P) => [['delegation', dispatch('poundlock:at-product', undefined, { name: P })]],
   },
   {
     // M4i 复核（docs/44 §8，中-1）：validateState 新拼进【state.json】的两处磁盘值——带插件前缀的角色名、roster 与 never_invoked 的交集。
     name: 'validateState 的前缀与交集',
     disk: true,
-    state: (s, P) => ({ ...s, roster: [...s.roster, 'agent-team:' + P], never_invoked: ['agent-team:' + P], trimmed: { ['agent-team:' + P + 'T']: 'S2' } }),
+    state: (s, P) => ({ ...s, roster: [...s.roster, 'poundlock:' + P], never_invoked: ['poundlock:' + P], trimmed: { ['poundlock:' + P + 'T']: 'S2' } }),
     calls: ({ run }) => [['ledger', posted('at-pm', join(run, 'state.json'))]],
   },
   {
@@ -927,8 +927,8 @@ const SCENARIOS = [
     name: 'unknown-stage：收件人是载荷（hook 输入的 agent_type）',
     state: (s) => ({ ...s, stage: 'SX' }),
     calls: (_, P) => [
-      ['deliverable', returned('agent-team:at-product', P)],
-      ['deliverable', returned('agent-team:at-product', 'agent-team:' + P)],
+      ['deliverable', returned('poundlock:at-product', P)],
+      ['deliverable', returned('poundlock:at-product', 'poundlock:' + P)],
     ],
   },
   {
@@ -936,10 +936,10 @@ const SCENARIOS = [
     calls: ({ p }, P) => [
       ['writepath', write(P, join(p, 'src', 'server', 'a.ts'))],
       // 写控制文件一定被拒，拒绝理由里带着调用者的角色名（写普通路径时它不在花名册里，不归 H3 管，直接放行）。
-      ['writepath', write(P, join(p, '.agent-team', 'current-run'))],
-      ['deliverable', returned('agent-team:at-product', P)],
+      ['writepath', write(P, join(p, '.poundlock', 'current-run'))],
+      ['deliverable', returned('poundlock:at-product', P)],
       // M4i（docs/44，审查第 22 条）：盖住了主会话的别的 agent 来自检，回传末尾说它的身份（设置里的名字，磁盘上谁都写得进，quote）。
-      ['writepath', write(P, join(p, '.agent-team', 'gate-check'))],
+      ['writepath', write(P, join(p, '.poundlock', 'gate-check'))],
     ],
   },
   {
@@ -947,15 +947,15 @@ const SCENARIOS = [
     // 走「谁都没认领」那一条，同样带着路径。网络共享上的项目那一支见下面的单独判据。
     name: 'hook 输入的 file_path',
     calls: ({ run }, P) => [
-      ['writepath', write('agent-team:at-backend', join(run, P))],
-      ['writepath', write('agent-team:at-backend', `${join(run, P)}::$DATA`)],
-      ['contract', write('agent-team:at-backend', `${join(run, P)}.`)],
+      ['writepath', write('poundlock:at-backend', join(run, P))],
+      ['writepath', write('poundlock:at-backend', `${join(run, P)}::$DATA`)],
+      ['contract', write('poundlock:at-backend', `${join(run, P)}.`)],
       ['rework', write('at-pm', `${join(run, P)}${BS}state.json.`)],
-      ['writepath', write('agent-team:at-backend', `${BS}??${BS}C:${BS}x${P}`)],
-      ['writepath', write('agent-team:at-backend', `${BS}${BS}.${BS}pipe${BS}${P}`)],
-      ['contract', write('agent-team:at-backend', `${BS}${BS}srv${BS}share${BS}${P}`)],
-      // M3z：门禁专属文件的拒绝理由带着这次写的路径（任何项目的 .agent-team/runs/<id>/ 下都认）。
-      ['writepath', write('at-pm', join(run, P, '.agent-team', 'runs', 'r1', 'approvals.jsonl'))],
+      ['writepath', write('poundlock:at-backend', `${BS}??${BS}C:${BS}x${P}`)],
+      ['writepath', write('poundlock:at-backend', `${BS}${BS}.${BS}pipe${BS}${P}`)],
+      ['contract', write('poundlock:at-backend', `${BS}${BS}srv${BS}share${BS}${P}`)],
+      // M3z：门禁专属文件的拒绝理由带着这次写的路径（任何项目的 .poundlock/runs/<id>/ 下都认）。
+      ['writepath', write('at-pm', join(run, P, '.poundlock', 'runs', 'r1', 'approvals.jsonl'))],
     ],
   },
   // M4d（docs/38，全量审查第 19 条）：前台派发跑完时 H5a 读 tool_response.content、完成核验读通知里的 <result> 与 <status>——
@@ -965,9 +965,9 @@ const SCENARIOS = [
     calls: (_, P) => [
       [
         'deliverable',
-        { ...returned('agent-team:at-backend', 'agent-team:at-architect'), tool_response: { status: 'completed', agentId: 'a0000000000000001', content: [{ type: 'text', text: `冒泡：${oneLine(P)}` }] } },
+        { ...returned('poundlock:at-backend', 'poundlock:at-architect'), tool_response: { status: 'completed', agentId: 'a0000000000000001', content: [{ type: 'text', text: `冒泡：${oneLine(P)}` }] } },
       ],
-      ['deliverable', { ...returned('agent-team:at-backend'), tool_response: { status: 'completed', agentId: 'a0000000000000002', content: [{ type: 'text', text: `冒泡：${oneLine(P)}` }] } }],
+      ['deliverable', { ...returned('poundlock:at-backend'), tool_response: { status: 'completed', agentId: 'a0000000000000002', content: [{ type: 'text', text: `冒泡：${oneLine(P)}` }] } }],
     ],
   },
   {
@@ -1013,21 +1013,21 @@ async function runScenario(sc, pname, P) {
   const dirs = makeRun({ runId: 'r1', stage: 'S5', project: PROJECT, roster: baseState().roster })
   try {
     const p = dirs.projectDir
-    const run = join(p, '.agent-team', 'runs', 'r1')
+    const run = join(p, '.poundlock', 'runs', 'r1')
     for (const f of FIXTURE_FILES) if (!(sc.omit ?? []).includes(f)) writeFileSync(join(run, f), `# ${f}\n`)
     mkdirSync(join(p, 'src', 'server'), { recursive: true })
     const state = sc.state ? sc.state(baseState(), P) : baseState()
     writeFileSync(join(run, 'state.json'), JSON.stringify(state, null, 2))
-    if (sc.project) writeFileSync(join(p, '.agent-team', 'project.json'), JSON.stringify(sc.project(P)))
+    if (sc.project) writeFileSync(join(p, '.poundlock', 'project.json'), JSON.stringify(sc.project(P)))
     for (const [f, make] of Object.entries(sc.raw ?? {})) {
-      writeFileSync(f === 'state.json' ? join(run, f) : join(p, '.agent-team', f), make(P))
+      writeFileSync(f === 'state.json' ? join(run, f) : join(p, '.poundlock', f), make(P))
     }
-    if (sc.pointer) writeFileSync(join(p, '.agent-team', 'current-run'), sc.pointer(P))
+    if (sc.pointer) writeFileSync(join(p, '.poundlock', 'current-run'), sc.pointer(P))
     if (sc.approvals) writeFileSync(join(run, 'approvals.jsonl'), sc.approvals(P).map((a) => JSON.stringify(a)).join('\n') + '\n')
     for (const [f, make] of Object.entries(sc.runFiles ?? {})) writeFileSync(join(run, f), make(P))
     for (const [id, files] of Object.entries(sc.otherRuns ?? {})) {
       for (const [f, make] of Object.entries(files)) {
-        const target = join(p, '.agent-team', 'runs', id, f)
+        const target = join(p, '.poundlock', 'runs', id, f)
         mkdirSync(dirname(target), { recursive: true })
         writeFileSync(target, make(P, p))
       }
@@ -1060,7 +1060,7 @@ test('不回显外部值：项目根的目录名带行分隔符（由它拼出�
     const P = onDisk(PAYLOADS[pname])
     // quote 截断留头留尾（docs/57）：macOS 的 tmpdir 本身就很长，项目目录名会落进被截掉的中间——POSIX 上改在短的 /tmp 下建，目录名留在头里。
     const shortRoot = process.platform !== 'win32' && existsSync('/tmp') ? realpathSync('/tmp') : tmpdir()
-    const base = realpathSync(mkdtempSync(join(shortRoot, 'agent-team-root-')))
+    const base = realpathSync(mkdtempSync(join(shortRoot, 'poundlock-root-')))
     try {
       // 五种读不到 run 的布局，各走 runctx 里一条带路径的理由：
       //   orphan   没有 current-run、runs/ 下却非空——「有人建过 run 而指针不在」；
@@ -1071,24 +1071,24 @@ test('不回显外部值：项目根的目录名带行分隔符（由它拼出�
       for (const layout of ['orphan', 'dangling', 'array', 'norun', 'runsfile']) {
         const p = join(base, `proj-${layout}${P}`)
         mkdirSync(join(p, 'src', 'server'), { recursive: true })
-        mkdirSync(join(p, '.agent-team'), { recursive: true })
-        writeFileSync(join(p, '.agent-team', 'project.json'), JSON.stringify(PROJECT))
-        if (layout === 'runsfile') writeFileSync(join(p, '.agent-team', 'runs'), 'x')
-        else if (layout !== 'norun') mkdirSync(join(p, '.agent-team', 'runs', 'r1'), { recursive: true })
-        if (layout === 'dangling') writeFileSync(join(p, '.agent-team', 'current-run'), 'r2')
+        mkdirSync(join(p, '.poundlock'), { recursive: true })
+        writeFileSync(join(p, '.poundlock', 'project.json'), JSON.stringify(PROJECT))
+        if (layout === 'runsfile') writeFileSync(join(p, '.poundlock', 'runs'), 'x')
+        else if (layout !== 'norun') mkdirSync(join(p, '.poundlock', 'runs', 'r1'), { recursive: true })
+        if (layout === 'dangling') writeFileSync(join(p, '.poundlock', 'current-run'), 'r2')
         if (layout === 'array') {
-          writeFileSync(join(p, '.agent-team', 'current-run'), 'r1')
-          writeFileSync(join(p, '.agent-team', 'runs', 'r1', 'state.json'), '[]')
+          writeFileSync(join(p, '.poundlock', 'current-run'), 'r1')
+          writeFileSync(join(p, '.poundlock', 'runs', 'r1', 'state.json'), '[]')
         }
         const calls = [
-          ['writepath', write('agent-team:at-backend', join(p, 'src', 'server', 'a.ts'))],
-          ['contract', write('agent-team:at-backend', join(p, '.agent-team', 'runs', 'r1', '00-contract.md'))],
-          ['readiness', dispatch('agent-team:at-architect')],
+          ['writepath', write('poundlock:at-backend', join(p, 'src', 'server', 'a.ts'))],
+          ['contract', write('poundlock:at-backend', join(p, '.poundlock', 'runs', 'r1', '00-contract.md'))],
+          ['readiness', dispatch('poundlock:at-architect')],
           ['ledger', posted('at-pm', join(p, 'src', 'server', 'a.ts'))],
           // M3v：PM 收到的【门禁】与自检的追加句不带由项目根拼出的路径。
-          ['deliverable', returned('agent-team:at-product')],
-          ['ledger', posted('at-pm', join(p, '.agent-team', 'runs', 'r1', '00-contract.md'))],
-          ['writepath', write('at-pm', join(p, '.agent-team', 'gate-check'))],
+          ['deliverable', returned('poundlock:at-product')],
+          ['ledger', posted('at-pm', join(p, '.poundlock', 'runs', 'r1', '00-contract.md'))],
+          ['writepath', write('at-pm', join(p, '.poundlock', 'gate-check'))],
         ]
         const results = await Promise.all(calls.map(([check, input]) => gate(check, input, p)))
         bad.push(...results.flatMap((r) => violations(r).map((v) => `${pname} · ${layout} · ${r.check}：${v}`)))
@@ -1134,7 +1134,7 @@ test('非字符串的值不让受信回传整条消失：state.stage、artifacts
     {
       name: 'state.stage 是 {"toString":1}（deliverable）',
       state: { ...baseState(), stage: { toString: 1 }, artifacts: { '01-prd.md': 'sha256:' + 'b'.repeat(64) } },
-      call: () => ['deliverable', returned('agent-team:at-product')],
+      call: () => ['deliverable', returned('poundlock:at-product')],
       want: '01-prd.md',
     },
     // M3x：带 stage_roles 时【阶段】与 H5a 经 participantsOf 取当前段的参与者——stage 拿去当 stage_roles 的键之前要先判类型。
@@ -1151,19 +1151,19 @@ test('非字符串的值不让受信回传整条消失：state.stage、artifacts
         ...baseState(), stage: { toString: 1 }, stage_roles: { S2: ['at-product'], S3: ['at-architect'], S5: ['at-backend'] },
         artifacts: { '01-prd.md': 'sha256:' + 'b'.repeat(64) },
       },
-      call: () => ['deliverable', returned('agent-team:at-product')],
+      call: () => ['deliverable', returned('poundlock:at-product')],
       want: '01-prd.md',
     },
     {
       name: 'artifacts 的记录值是 {"toString":1}',
       state: { ...baseState(), artifacts: { '01-prd.md': { toString: 1 } } },
-      call: () => ['deliverable', returned('agent-team:at-product')],
+      call: () => ['deliverable', returned('poundlock:at-product')],
       want: '不是合法的 sha256',
     },
     {
       name: 'project.paths 的元素是 {"toString":1}',
       project: { ...PROJECT, paths: { ...PROJECT.paths, 'at-backend': ['src/server/', { toString: 1 }] } },
-      call: (run, p) => ['ledger', posted('at-pm', join(p, '.agent-team', 'project.json'))],
+      call: (run, p) => ['ledger', posted('at-pm', join(p, '.poundlock', 'project.json'))],
       want: '【触达表】',
     },
   ]
@@ -1172,7 +1172,7 @@ test('非字符串的值不让受信回传整条消失：state.stage、artifacts
     const dirs = makeRun({ runId: 'r1', stage: 'S5', project: c.project ?? PROJECT, roster: baseState().roster })
     try {
       const p = dirs.projectDir
-      const run = join(p, '.agent-team', 'runs', 'r1')
+      const run = join(p, '.poundlock', 'runs', 'r1')
       for (const f of FIXTURE_FILES) writeFileSync(join(run, f), `# ${f}\n`)
       writeFileSync(join(run, 'state.json'), JSON.stringify(c.state ?? baseState()))
       const [check, input] = c.call(run, p)
@@ -1224,9 +1224,9 @@ test('正向锚点（docs/59）：violations 认得出引号里原样的格式�
 
 test('正向锚点：violations 认得出带着载荷标签的 systemMessage，引号里的也算', () => {
   const sm = (text) => ({ check: 'x', stdout: JSON.stringify({ systemMessage: text }), stderr: '' })
-  assert.ok(violations(sm(`agent-team 交付物核验：${JSON.stringify(PAYLOADS.clean)}`)).length >= 1)
-  assert.ok(violations(sm('agent-team 一行\n第二行')).length >= 1)
-  assert.deepEqual(violations(sm('agent-team 交付物核验：这次派发没有做。')), [])
+  assert.ok(violations(sm(`poundlock 交付物核验：${JSON.stringify(PAYLOADS.clean)}`)).length >= 1)
+  assert.ok(violations(sm('poundlock 一行\n第二行')).length >= 1)
+  assert.deepEqual(violations(sm('poundlock 交付物核验：这次派发没有做。')), [])
 })
 
 test('正向锚点：violations 认得出不在引号里的磁盘值，放过引号里的', () => {
@@ -1245,10 +1245,10 @@ test('不回显外部值：另一趟的 run 目录名带行分隔符（漏切指
     const P = onDisk(PAYLOADS[pname])
     const dirs = makeRun({ runId: 'r1', stage: 'S2', project: PROJECT, roster: baseState().roster })
     try {
-      const other = join(dirs.projectDir, '.agent-team', 'runs', `r2${P}`)
+      const other = join(dirs.projectDir, '.poundlock', 'runs', `r2${P}`)
       mkdirSync(other, { recursive: true })
       writeFileSync(join(other, '00-contract.md'), '# 契约\n')
-      const r = await gate('ledger', posted('agent-team:at-pm', join(other, '00-contract.md')), dirs.projectDir)
+      const r = await gate('ledger', posted('poundlock:at-pm', join(other, '00-contract.md')), dirs.projectDir)
       bad.push(...violations(r, { disk: true }).map((v) => `${pname}：${v}`))
       const all = channels(r).map((c) => c.text).join('\n')
       if (!all.includes('【指针】')) bad.push(`${pname}：正向锚点没命中——【指针】没出来，这一条什么都没测`)

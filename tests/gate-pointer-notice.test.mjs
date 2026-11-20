@@ -13,7 +13,7 @@ import { run, decisionOf, GATE } from './helpers/gate-runner.mjs'
 import { makeRun } from './fixtures/make-run.mjs'
 
 const ctxOf = (stdout) => (stdout.trim() ? JSON.parse(stdout).hookSpecificOutput?.additionalContext ?? '' : '')
-const posted = (file, agent = 'agent-team:at-pm') => ({ hook_event_name: 'PostToolUse', tool_name: 'Write', ...(agent ? { agent_type: agent } : {}), tool_input: { file_path: file } })
+const posted = (file, agent = 'poundlock:at-pm') => ({ hook_event_name: 'PostToolUse', tool_name: 'Write', ...(agent ? { agent_type: agent } : {}), tool_input: { file_path: file } })
 const TAG = '【指针】'
 const squash = (s) => s.replace(/\s+/g, '')
 const has = (text, k) => squash(text).includes(squash(k))
@@ -22,7 +22,7 @@ const stateOf = (id, extra = {}) => JSON.stringify({ run_id: id, stage: 'S1', co
 // 当前这一趟 r1 停在 S2；另一趟（id）建了目录（withState 时也写了 state.json）。
 function twoRuns(body, { other = 'r2', withState = false, otherState = null } = {}) {
   const dirs = makeRun({ runId: 'r1', stage: 'S2', roster: ['at-product'] })
-  const at = join(dirs.projectDir, '.agent-team')
+  const at = join(dirs.projectDir, '.poundlock')
   const r1 = join(at, 'runs', 'r1')
   const r2 = join(at, 'runs', other)
   mkdirSync(r2, { recursive: true })
@@ -42,18 +42,18 @@ test('漏切指针：项目经理把契约写进另一趟的 run 目录——【
     assert.ok(c.includes(TAG), c)
     for (const k of [
       '【指针】这次写的是 "r2" 那一趟 run 目录里的 00-contract.md，current-run 指着 "r1"——门禁按 "r1" 判，这次写入没有 sha 回传、不进账本比对。',
-      '新建的就是 "r2"、忘了改指针：照 /agent-team:at 第 1 节把 current-run 指到它，再原样重写一次这份文件拿回传',
+      '新建的就是 "r2"、忘了改指针：照 /poundlock:at 第 1 节把 current-run 指到它，再原样重写一次这份文件拿回传',
       '写错了目录、要写的是 "r1" 那一趟：照原样写进 "r1"；"r2" 里这一份已经被这次写入改了，告诉用户',
-      '要接着做的是 "r2" 那一趟：那一趟是用户定过放弃的、或者拿不准，先问用户；用户要接着做，再把 current-run 指到它、跑 /agent-team:at-resume',
+      '要接着做的是 "r2" 那一趟：那一趟是用户定过放弃的、或者拿不准，先问用户；用户要接着做，再把 current-run 指到它、跑 /poundlock:at-resume',
     ]) assert.ok(has(c, k), `缺「${k}」：${c}`)
     // 整段逐字：逐句钉挡不住往出路后面另加一句（复核 docs/51 §8，例如「也可以不管它接着写」）。
     assert.equal(
       c,
-      'agent-team 账本回传：\n' +
+      'poundlock 账本回传：\n' +
         '【指针】这次写的是 "r2" 那一趟 run 目录里的 00-contract.md，current-run 指着 "r1"——门禁按 "r1" 判，这次写入没有 sha 回传、不进账本比对。看是哪一种：\n' +
-        '  - 新建的就是 "r2"、忘了改指针：照 /agent-team:at 第 1 节把 current-run 指到它，再原样重写一次这份文件拿回传\n' +
+        '  - 新建的就是 "r2"、忘了改指针：照 /poundlock:at 第 1 节把 current-run 指到它，再原样重写一次这份文件拿回传\n' +
         '  - 写错了目录、要写的是 "r1" 那一趟：照原样写进 "r1"；"r2" 里这一份已经被这次写入改了，告诉用户\n' +
-        '  - 要接着做的是 "r2" 那一趟：那一趟是用户定过放弃的、或者拿不准，先问用户；用户要接着做，再把 current-run 指到它、跑 /agent-team:at-resume',
+        '  - 要接着做的是 "r2" 那一趟：那一趟是用户定过放弃的、或者拿不准，先问用户；用户要接着做，再把 current-run 指到它、跑 /poundlock:at-resume',
     )
   })
 })
@@ -77,7 +77,7 @@ test('漏切指针（复核 docs/51 §8，中 2）：把出路一走一遍——
       writeFileSync(join(at, 'current-run'), 'r2')
       const c = ctxOf(run('ledger', posted(join(r2, '00-contract.md')), GATE, projectDir).stdout)
       assert.ok(!c.includes(TAG) && /sha256/.test(c), '指过去之后：【契约】带 sha，不再出【指针】：' + c)
-      const write = { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'agent-team:at-pm', tool_input: { file_path: join(r2, '01-prd.md'), content: '# prd\n' } }
+      const write = { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'poundlock:at-pm', tool_input: { file_path: join(r2, '01-prd.md'), content: '# prd\n' } }
       const d = decisionOf(run('writepath', write, GATE, projectDir).stdout)
       assert.equal(d?.permissionDecision, 'deny', '别的角色的产物：指过去之后项目经理写不了，所以出路一给的是派产者：' + JSON.stringify(d))
     },
@@ -103,7 +103,7 @@ test('漏切指针（复核 docs/51 §8）：那一趟已经收口——不给�
       writeFileSync(join(r2, '00-contract.md'), '# 契约\n')
       const c = ctxOf(run('ledger', posted(join(r2, '00-contract.md')), GATE, projectDir).stdout)
       assert.ok(has(c, '要接着做的是 "r2" 那一趟：它已经收口，不能再接着做——交付之后的新改动另起一趟'), c)
-      assert.ok(!c.includes('/agent-team:at-resume'), c)
+      assert.ok(!c.includes('/poundlock:at-resume'), c)
     },
     { otherState: stateOf('r2', { stage: 'S8', closed_at: '2026-10-07T11:00:00Z' }) },
   )
@@ -132,7 +132,7 @@ test('漏切指针：收窄——另一趟的 state.json、别的文件、执行
       writeFileSync(join(r2, 'notes.md'), 'x\n')
       silent(posted(join(r2, 'notes.md')))
       writeFileSync(join(r2, '01-prd.md'), '# prd\n')
-      silent(posted(join(r2, '01-prd.md'), 'agent-team:at-product'))
+      silent(posted(join(r2, '01-prd.md'), 'poundlock:at-product'))
       writeFileSync(join(r1, '00-contract.md'), '# 契约\n')
       silent(posted(join(r1, '00-contract.md')))
       mkdirSync(join(r2, 'sub'), { recursive: true })

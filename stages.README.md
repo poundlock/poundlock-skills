@@ -47,7 +47,7 @@ S5（实现）不一样：`at-backend`/`at-frontend`/`at-ui`/`at-ios`/`at-androi
 
 ### `produces` 的两种形式（M2b 补）
 
-> 给模型读的那一份在 `stages.produces.md`（`/agent-team:at-resume` 与 `/agent-team:at-status` 指向它）；这一节留着理由与消费方表。
+> 给模型读的那一份在 `stages.produces.md`（`/poundlock:at-resume` 与 `/poundlock:at-status` 指向它）；这一节留着理由与消费方表。
 > 改展开规则时两边一起改，那一份的例子由 `tests/stages-produces.test.mjs` 对着 `stages.json` 核。
 
 多产者阶段有两种形状，`produces` 跟着有两种形式：
@@ -324,12 +324,12 @@ M4h（`docs/43`，审查第 14 条）起 S2 也报：`at-product` 既是 S2 的�
 ## 另一条相关的缺口（M1b 已解决）
 
 M1a 在 `hooks/lib/writepath.mjs` 里记过一条 I3：稳态下被 `settings.json` 钉成主线程的
-`at-pm` 既写不了 `.agent-team/project.json`（取决于 `project.paths` 里有没有它这个键）
+`at-pm` 既写不了 `.poundlock/project.json`（取决于 `project.paths` 里有没有它这个键）
 也写不了 `runs/<id>/state.json`（无条件，因为它不是任何阶段的 `produces`）——而
 `§4.2 ③` 的返工计数、`/at-resume` 的续跑、`/at-init` 的重跑都要它写。
 
 **M1b 已经解掉它**（`docs/09-M1b-入口决策.md` 账一 → 规格 §6.2.1），那段 I3 注释块也已
-不在。解法是引入一个**概念**而不是一条例外：`.agent-team/` 下的文件分成两类，判据不同。
+不在。解法是引入一个**概念**而不是一条例外：`.poundlock/` 下的文件分成两类，判据不同。
 
 | | 是什么 | 谁能写 | 判据在哪 |
 |---|---|---|---|
@@ -349,7 +349,7 @@ M1a 在 `hooks/lib/writepath.mjs` 里记过一条 I3：稳态下被 `settings.js
 要看控制文件具体是哪几个，去读 `hooks/lib/control-files.mjs`。）
 
 两条边界都要在：控制文件那条解开了死锁；阶段产物那条保住了「H2 的判据对所有角色
-（**含 PM**）不可伪造」——把整个 `.agent-team/` 放给 PM 会让它在 run 目录下凭空造出
+（**含 PM**）不可伪造」——把整个 `.poundlock/` 放给 PM 会让它在 run 目录下凭空造出
 `01-prd.md`，而 `artifactExists` 在 `runDir` 下解析、H2 拿它当前置产物的判据。
 
 `hooks/lib/writepath.mjs` 里控制文件那一段**必须排在 run 目录块与 `project.paths`
@@ -422,10 +422,10 @@ M4d（`docs/38`，全量审查第 17 条）：上面那句「推进本身照样�
 
 ## 微调的短链 `stages.tweak.json`（单个微调，`docs/104`）
 
-`state.json` 的 `mode` 为 `"tweak"` 的一趟（`/agent-team:at-tweak` 起）按 `stages.tweak.json` 判：S1、S4、S5、S6、S8 五段，段号与产物名沿用正常链（`at-status`、
+`state.json` 的 `mode` 为 `"tweak"` 的一趟（`/poundlock:at-tweak` 起）按 `stages.tweak.json` 判：S1、S4、S5、S6、S8 五段，段号与产物名沿用正常链（`at-status`、
 `at-resume`、门禁回传与各角色正文里「S5」「实现记录」这些说法在微调里意思不变，测试结论、收口、交付快照、新鲜度这些判据能直接认）。选链的单一真源是
 `hooks/lib/tweak.mjs` 的 `stagesFileFor`（运行上下文、H6、【会话】三处调它）；`mode` 只认 `"tweak"`，缺、`"full"`、坏值都按正常链（坏值由 `validateState` 报），
-建好之后不许改（`rework-guard.mjs` 的 `decideModeKey`），写成 `"tweak"` 要有门禁记下的 `/agent-team:at-tweak` 原话记录。
+建好之后不许改（`rework-guard.mjs` 的 `decideModeKey`），写成 `"tweak"` 要有门禁记下的 `/poundlock:at-tweak` 原话记录。
 
 - **S6 的 `"test": true`**：短链的测试段由项目经理产出，`testStageOf` 靠这个键认（正常链不带，照旧认 `at-qa`）。短链没有验收段：收口照「验收整段裁掉」那一套读测试报告
   （`trimmedCloseBlock`），只对带 `"test": true` 测试段的链成立——正常链被改坏、丢了验收段的照旧不判。

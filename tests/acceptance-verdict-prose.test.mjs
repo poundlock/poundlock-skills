@@ -1,4 +1,4 @@
-// M4k（docs/46，docs/35 §5 与 docs/39 §3「收口不读验收结论」）：正文——验收角色写固定首行、/agent-team:at 第 3 节（S7 验收结论的第一行）
+// M4k（docs/46，docs/35 §5 与 docs/39 §3「收口不读验收结论」）：正文——验收角色写固定首行、/poundlock:at 第 3 节（S7 验收结论的第一行）
 // 第 4 节（照现状交付怎么问、修订块标题的标记）第 6 节第一步、项目经理红线、契约模板与契约格式 skill、README 两半、at-status。门禁那一半在
 // tests/verdict.test.mjs、tests/approvals.test.mjs、tests/gate-acceptance.test.mjs。承重的句子整句钉（空白不计）；三句结论与规范标签从
 // hooks/lib/verdict.mjs 取，正文写的要跟门禁认的是同一份。
@@ -47,7 +47,7 @@ const AT_CLOSE =
   '门禁收口时读 `07-acceptance.md` 的第一行：不是「结论：通过」的，只有用户经' + `规范标签「${DELIVER_LABEL}」批准过、门禁记下了（第 4 节），收口才放行` +
   '（`S6` 那一问里答过照现状交付的，验收结论写成之后照第 4 节再问一次）。'
 const AT_PREV = '没过、但用户经「照现状交付」批准过、门禁记下了的也算'
-test('M4k：/agent-team:at——第 3 节 S7 验收结论的第一行（排在 S6、S7 那一条之后、「回退」之前）；第 4 节照现状交付；第 6 节第一步', () => {
+test('M4k：/poundlock:at——第 3 节 S7 验收结论的第一行（排在 S6、S7 那一条之后、「回退」之前）；第 4 节照现状交付；第 6 节第一步', () => {
   const at = read('commands/at.md')
   const s7 = at.indexOf('- **S7 验收结论的第一行**')
   assert.ok(at.indexOf('- **S6 测试、S7 验收**') < s7 && s7 < at.indexOf('### 回退'), 'S7 那一条的位置')
@@ -150,7 +150,7 @@ test('docs/68：验收角色——逐条只有三种结论（不写「部分过�
 
 // 复核（docs/68 §8）：在钉住的那几处之外用同义说法放宽（「原本就失败的测试不计」「开工之前就失败的」「已有失败」「既有失败」），「挂着」的反向判据
 // 认不出——这几种说法在三份正文里一律不许出现（钉住的那几处也不用它们）。同义词列不全，没列到的登在 docs/68 §4。
-test('docs/68 §8：挂着的用例的几种同义说法，at-qa、at-acceptance、/agent-team:at 里都不出现；「以后都不算」只在 /agent-team:at 的 S6 那一条里', () => {
+test('docs/68 §8：挂着的用例的几种同义说法，at-qa、at-acceptance、/poundlock:at 里都不出现；「以后都不算」只在 /poundlock:at 的 S6 那一条里', () => {
   for (const p of ['agents/at-qa.md', 'agents/at-acceptance.md', 'commands/at.md']) {
     const t = read(p)
     for (const w of ['原本就失败', '之前就失败', '已有失败', '既有失败', '原本就挂着', '原来就挂着']) assert.ok(!t.includes(w), `${p} 里出现了「${w}」`)
@@ -183,11 +183,11 @@ test('docs/70：验收角色——契约第 1 节里管流程的话不列进逐�
   for (const w of ['不在业务验收范围', '不在范围', '流程项']) assert.ok(!flat.includes(w), `出现了「${w}」`)
 })
 
-// 复核（docs/70 §8）：项目经理那一侧——/agent-team:at 第 3 节开头写明管流程的话由它照着走、停下等用户不算打断；第 1 节替上一趟收口之前看契约有没有说先别收口；
+// 复核（docs/70 §8）：项目经理那一侧——/poundlock:at 第 3 节开头写明管流程的话由它照着走、停下等用户不算打断；第 1 节替上一趟收口之前看契约有没有说先别收口；
 // at-pm 的「什么时候打断用户」那一节点到它。括号里的例子与验收那一句同一份。
 const PM_FLOW =
   '**契约与产品定义里管流程的话（走到哪一段停、要不要收口、先别派谁）由你照着走**：走到用户说的那一段就停下，告诉用户现在停在哪、怎么接着走' +
-  '（`/agent-team:at-resume`）；用户说先别派谁的，停在派它之前，等用户下一句；用户说先别收口的，不收口。停下等用户不算打断用户。验收不判这些话。'
+  '（`/poundlock:at-resume`）；用户说先别派谁的，停在派它之前，等用户下一句；用户说先别收口的，不收口。停下等用户不算打断用户。验收不判这些话。'
 test('docs/70 §8：项目经理那一侧——第 3 节开头照着走管流程的话；第 1 节替上一趟收口看先别收口；at-pm 的打断用户那一节点到它', () => {
   const at = read('commands/at.md')
   const s3 = at.slice(at.indexOf('## 3. 逐段推进'), at.indexOf('## 4.'))
@@ -197,5 +197,5 @@ test('docs/70 §8：项目经理那一侧——第 3 节开头照着走管流程
   assert.ok(has(s1, '验收没过或判不了、交付文档不在、契约里说了先别收口、收口被 H6 拒——都是收不了口'), '第 1 节收不了口的几种')
   const pm = bodyOf('at-pm')
   const sec = pm.slice(pm.indexOf('## 什么时候打断用户'))
-  assert.ok(has(sec.slice(0, sec.indexOf('\n## ', 1) < 0 ? sec.length : sec.indexOf('\n## ', 1)), '契约里管流程的话（走到哪一段停、要不要收口、先别派谁）照着停下等用户，不算打断用户（`/agent-team:at` 第 3 节开头）。'), 'at-pm 打断用户那一节')
+  assert.ok(has(sec.slice(0, sec.indexOf('\n## ', 1) < 0 ? sec.length : sec.indexOf('\n## ', 1)), '契约里管流程的话（走到哪一段停、要不要收口、先别派谁）照着停下等用户，不算打断用户（`/poundlock:at` 第 3 节开头）。'), 'at-pm 打断用户那一节')
 })

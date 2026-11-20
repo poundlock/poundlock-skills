@@ -20,12 +20,12 @@ import { TRUSTED_PREFIX } from '../hooks/lib/trusted.mjs'
 import { DISPATCHES_FILE } from '../hooks/lib/control-files.mjs'
 import { coordinatorProgress, parseNotifications, readDispatchLog } from '../hooks/lib/completion.mjs'
 
-const PRODUCT = 'agent-team:at-product'
-const ARCH = 'agent-team:at-architect'
+const PRODUCT = 'poundlock:at-product'
+const ARCH = 'poundlock:at-architect'
 
 function inRun(opts, body) {
   const dirs = makeRun({ runId: 'r1', ...opts })
-  dirs.runDir = join(dirs.projectDir, '.agent-team', 'runs', 'r1')
+  dirs.runDir = join(dirs.projectDir, '.poundlock', 'runs', 'r1')
   try {
     return body(dirs)
   } finally {
@@ -48,7 +48,7 @@ const completed = (agentId, text) => ({
   status: 'completed',
   prompt: 'y',
   agentId,
-  agentType: 'agent-team:at-product',
+  agentType: 'poundlock:at-product',
   content: [{ type: 'text', text }],
   totalDurationMs: 1,
 })
@@ -181,7 +181,7 @@ test('19-8 完成通知的 status 不是 completed（failed）→ 说它没有�
 test('19-9 一个 prompt 里两段通知、一段里两个 task-id（孤儿汇总的形状）→ 各核各的', () => {
   inRun({ stage: 'S2', roster: ['at-product', 'at-ui'] }, (dirs) => {
     run('deliverable', post(PRODUCT, launched('a0000000000000009')), GATE, dirs.projectDir)
-    run('deliverable', post('agent-team:at-ui', launched('a000000000000000a'), { caller: PRODUCT, callerId: 'a0000000000000009', toolUseId: 'toolu_01CCCC' }), GATE, dirs.projectDir)
+    run('deliverable', post('poundlock:at-ui', launched('a000000000000000a'), { caller: PRODUCT, callerId: 'a0000000000000009', toolUseId: 'toolu_01CCCC' }), GATE, dirs.projectDir)
     const two = `${note('a0000000000000009')}\n${note('a000000000000000a', { toolUseId: 'toolu_01CCCC' })}`
     const c = contextOf(run('completion', prompt(two), GATE, dirs.projectDir))
     assert.match(c, /at-product 在 S2 没交齐/)
@@ -229,7 +229,7 @@ test('19-13 协调者返回（S5 正路）：报它派出去的执行角色与�
   inRun({ stage: 'S5', roster: ['at-architect', 'at-backend', 'at-frontend'], stage_roles: { S3: ['at-architect'] } }, (dirs) => {
     const atLaunch = contextOf(run('deliverable', post(ARCH, launched('a00000000000000a1'), { toolUseId: 'toolu_01ARCH' }), GATE, dirs.projectDir))
     assert.ok(!atLaunch.includes('进度'), '后台派发启动那一刻它还没派任何人，不报进度')
-    for (const [who, id, tu] of [['agent-team:at-backend', 'a00000000000000b1', 'toolu_01B'], ['agent-team:at-frontend', 'a00000000000000f1', 'toolu_01F']]) {
+    for (const [who, id, tu] of [['poundlock:at-backend', 'a00000000000000b1', 'toolu_01B'], ['poundlock:at-frontend', 'a00000000000000f1', 'toolu_01F']]) {
       run('deliverable', post(who, launched(id), { caller: ARCH, callerId: 'a00000000000000a1', toolUseId: tu }), GATE, dirs.projectDir)
     }
     mkdirSync(join(dirs.runDir, '05-impl'), { recursive: true })
@@ -248,7 +248,7 @@ test('19-13 协调者返回（S5 正路）：报它派出去的执行角色与�
 
 test('19-14 嵌套：执行角色是架构师派的，完成通知到 PM、它没交 → 说「经 at-architect 再派」（PM 派不到执行角色）', () => {
   inRun({ stage: 'S5', roster: ['at-architect', 'at-backend'] }, (dirs) => {
-    run('deliverable', post('agent-team:at-backend', launched('a00000000000000b2'), { caller: ARCH, callerId: 'a00000000000000a2', toolUseId: 'toolu_01B2' }), GATE, dirs.projectDir)
+    run('deliverable', post('poundlock:at-backend', launched('a00000000000000b2'), { caller: ARCH, callerId: 'a00000000000000a2', toolUseId: 'toolu_01B2' }), GATE, dirs.projectDir)
     const c = contextOf(run('completion', prompt(note('a00000000000000b2', { toolUseId: 'toolu_01B2' })), GATE, dirs.projectDir))
     assert.match(c, /at-backend 在 S5 没交齐：05-impl\/at-backend\.md 还没有/)
     assert.match(c, /经 at-architect 再派 at-backend 一次（你派不到它）/)
@@ -257,7 +257,7 @@ test('19-14 嵌套：执行角色是架构师派的，完成通知到 PM、它�
 
 test('19-15 派发记录是门禁专属文件：PM 与执行角色的 Edit/Write 一律拒', () => {
   inRun(S2, (dirs) => {
-    for (const agent of ['agent-team:at-pm', 'agent-team:at-backend', undefined]) {
+    for (const agent of ['poundlock:at-pm', 'poundlock:at-backend', undefined]) {
       const r = run(
         'writepath',
         { hook_event_name: 'PreToolUse', tool_name: 'Write', ...(agent ? { agent_type: agent } : {}), tool_input: { file_path: join(dirs.runDir, DISPATCHES_FILE), content: '{}' } },
@@ -325,9 +325,9 @@ test('19-20 解析：<result> 反转义；task-id 只认头几行；夹在 <resu
 test('19-21 同一段里派过两次架构师：进度只列这一次运行（按 agent_id）派出去的，不把上一次派的并进来', () => {
   inRun({ stage: 'S5', roster: ['at-architect', 'at-backend', 'at-frontend'], stage_roles: { S3: ['at-architect'] } }, (dirs) => {
     run('deliverable', post(ARCH, launched('a00000000000000c1'), { toolUseId: 'toolu_01C1' }), GATE, dirs.projectDir)
-    run('deliverable', post('agent-team:at-frontend', launched('a00000000000000f3'), { caller: ARCH, callerId: 'a00000000000000c1', toolUseId: 'toolu_01F3' }), GATE, dirs.projectDir)
+    run('deliverable', post('poundlock:at-frontend', launched('a00000000000000f3'), { caller: ARCH, callerId: 'a00000000000000c1', toolUseId: 'toolu_01F3' }), GATE, dirs.projectDir)
     run('deliverable', post(ARCH, launched('a00000000000000c2'), { toolUseId: 'toolu_01C2' }), GATE, dirs.projectDir)
-    run('deliverable', post('agent-team:at-backend', launched('a00000000000000b3'), { caller: ARCH, callerId: 'a00000000000000c2', toolUseId: 'toolu_01B3' }), GATE, dirs.projectDir)
+    run('deliverable', post('poundlock:at-backend', launched('a00000000000000b3'), { caller: ARCH, callerId: 'a00000000000000c2', toolUseId: 'toolu_01B3' }), GATE, dirs.projectDir)
     const c = contextOf(run('completion', prompt(note('a00000000000000c2', { toolUseId: 'toolu_01C2' })), GATE, dirs.projectDir))
     assert.match(c, /at-backend（后台派发）/)
     assert.ok(!c.includes('at-frontend'), c)
@@ -375,7 +375,7 @@ test('19-24 派发记录里角色不在花名册、段不在阶段链上（Bash 
 test('19-25 前台跑完却认不出 agentId（tool_response 不带它）→ 不按角色名去拼进度，免得把上一次派的执行角色报成这一次的', () => {
   inRun({ stage: 'S5', roster: ['at-architect', 'at-backend'], stage_roles: { S3: ['at-architect'] } }, (dirs) => {
     run('deliverable', post(ARCH, launched('a00000000000000e1'), { toolUseId: 'toolu_01E1' }), GATE, dirs.projectDir)
-    run('deliverable', post('agent-team:at-backend', launched('a00000000000000e2'), { caller: ARCH, callerId: 'a00000000000000e1', toolUseId: 'toolu_01E2' }), GATE, dirs.projectDir)
+    run('deliverable', post('poundlock:at-backend', launched('a00000000000000e2'), { caller: ARCH, callerId: 'a00000000000000e1', toolUseId: 'toolu_01E2' }), GATE, dirs.projectDir)
     const { agentId, ...noId } = completed('x', '回报。')
     const c = contextOf(run('deliverable', post(ARCH, noId, { toolUseId: 'toolu_01E3' }), GATE, dirs.projectDir))
     assert.ok(!c.includes('进度'), c)
@@ -386,7 +386,7 @@ const INJECT = fileURLToPath(new URL('./helpers/inject-throw.cjs', import.meta.u
 test('19-26 完成核验中途崩了：用户自己的话后面不贴【门禁】；完成通知上照说「这次没核完」', () => {
   inRun(S2, (dirs) => {
     run('deliverable', post(PRODUCT, launched('a0000000000000015')), GATE, dirs.projectDir)
-    const env = { ...hermeticEnv(), AGENT_TEAM_TEST_THROW: 'includes-once:<task-notification>' }
+    const env = { ...hermeticEnv(), POUNDLOCK_TEST_THROW: 'includes-once:<task-notification>' }
     const quiet = run('completion', prompt('继续'), GATE, dirs.projectDir, env, { nodeArgs: ['-r', INJECT] })
     assert.equal(quiet.stdout, '', quiet.stdout)
     const loud = run('completion', prompt(note('a0000000000000015')), GATE, dirs.projectDir, env, { nodeArgs: ['-r', INJECT] })
@@ -445,7 +445,7 @@ test('19-30 它最后一回停下时门禁放行了（派它之后 PM 推进了�
 
 test('19-31 冒泡出路：PM 派不到它（at-ui 由 at-product 派）→ 同一段里经 at-product 再派；02-* 能裁掉，给出 trimmed 的写法；01-prd.md 不给', () => {
   inRun({ stage: 'S2', roster: ['at-product', 'at-ui'] }, (dirs) => {
-    run('deliverable', post('agent-team:at-ui', launched('a000000000000001c'), { caller: PRODUCT, callerId: 'a00000000000000c9', toolUseId: 'toolu_01UI' }), GATE, dirs.projectDir)
+    run('deliverable', post('poundlock:at-ui', launched('a000000000000001c'), { caller: PRODUCT, callerId: 'a00000000000000c9', toolUseId: 'toolu_01UI' }), GATE, dirs.projectDir)
     const c = contextOf(run('completion', prompt(note('a000000000000001c', { toolUseId: 'toolu_01UI', result: `${BUBBLE_MARK}缺设计规范。` })), GATE, dirs.projectDir))
     assert.match(c, /同一段里经 at-product 再派 at-ui 一次（你派不到它）/)
     assert.match(c, /\{"at-ui": "S2"\} 写进 trimmed/)
@@ -459,9 +459,9 @@ test('19-31 冒泡出路：PM 派不到它（at-ui 由 at-product 派）→ 同�
 test('19-32 进度：执行角色已经停下（冒泡了）→ 那一行说它停下时冒泡了、收尾说停下了却没交齐的怎么办；全部交齐时收尾才说「名单上的都交了」', () => {
   inRun({ stage: 'S5', roster: ['at-architect', 'at-backend', 'at-frontend'], stage_roles: { S3: ['at-architect'] } }, (dirs) => {
     run('deliverable', post(ARCH, launched('a00000000000000a5'), { toolUseId: 'toolu_01A5' }), GATE, dirs.projectDir)
-    run('deliverable', post('agent-team:at-frontend', launched('a00000000000000f5'), { caller: ARCH, callerId: 'a00000000000000a5', toolUseId: 'toolu_01F5' }), GATE, dirs.projectDir)
-    run('stop-gate', stop('agent-team:at-frontend', 'a00000000000000f5', { active: false, message: 'x' }), GATE, dirs.projectDir)
-    run('stop-gate', stop('agent-team:at-frontend', 'a00000000000000f5', { active: true, message: `${BUBBLE_MARK}缺组件库。` }), GATE, dirs.projectDir)
+    run('deliverable', post('poundlock:at-frontend', launched('a00000000000000f5'), { caller: ARCH, callerId: 'a00000000000000a5', toolUseId: 'toolu_01F5' }), GATE, dirs.projectDir)
+    run('stop-gate', stop('poundlock:at-frontend', 'a00000000000000f5', { active: false, message: 'x' }), GATE, dirs.projectDir)
+    run('stop-gate', stop('poundlock:at-frontend', 'a00000000000000f5', { active: true, message: `${BUBBLE_MARK}缺组件库。` }), GATE, dirs.projectDir)
     const c = contextOf(run('completion', prompt(note('a00000000000000a5', { toolUseId: 'toolu_01A5' })), GATE, dirs.projectDir))
     assert.match(c, /at-frontend（后台派发）：05-impl\/at-frontend\.md 还没有——它停下时冒泡了/)
     assert.match(c, /停下了却没交齐、或者交了却冒泡的/)
@@ -470,7 +470,7 @@ test('19-32 进度：执行角色已经停下（冒泡了）→ 那一行说它�
     mkdirSync(join(dirs.runDir, '05-impl'), { recursive: true })
     writeFileSync(join(dirs.runDir, '05-impl', 'at-frontend.md'), '# 实现记录\n')
     // 它被续上、写完、正常停下（最后一回停下是放行），收尾才说都交了。
-    run('stop-gate', stop('agent-team:at-frontend', 'a00000000000000f5', { active: false, message: '写好了。' }), GATE, dirs.projectDir)
+    run('stop-gate', stop('poundlock:at-frontend', 'a00000000000000f5', { active: false, message: '写好了。' }), GATE, dirs.projectDir)
     const ok = contextOf(run('completion', prompt(note('a00000000000000a5', { toolUseId: 'toolu_01A5' })), GATE, dirs.projectDir))
     assert.match(ok, /名单上的都交了/)
   })
@@ -478,8 +478,8 @@ test('19-32 进度：执行角色已经停下（冒泡了）→ 那一行说它�
 
 test('19-33 前台派发的协调者跑完（H5a）：进度列它这一次运行派的人；门禁最后一回拦了它的执行角色照实说', () => {
   inRun({ stage: 'S5', roster: ['at-architect', 'at-backend'], stage_roles: { S3: ['at-architect'] } }, (dirs) => {
-    run('stop-gate', stop('agent-team:at-backend', 'a00000000000000b6', { active: false, message: 'x' }), GATE, dirs.projectDir)
-    run('deliverable', post('agent-team:at-backend', completed('a00000000000000b6', '没写完。'), { caller: ARCH, callerId: 'a00000000000000a6', toolUseId: 'toolu_01B6' }), GATE, dirs.projectDir)
+    run('stop-gate', stop('poundlock:at-backend', 'a00000000000000b6', { active: false, message: 'x' }), GATE, dirs.projectDir)
+    run('deliverable', post('poundlock:at-backend', completed('a00000000000000b6', '没写完。'), { caller: ARCH, callerId: 'a00000000000000a6', toolUseId: 'toolu_01B6' }), GATE, dirs.projectDir)
     const c = contextOf(run('deliverable', post(ARCH, completed('a00000000000000a6', '回报。'), { toolUseId: 'toolu_01A6' }), GATE, dirs.projectDir))
     assert.match(c, /S5 进度/)
     assert.ok(c.includes('刚返回的 at-architect 是 S5 的协调者，这一段没有它自己的产物；'), c)
@@ -513,11 +513,11 @@ test('19-36 派发记录末尾缺换行（被截断、手改过）→ 门禁追�
 
 test('19-37 H6 读派发记录：S5 里派出去过、stage_roles 没记的 at-backend 没交 → 推进被拒，理由说它是从派发记录里认出来的', () => {
   inRun({ stage: 'S5', roster: ['at-architect'], stage_roles: { S3: ['at-architect'] } }, (dirs) => {
-    run('deliverable', post('agent-team:at-backend', launched('a00000000000000b9'), { caller: ARCH, callerId: 'a00000000000000a9', toolUseId: 'toolu_01B9' }), GATE, dirs.projectDir)
+    run('deliverable', post('poundlock:at-backend', launched('a00000000000000b9'), { caller: ARCH, callerId: 'a00000000000000a9', toolUseId: 'toolu_01B9' }), GATE, dirs.projectDir)
     const file = join(dirs.runDir, 'state.json')
     const st = JSON.parse(readFileSync(file, 'utf8'))
     const next = { ...st, stage: 'S6', history: [...st.history, { stage: 'S6', at: '2026-10-05T12:00:00Z' }], stage_roles: { ...st.stage_roles, S5: ['at-architect'] } }
-    const r = run('rework', { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'agent-team:at-pm', tool_input: { file_path: file, content: JSON.stringify(next) } }, GATE, dirs.projectDir)
+    const r = run('rework', { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'poundlock:at-pm', tool_input: { file_path: file, content: JSON.stringify(next) } }, GATE, dirs.projectDir)
     const d = JSON.parse(r.stdout).hookSpecificOutput
     assert.equal(d.permissionDecision, 'deny')
     assert.match(d.permissionDecisionReason, /at-backend 在 S5 被派出去过（stage_roles 里没记它，门禁的派发记录里有）/)
@@ -536,7 +536,7 @@ test('19-39 前台派发跑完、它这一段的产物交了却还没记账 → 
   inRun({ stage: 'S5', roster: ['at-architect', 'at-backend'], stage_roles: { S3: ['at-architect'] } }, (dirs) => {
     mkdirSync(join(dirs.runDir, '05-impl'), { recursive: true })
     writeFileSync(join(dirs.runDir, '05-impl', 'at-backend.md'), '# 实现记录\n做了。\n')
-    const c = contextOf(run('deliverable', post('agent-team:at-backend', completed('a00000000000000b7', '做完了。'), { caller: ARCH, callerId: 'a00000000000000a7', toolUseId: 'toolu_01B7' }), GATE, dirs.projectDir))
+    const c = contextOf(run('deliverable', post('poundlock:at-backend', completed('a00000000000000b7', '做完了。'), { caller: ARCH, callerId: 'a00000000000000a7', toolUseId: 'toolu_01B7' }), GATE, dirs.projectDir))
     assert.ok(!c.includes('05-impl/at-backend.md'), c)
   })
 })
@@ -545,9 +545,9 @@ test('19-40 实测 M5：执行角色写了实现记录、回复第一行却是�
   inRun({ stage: 'S5', roster: ['at-architect', 'at-frontend'], stage_roles: { S3: ['at-architect'] } }, (dirs) => {
     mkdirSync(join(dirs.runDir, '05-impl'), { recursive: true })
     writeFileSync(join(dirs.runDir, '05-impl', 'at-frontend.md'), '# 实现记录' + String.fromCharCode(10) + '冒泡：组件库不存在，没写代码。' + String.fromCharCode(10))
-    assert.equal(run('stop-gate', stop('agent-team:at-frontend', 'a00000000000000f8', { active: false, message: `${BUBBLE_MARK}组件库不存在。` }), GATE, dirs.projectDir).status, 0)
+    assert.equal(run('stop-gate', stop('poundlock:at-frontend', 'a00000000000000f8', { active: false, message: `${BUBBLE_MARK}组件库不存在。` }), GATE, dirs.projectDir).status, 0)
     assert.deepEqual(logOf(dirs).stops.get('a00000000000000f8'), ['bubble'])
-    run('deliverable', post('agent-team:at-frontend', completed('a00000000000000f8', `${BUBBLE_MARK}组件库不存在。`), { caller: ARCH, callerId: 'a00000000000000a8', toolUseId: 'toolu_01F8' }), GATE, dirs.projectDir)
+    run('deliverable', post('poundlock:at-frontend', completed('a00000000000000f8', `${BUBBLE_MARK}组件库不存在。`), { caller: ARCH, callerId: 'a00000000000000a8', toolUseId: 'toolu_01F8' }), GATE, dirs.projectDir)
     const c = contextOf(run('deliverable', post(ARCH, completed('a00000000000000a8', `${BUBBLE_MARK}前端卡住了。`), { toolUseId: 'toolu_01A8' }), GATE, dirs.projectDir))
     assert.match(c, /at-frontend（前台派发）：05-impl\/at-frontend\.md 在磁盘上——但它停下时冒泡了/)
     assert.ok(!c.includes('名单上的都交了'), c)
@@ -560,7 +560,7 @@ test('19-41 实测 M5：前台并发派发时，后返回的那个收到的账�
     mkdirSync(join(dirs.runDir, '05-impl'), { recursive: true })
     writeFileSync(join(dirs.runDir, '05-impl', 'at-frontend.md'), '# 前端' + String.fromCharCode(10))
     writeFileSync(join(dirs.runDir, '05-impl', 'at-backend.md'), '# 后端' + String.fromCharCode(10))
-    const c = contextOf(run('deliverable', post('agent-team:at-backend', completed('a00000000000000b8', '做完了。'), { caller: ARCH, callerId: 'a00000000000000a9', toolUseId: 'toolu_01B8' }), GATE, dirs.projectDir))
+    const c = contextOf(run('deliverable', post('poundlock:at-backend', completed('a00000000000000b8', '做完了。'), { caller: ARCH, callerId: 'a00000000000000a9', toolUseId: 'toolu_01B8' }), GATE, dirs.projectDir))
     assert.ok(!c.includes('05-impl/at-frontend.md'), c)
     assert.ok(!c.includes('05-impl/at-backend.md'), c)
   })
@@ -570,7 +570,7 @@ test('19-41 实测 M5：前台并发派发时，后返回的那个收到的账�
 // 进度那一支走不进去（只认「这一段没有它自己的产物」的协调者），PM 收不到 at-ui 的现状。现在照样报；头一句说它自己那几份交了，收尾不提实现记录。
 test('M4h 第 14 条：S2 的协调者 at-product 前台跑完、自己那份交了而 at-ui 还在跑——进度照样列它派的 at-ui', () => {
   inRun({ stage: 'S2', roster: ['at-product', 'at-ui'], artifacts: ['00-contract.md', '01-prd.md'] }, (dirs) => {
-    run('deliverable', post('agent-team:at-ui', launched('a00000000000000c1'), { caller: PRODUCT, callerId: 'a00000000000000c0', toolUseId: 'toolu_01C1' }), GATE, dirs.projectDir)
+    run('deliverable', post('poundlock:at-ui', launched('a00000000000000c1'), { caller: PRODUCT, callerId: 'a00000000000000c0', toolUseId: 'toolu_01C1' }), GATE, dirs.projectDir)
     const c = contextOf(run('deliverable', post(PRODUCT, completed('a00000000000000c0', '回报。'), { toolUseId: 'toolu_01C0' }), GATE, dirs.projectDir))
     assert.match(c, /S2 进度/)
     assert.match(c, /at-ui（后台派发）：02-ui-spec\.md 还没有/)
@@ -583,7 +583,7 @@ test('M4h 第 14 条：S2 的协调者 at-product 前台跑完、自己那份交
 test('M4h 第 14 条：S2 的协调者 at-product 后台派发、完成通知到了——完成核验那一支同样报它派的 at-ui', () => {
   inRun({ stage: 'S2', roster: ['at-product', 'at-ui'], artifacts: ['00-contract.md', '01-prd.md'] }, (dirs) => {
     run('deliverable', post(PRODUCT, launched('a00000000000000d0'), { toolUseId: 'toolu_01D0' }), GATE, dirs.projectDir)
-    run('deliverable', post('agent-team:at-ui', launched('a00000000000000d1'), { caller: PRODUCT, callerId: 'a00000000000000d0', toolUseId: 'toolu_01D1' }), GATE, dirs.projectDir)
+    run('deliverable', post('poundlock:at-ui', launched('a00000000000000d1'), { caller: PRODUCT, callerId: 'a00000000000000d0', toolUseId: 'toolu_01D1' }), GATE, dirs.projectDir)
     const c = contextOf(run('completion', prompt(note('a00000000000000d0', { toolUseId: 'toolu_01D0' })), GATE, dirs.projectDir))
     assert.match(c, /S2 进度/)
     assert.match(c, /at-ui（后台派发）：02-ui-spec\.md 还没有/)
@@ -593,7 +593,7 @@ test('M4h 第 14 条：S2 的协调者 at-product 后台派发、完成通知到
 
 test('M4h 第 14 条：S2 齐了之后 at-product 再返回——不报进度（这一段已经齐了）', () => {
   inRun({ stage: 'S2', roster: ['at-product', 'at-ui'], artifacts: ['00-contract.md', '01-prd.md', '02-ui-spec.md', '02-wireframe.html'] }, (dirs) => {
-    run('deliverable', post('agent-team:at-ui', launched('a00000000000000e1'), { caller: PRODUCT, callerId: 'a00000000000000e0', toolUseId: 'toolu_01E1' }), GATE, dirs.projectDir)
+    run('deliverable', post('poundlock:at-ui', launched('a00000000000000e1'), { caller: PRODUCT, callerId: 'a00000000000000e0', toolUseId: 'toolu_01E1' }), GATE, dirs.projectDir)
     const c = contextOf(run('deliverable', post(PRODUCT, completed('a00000000000000e0', '回报。'), { toolUseId: 'toolu_01E0' }), GATE, dirs.projectDir))
     assert.doesNotMatch(c, /S2 进度/)
   })
@@ -603,7 +603,7 @@ test('M4h 第 14 条：S2 齐了之后 at-product 再返回——不报进度（
 test('M4h 第 14 条：协调者进度的收尾——不是执行段的不提实现记录、说「产者」', () => {
   const rows = [{ role: 'at-ui', mode: 'background', stop: 'pass', items: [{ name: '02-ui-spec.md', state: 'ok' }, { name: '02-wireframe.html', state: 'ok' }] }]
   const s2 = coordinatorProgress({ role: 'at-product', stageId: 'S2', rows, recipientIsPm: true, selfDone: true, impl: false })
-  assert.ok(s2.includes('名单上的都交了：照 /agent-team:at 第 3 节核实再推进。') && !s2.includes('实现记录'), s2)
+  assert.ok(s2.includes('名单上的都交了：照 /poundlock:at 第 3 节核实再推进。') && !s2.includes('实现记录'), s2)
   assert.ok(s2.includes('不在上面的产者是它这一次没派过的'), s2)
   const s5 = coordinatorProgress({ role: 'at-architect', stageId: 'S5', rows: [{ ...rows[0], items: [{ name: '05-impl/at-ui.md', state: 'ok' }] }], recipientIsPm: true })
   assert.ok(s5.includes('（实现记录的「被写路径隔离拒绝」一节要读）') && s5.includes('不在上面的执行角色是它这一次没派过的'), s5)

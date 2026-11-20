@@ -1,6 +1,6 @@
 // 并行微调：认领文件。纯函数，I/O 由 gate.mjs 注入。
 //
-// 几趟微调在同一个目录里并行，靠「先写先得」不互相覆盖：每一趟微调派出去的子代理第一次写一个项目文件（项目根之下、.agent-team/ 之外）时，
+// 几趟微调在同一个目录里并行，靠「先写先得」不互相覆盖：每一趟微调派出去的子代理第一次写一个项目文件（项目根之下、.poundlock/ 之外）时，
 // 落盘之后账本把它记进这一趟自己的 runs/<id>/claims.jsonl（门禁专属）；别的、还没收尾的微调的子代理再写它，H3 拒，叫它冒泡。收尾、放弃之后
 // 那一趟的认领自然不算（判的时候只读没收尾的微调的那一份）。认领记录每一趟一份：每个会话的门禁只写自己那一趟的，避开跨会话同写一份文件的丢更新。
 //
@@ -48,7 +48,7 @@ export function claimDenyReason({ path, other }) {
     typeof other?.wordsHead === 'string' && other.wordsHead !== '' ? `原话开头 ${quote(other.wordsHead)}` : null,
   ].filter(Boolean)
   return (
-    `agent-team 认领：另一个微调 ${quote(other?.id)}${facts.length ? `（${facts.join('，')}）` : ''}正在改 ${inline(path)}——等那边收尾再改。` +
+    `poundlock 认领：另一个微调 ${quote(other?.id)}${facts.length ? `（${facts.join('，')}）` : ''}正在改 ${inline(path)}——等那边收尾再改。` +
     '不要换路径或改用 Bash 绕开：以「冒泡：」停下，把这一句原样回报项目经理。'
   )
 }

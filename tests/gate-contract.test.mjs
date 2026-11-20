@@ -25,8 +25,8 @@ test('contract：subagent 写 00-contract.md 拒绝，理由点名用户/PM 且�
   try {
     const input = {
       tool_name: 'Write',
-      agent_type: 'agent-team:at-product',
-      tool_input: { file_path: join(dirs.projectDir, '.agent-team', 'runs', 'r1', '00-contract.md') },
+      agent_type: 'poundlock:at-product',
+      tool_input: { file_path: join(dirs.projectDir, '.poundlock', 'runs', 'r1', '00-contract.md') },
     }
     const { stdout, status } = run('contract', input, undefined, dirs.projectDir)
     const out = decisionOf(stdout)
@@ -52,8 +52,8 @@ test('contract：subagent 写别的产物放行，stdout 为空', () => {
   try {
     const input = {
       tool_name: 'Write',
-      agent_type: 'agent-team:at-product',
-      tool_input: { file_path: join(dirs.projectDir, '.agent-team', 'runs', 'r1', '01-prd.md') },
+      agent_type: 'poundlock:at-product',
+      tool_input: { file_path: join(dirs.projectDir, '.poundlock', 'runs', 'r1', '01-prd.md') },
     }
     const { stdout, status } = run('contract', input, undefined, dirs.projectDir)
 
@@ -70,7 +70,7 @@ test('contract：主线程（无 agent_type）写契约放行，stdout 为空', 
   try {
     const input = {
       tool_name: 'Write',
-      tool_input: { file_path: join(dirs.projectDir, '.agent-team', 'runs', 'r1', '00-contract.md') },
+      tool_input: { file_path: join(dirs.projectDir, '.poundlock', 'runs', 'r1', '00-contract.md') },
     }
     const { stdout, status } = run('contract', input, undefined, dirs.projectDir)
 
@@ -86,17 +86,17 @@ test('contract：主线程（无 agent_type）写契约放行，stdout 为空', 
 // M0 实测「次要事实」），不是真正的"无 agent_type"，但语义上仍是 PM 转写，
 // 不是 subagent 执行链上的一环。本仓库自己的 settings.json 就是
 // {"agent": "at-pm"}——这不是假设性的配置，是这个仓库的真实运行状态。
-// ⚠️ 订正（M4b，docs/36）：settings.json 现在写全名 {"agent": "agent-team:at-pm"}；钉住的 PM 在 hook 输入里的原始
+// ⚠️ 订正（M4b，docs/36）：settings.json 现在写全名 {"agent": "poundlock:at-pm"}；钉住的 PM 在 hook 输入里的原始
 // agent_type 一直是全名（docs/22），裸 'at-pm' 是剥前缀之后的值。原始值是裸名的只有一种：项目或用户层另有一份非插件的
 // at-pm.md，用户经 --agent at-pm 或自己设置里的 agent 键选中了它（只有插件的 at-pm 时，--agent at-pm 按后缀解析成全名）。
 // 两种都按 PM 放行。
-for (const agentType of ['at-pm', 'agent-team:at-pm']) test(`contract：被 settings.json 钉成主线程的 at-pm（agent_type ${agentType}）写契约不受阻`, () => {
+for (const agentType of ['at-pm', 'poundlock:at-pm']) test(`contract：被 settings.json 钉成主线程的 at-pm（agent_type ${agentType}）写契约不受阻`, () => {
   const dirs = makeRun({ runId: 'r1' })
   try {
     const input = {
       tool_name: 'Write',
       agent_type: agentType,
-      tool_input: { file_path: join(dirs.projectDir, '.agent-team', 'runs', 'r1', '00-contract.md') },
+      tool_input: { file_path: join(dirs.projectDir, '.poundlock', 'runs', 'r1', '00-contract.md') },
     }
     const { stdout, status } = run('contract', input, undefined, dirs.projectDir)
 
@@ -120,9 +120,9 @@ test('contract：NotebookEdit 用 notebook_path 也能正确判定为契约文�
   try {
     const input = {
       tool_name: 'NotebookEdit',
-      agent_type: 'agent-team:at-backend',
+      agent_type: 'poundlock:at-backend',
       tool_input: {
-        notebook_path: join(dirs.projectDir, '.agent-team', 'runs', 'r1', '00-contract.md'),
+        notebook_path: join(dirs.projectDir, '.poundlock', 'runs', 'r1', '00-contract.md'),
       },
     }
     const { stdout, status } = run('contract', input, undefined, dirs.projectDir)
@@ -164,10 +164,10 @@ test('contract：NotebookEdit 用 notebook_path 也能正确判定为契约文�
 test('contract：project.json 缺失时 H4 仍然独立拦住契约——H4 不借 H3 的前提', () => {
   const dirs = makeRun({ runId: 'r1' }) // 不传 project，makeRun 就不会写 project.json
   try {
-    const contractPath = join(dirs.projectDir, '.agent-team', 'runs', 'r1', '00-contract.md')
+    const contractPath = join(dirs.projectDir, '.poundlock', 'runs', 'r1', '00-contract.md')
     const input = {
       tool_name: 'Write',
-      agent_type: 'agent-team:at-product',
+      agent_type: 'poundlock:at-product',
       tool_input: { file_path: contractPath },
     }
 
@@ -177,7 +177,7 @@ test('contract：project.json 缺失时 H4 仍然独立拦住契约——H4 不�
       'writepath',
       {
         tool_name: 'Write',
-        agent_type: 'agent-team:at-product',
+        agent_type: 'poundlock:at-product',
         tool_input: { file_path: join(dirs.projectDir, 'src', 'server', 'api.ts') },
       },
       undefined,
@@ -226,11 +226,11 @@ test('contract：project.json 缺失时 H4 仍然独立拦住契约——H4 不�
 test('contract：project.json 坏了（kind: unreadable），子代理——仍然 fail closed', () => {
   const dirs = makeRun({ runId: 'r1' })
   try {
-    writeFileSync(join(dirs.projectDir, '.agent-team', 'project.json'), '{ not json', 'utf8')
+    writeFileSync(join(dirs.projectDir, '.poundlock', 'project.json'), '{ not json', 'utf8')
     const input = {
       tool_name: 'Write',
-      agent_type: 'agent-team:at-product',
-      tool_input: { file_path: join(dirs.projectDir, '.agent-team', 'runs', 'r1', '00-contract.md') },
+      agent_type: 'poundlock:at-product',
+      tool_input: { file_path: join(dirs.projectDir, '.poundlock', 'runs', 'r1', '00-contract.md') },
     }
     const { stdout, status } = run('contract', input, undefined, dirs.projectDir)
     const out = decisionOf(stdout)
@@ -255,10 +255,10 @@ test('contract：project.json 坏了（kind: unreadable），子代理——仍�
 test('contract：project.json 坏了（kind: unreadable），PM（无 agent_type）——仍然放行', () => {
   const dirs = makeRun({ runId: 'r1' })
   try {
-    writeFileSync(join(dirs.projectDir, '.agent-team', 'project.json'), '{ not json', 'utf8')
+    writeFileSync(join(dirs.projectDir, '.poundlock', 'project.json'), '{ not json', 'utf8')
     const input = {
       tool_name: 'Write',
-      tool_input: { file_path: join(dirs.projectDir, '.agent-team', 'runs', 'r1', '00-contract.md') },
+      tool_input: { file_path: join(dirs.projectDir, '.poundlock', 'runs', 'r1', '00-contract.md') },
     }
     const { stdout, status } = run('contract', input, undefined, dirs.projectDir)
 
@@ -278,11 +278,11 @@ test('contract：project.json 坏了（kind: unreadable），PM（无 agent_type
 test('contract：project.json 坏了（kind: unreadable），被钉成主线程的 at-pm——仍然放行', () => {
   const dirs = makeRun({ runId: 'r1' })
   try {
-    writeFileSync(join(dirs.projectDir, '.agent-team', 'project.json'), '{ not json', 'utf8')
+    writeFileSync(join(dirs.projectDir, '.poundlock', 'project.json'), '{ not json', 'utf8')
     const input = {
       tool_name: 'Write',
       agent_type: 'at-pm',
-      tool_input: { file_path: join(dirs.projectDir, '.agent-team', 'runs', 'r1', '00-contract.md') },
+      tool_input: { file_path: join(dirs.projectDir, '.poundlock', 'runs', 'r1', '00-contract.md') },
     }
     const { stdout, status } = run('contract', input, undefined, dirs.projectDir)
 
@@ -295,19 +295,19 @@ test('contract：project.json 坏了（kind: unreadable），被钉成主线程�
 })
 
 test('contract：没有 run 时放行、stderr 留痕（kind: no-run），即使目标路径长得像契约', () => {
-  const cwd = mkdtempSync(join(tmpdir(), 'agent-team-h4-norun-cwd-'))
+  const cwd = mkdtempSync(join(tmpdir(), 'poundlock-h4-norun-cwd-'))
   try {
     const input = {
       tool_name: 'Write',
-      agent_type: 'agent-team:at-product',
-      tool_input: { file_path: join(cwd, '.agent-team', 'runs', 'r1', '00-contract.md') },
+      agent_type: 'poundlock:at-product',
+      tool_input: { file_path: join(cwd, '.poundlock', 'runs', 'r1', '00-contract.md') },
     }
     const { stdout, stderr, status } = run('contract', input, undefined, cwd)
 
     assert.equal(status, 0)
     assert.equal(stdout.trim(), '', '没有 run 就没有契约文件可保护，不该走 deny JSON')
     assert.ok(stderr.trim().length > 0, '必须往 stderr 留痕；静默的放行和门禁坏掉长得一模一样')
-    assert.match(stderr, /agent-team/)
+    assert.match(stderr, /poundlock/)
     assert.match(stderr, /H4|契约/)
   } finally {
     rmSync(cwd, { recursive: true, force: true })
@@ -319,12 +319,12 @@ test('contract：没有 run 时放行、stderr 留痕（kind: no-run），即使
 // 它连"契约在哪"都判定不出来（没有 runDir），必须走 no-run 那条放行，不能
 // 落到别的分支。
 test('contract：没有 run 时，被 settings.json 钉成主线程的 at-pm 写 project.json 不受阻', () => {
-  const cwd = mkdtempSync(join(tmpdir(), 'agent-team-h4-bootstrap-cwd-'))
+  const cwd = mkdtempSync(join(tmpdir(), 'poundlock-h4-bootstrap-cwd-'))
   try {
     const input = {
       tool_name: 'Write',
       agent_type: 'at-pm',
-      tool_input: { file_path: join(cwd, '.agent-team', 'project.json') },
+      tool_input: { file_path: join(cwd, '.poundlock', 'project.json') },
     }
     const { stdout, status } = run('contract', input, undefined, cwd)
 
@@ -347,7 +347,7 @@ test('contract：没有 run 时，被 settings.json 钉成主线程的 at-pm 写
 // PM 那一条是前者的正向自检锚——H4 的短路排在读 ctx 之前，收窄不该波及它。
 const makeDanglingPointerH4 = () => {
   const dirs = makeRun({ runId: 'r1' })
-  rmSync(join(dirs.projectDir, '.agent-team', 'runs', 'r1'), { recursive: true, force: true })
+  rmSync(join(dirs.projectDir, '.poundlock', 'runs', 'r1'), { recursive: true, force: true })
   return dirs
 }
 
@@ -356,8 +356,8 @@ test('contract：坏指针（run 目录不存在），子代理写契约——�
   try {
     const { stdout, status } = run('contract', {
       tool_name: 'Write',
-      agent_type: 'agent-team:at-product',
-      tool_input: { file_path: join(dirs.projectDir, '.agent-team', 'runs', 'r1', '00-contract.md') },
+      agent_type: 'poundlock:at-product',
+      tool_input: { file_path: join(dirs.projectDir, '.poundlock', 'runs', 'r1', '00-contract.md') },
     }, undefined, dirs.projectDir)
     const out = decisionOf(stdout)
     assert.equal(status, 0)
@@ -383,7 +383,7 @@ test('contract：坏指针（run 目录不存在），子代理写契约——�
 // 所以正路不经过它；但 run 丢了指针之后 PM 要重建契约仍然得走这条。
 const makeMissingPointerH4 = () => {
   const dirs = makeRun({ runId: 'r1' })
-  rmSync(join(dirs.projectDir, '.agent-team', 'current-run'), { force: true })
+  rmSync(join(dirs.projectDir, '.poundlock', 'current-run'), { force: true })
   return dirs
 }
 
@@ -392,8 +392,8 @@ test('contract：丢指针（current-run 不在、runs/ 非空），子代理写
   try {
     const { stdout, status } = run('contract', {
       tool_name: 'Write',
-      agent_type: 'agent-team:at-product',
-      tool_input: { file_path: join(dirs.projectDir, '.agent-team', 'runs', 'r1', '00-contract.md') },
+      agent_type: 'poundlock:at-product',
+      tool_input: { file_path: join(dirs.projectDir, '.poundlock', 'runs', 'r1', '00-contract.md') },
     }, undefined, dirs.projectDir)
     const out = decisionOf(stdout)
     assert.equal(status, 0)
@@ -413,7 +413,7 @@ test('contract：丢指针，被钉成主线程的 at-pm——仍然放行，短
     const { stdout, status } = run('contract', {
       tool_name: 'Write',
       agent_type: 'at-pm',
-      tool_input: { file_path: join(dirs.projectDir, '.agent-team', 'runs', 'r1', '00-contract.md') },
+      tool_input: { file_path: join(dirs.projectDir, '.poundlock', 'runs', 'r1', '00-contract.md') },
     }, undefined, dirs.projectDir)
     assert.equal(status, 0)
     assert.equal(
@@ -430,13 +430,13 @@ test('contract：丢指针，被钉成主线程的 at-pm——仍然放行，短
 // ⚠️ 自举那条边的正向锚，与 tests/gate-writepath.test.mjs 里同名那条配对：
 // 判据被错写成 existsSync(runsDir)（而不是「非空」）时，上面两条照样绿，红的是这一条。
 test('contract · 自举边界：runs/ 存在但是空目录——子代理写契约仍然放行，按 no-run 处理', () => {
-  const cwd = mkdtempSync(join(tmpdir(), 'agent-team-h4-emptyruns-'))
+  const cwd = mkdtempSync(join(tmpdir(), 'poundlock-h4-emptyruns-'))
   try {
-    mkdirSync(join(cwd, '.agent-team', 'runs'), { recursive: true })
+    mkdirSync(join(cwd, '.poundlock', 'runs'), { recursive: true })
     const { stdout, stderr, status } = run('contract', {
       tool_name: 'Write',
-      agent_type: 'agent-team:at-product',
-      tool_input: { file_path: join(cwd, '.agent-team', 'runs', 'r1', '00-contract.md') },
+      agent_type: 'poundlock:at-product',
+      tool_input: { file_path: join(cwd, '.poundlock', 'runs', 'r1', '00-contract.md') },
     }, undefined, cwd)
     assert.equal(status, 0)
     assert.equal(stdout.trim(), '', '空的 runs/ 是「从来没有人建过 run」，没有契约可保护')
@@ -452,7 +452,7 @@ test('contract：坏指针（run 目录不存在），被钉成主线程的 at-p
     const { stdout, status } = run('contract', {
       tool_name: 'Write',
       agent_type: 'at-pm',
-      tool_input: { file_path: join(dirs.projectDir, '.agent-team', 'runs', 'r1', '00-contract.md') },
+      tool_input: { file_path: join(dirs.projectDir, '.poundlock', 'runs', 'r1', '00-contract.md') },
     }, undefined, dirs.projectDir)
     assert.equal(status, 0)
     assert.equal(

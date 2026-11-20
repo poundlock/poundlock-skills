@@ -29,7 +29,7 @@
 //     **但那几次不进任何转录**——转录数出来的是下限（docs/21 §5.5）。
 //
 // 硬约束，逐条：
-//   ① **默认关**。只有 AGENT_TEAM_GATE_TRACE **恰好是 '1'** 才开；'0'、'true'、空串一律算关。
+//   ① **默认关**。只有 POUNDLOCK_GATE_TRACE **恰好是 '1'** 才开；'0'、'true'、空串一律算关。
 //      关着的时候**什么都不注册、什么都不写**——零噪声、零额外磁盘写入：本仓库记过
 //      「每次都刷一段会把真正要看的东西淹掉」（gate.mjs ledger 分支那条路径过滤）。
 //   ② **纯旁路，不改变任何一道门禁的判定。** 只在 exit 0 时写、只写 stderr：
@@ -41,7 +41,7 @@
 //      调用方做决定。'exit' 监听里漏出去的异常会把一次 exit 0 变成非零退出——那就是把
 //      一次放行改判成了失败。
 //   ④ **插件自己不写任何文件。** 落盘的是 CLI 自己本来就在写的那份转录。所以它碰不到
-//      .agent-team/ 下的任何东西：不会被账本比对的 unrecorded 当成来路不明的产物，
+//      .poundlock/ 下的任何东西：不会被账本比对的 unrecorded 当成来路不明的产物，
 //      也不经过 H3 / H4 的路径判定（为什么没选「写进 runs/<id>/」，docs/21 §3.4 有账）。
 //
 // ⚠️ **它能证明的，只有这么多**：平台为这一次事件调起了这道门禁（`command` 字段），
@@ -56,13 +56,13 @@
 //
 // ⚠️ 怎么打开（docs/21 §2.5 实测，§4 是操作步骤）：`claude --bg` 下，**在发起命令的 shell 里设这个变量
 // 传不到 hook 子进程**（后台服务起会话，不继承那个 shell）；
-// `--settings '{"env":{"AGENT_TEAM_GATE_TRACE":"1"}}'` 传得到，含子代理里的 SubagentStop。
+// `--settings '{"env":{"POUNDLOCK_GATE_TRACE":"1"}}'` 传得到，含子代理里的 SubagentStop。
 
-export const TRACE_ENV = 'AGENT_TEAM_GATE_TRACE'
+export const TRACE_ENV = 'POUNDLOCK_GATE_TRACE'
 
 // 这一行的固定前缀。全 ASCII 是有意的：转录是 JSONL，核的人最顺手的工具是 grep，
 // 而这一行在转录里是被 JSON 转义过的一段字符串——ASCII 的前缀在转义前后逐字相同。
-export const TRACE_PREFIX = 'agent-team gate-trace'
+export const TRACE_PREFIX = 'poundlock gate-trace'
 
 export function traceEnabled(env) {
   try {

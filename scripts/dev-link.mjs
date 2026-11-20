@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// 把仓库挂到 ~/.claude/skills/agent-team，使其以 agent-team@skills-dir 自动加载。
+// 把仓库挂到 ~/.claude/skills/poundlock，使其以 poundlock@skills-dir 自动加载。
 // Windows 用 junction（mklink /J），不需要管理员权限。
 
 import { execFileSync } from 'node:child_process'
@@ -9,7 +9,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const LINK = join(homedir(), '.claude', 'skills', 'agent-team')
+const LINK = join(homedir(), '.claude', 'skills', 'poundlock')
 const action = process.argv[2]
 
 // 不能用 existsSync：它会跟随 junction，目标被删被移之后返回 false，

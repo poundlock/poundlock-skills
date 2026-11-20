@@ -38,7 +38,7 @@ const baseOf = (...names) => Object.fromEntries(names.map((n) => [n, sha(R1[n])]
 
 function fixture({ stage, history, reworkBase, files = R1, roster = ROSTER, extra = {} }) {
   const dirs = makeRun({ runId: 'r1', stage, roster, project: PROJECT })
-  const runDir = join(dirs.projectDir, '.agent-team', 'runs', 'r1')
+  const runDir = join(dirs.projectDir, '.poundlock', 'runs', 'r1')
   for (const [rel, text] of Object.entries(files)) {
     mkdirSync(dirname(join(runDir, rel)), { recursive: true })
     writeFileSync(join(runDir, rel), text, 'utf8')
@@ -120,7 +120,7 @@ const NO_ACCEPT = /改成 "accepted"|由项目经理标 "accepted"/
 // M4d（docs/38，全量审查第 19 条）：异步派发启动那一刻 H5a 不判产物（at-qa 才刚起来）；它完成时由完成核验（UserPromptSubmit）判，口径不变。
 test('M4a B：PM 异步派 at-qa——启动那一刻不判；完成时 06-test.md 还旧，回传只给「重跑之后重写」，不给标 accepted', () => {
   using(B, (fx) => {
-    assert.doesNotMatch(contextOf(run('deliverable', returned('agent-team:at-qa'), GATE, fx.p)), /交付物校验/)
+    assert.doesNotMatch(contextOf(run('deliverable', returned('poundlock:at-qa'), GATE, fx.p)), /交付物校验/)
     const c = contextOf(run('completion', finished(), GATE, fx.p))
     assert.match(c, /06-test\.md/)
     assert.match(c, /重跑之后重写/)
@@ -130,7 +130,7 @@ test('M4a B：PM 异步派 at-qa——启动那一刻不判；完成时 06-test.
 
 test('M4a B：at-qa 不重测就停下（H5b）——拒，理由要它重跑之后重写，不给「追加一节说不用改」这条路', () => {
   using(B, (fx) => {
-    const r = run('stop-gate', stopped('agent-team:at-qa'), GATE, fx.p)
+    const r = run('stop-gate', stopped('poundlock:at-qa'), GATE, fx.p)
     assert.equal(r.status, 2)
     assert.match(r.stderr, /06-test\.md/)
     assert.match(r.stderr, /重跑之后重写/)
@@ -140,7 +140,7 @@ test('M4a B：at-qa 不重测就停下（H5b）——拒，理由要它重跑之
 
 test('M4a B：PM 派 at-acceptance（H2）——前置 06-test.md 还旧，拒，理由只给「重跑之后重写」', () => {
   using(B, (fx) => {
-    const r = run('readiness', dispatch('agent-team:at-acceptance'), GATE, fx.p)
+    const r = run('readiness', dispatch('poundlock:at-acceptance'), GATE, fx.p)
     assert.ok(denied(r))
     const reason = reasonOf(r)
     assert.match(reason, /06-test\.md/)
@@ -183,7 +183,7 @@ test('M4a B：PM 照旧把 06-test.md 标 accepted（H6）——拒，点名验�
 test('M4a B 锚：回到 S5、实现记录还旧时，【返工】与 H5a 照旧给「标 accepted」', () => {
   using({ stage: 'S5', history: [...FIRST, ...H('S5')], reworkBase: baseOf('05-impl/at-backend.md', '06-test.md') }, (fx) => {
     assert.match(contextOf(run('ledger', postedState(fx), GATE, fx.p)), NO_ACCEPT)
-    run('deliverable', returned('agent-team:at-backend'), GATE, fx.p)
+    run('deliverable', returned('poundlock:at-backend'), GATE, fx.p)
     assert.match(contextOf(run('completion', finished(), GATE, fx.p)), NO_ACCEPT)
   })
 })
@@ -229,11 +229,11 @@ test('M4a A H6：已收口之后记回退 → 拒，理由是「已经收口」�
 
 test('M4a A H2：已收口，PM 派协调者、派叶子 → 都拒，给另起一趟、不给记回退', () => {
   using(AT_S8_CLOSED, (fx) => {
-    for (const target of ['agent-team:at-architect', 'agent-team:at-qa']) {
+    for (const target of ['poundlock:at-architect', 'poundlock:at-qa']) {
       const r = run('readiness', dispatch(target), GATE, fx.p)
       assert.ok(denied(r), target)
       assert.match(reasonOf(r), /已经收口/)
-      assert.match(reasonOf(r), /\/agent-team:at /)
+      assert.match(reasonOf(r), /\/poundlock:at /)
       assert.doesNotMatch(reasonOf(r), /记一次回退/)
     }
   })
@@ -242,17 +242,17 @@ test('M4a A H2：已收口，PM 派协调者、派叶子 → 都拒，给另起�
 test('M4a A H2：最后一段、没收口，PM 派协调者 → 拒；派这一轮还没交过的叶子（补收口缺的前置）→ 放行', () => {
   const { ['07-acceptance.md']: _gone, ...files } = DONE_FILES
   using({ ...AT_S8, files }, (fx) => {
-    const r = run('readiness', dispatch('agent-team:at-architect'), GATE, fx.p)
+    const r = run('readiness', dispatch('poundlock:at-architect'), GATE, fx.p)
     assert.ok(denied(r))
     assert.match(reasonOf(r), /最后一段（S8）/)
-    assert.ok(!denied(run('readiness', dispatch('agent-team:at-acceptance'), GATE, fx.p)))
+    assert.ok(!denied(run('readiness', dispatch('poundlock:at-acceptance'), GATE, fx.p)))
   })
 })
 
 test('M4a A H2：最后一段、没收口，PM 重派已经交过的 at-qa → 拒，理由在记回退之外给「先收口再另起一趟」', () => {
   using(AT_S8, (fx) => {
     writeFileSync(join(fx.runDir, 'delivered.json'), JSON.stringify({ stage: 'S8', products: { '06-test.md': sha(R1['06-test.md']) } }))
-    const r = run('readiness', dispatch('agent-team:at-qa'), GATE, fx.p)
+    const r = run('readiness', dispatch('poundlock:at-qa'), GATE, fx.p)
     assert.ok(denied(r))
     assert.match(reasonOf(r), /交付之后的新改动/)
     assert.match(reasonOf(r), /第 6 节收口/)
@@ -297,13 +297,13 @@ test('M4a A 记录器：已收口的 run 上选了返工标签 → 不记，回�
 test('M4a A H5a：最后一段、没收口，补派 at-acceptance 补交缺的前置 → 回传说这是补收口要的、不用记回退', () => {
   const { ['07-acceptance.md']: _gone, ...files } = DONE_FILES
   using({ ...AT_S8, files }, (fx) => {
-    const c = contextOf(run('deliverable', returned('agent-team:at-acceptance'), GATE, fx.p))
+    const c = contextOf(run('deliverable', returned('poundlock:at-acceptance'), GATE, fx.p))
     assert.match(c, /最后一段/)
     assert.match(c, /补收口缺的前置[^\n]*不用记回退/)
   })
   // 锚：不在最后一段时不带这一句。
   using({ stage: 'S6', history: FIRST, files: R1 }, (fx) => {
-    assert.doesNotMatch(contextOf(run('deliverable', returned('agent-team:at-acceptance'), GATE, fx.p)), /补收口缺的前置/)
+    assert.doesNotMatch(contextOf(run('deliverable', returned('poundlock:at-acceptance'), GATE, fx.p)), /补收口缺的前置/)
   })
 })
 
@@ -326,7 +326,7 @@ test('M4a 复核 P9：H2 的收口判据排在就绪与重派判据之前——�
   const { ['04-dispatch.md']: _gone, ...files } = DONE_FILES
   using({ ...AT_S8_CLOSED, files }, (fx) => {
     writeFileSync(join(fx.runDir, 'delivered.json'), JSON.stringify({ stage: 'S8', products: { '06-test.md': sha(R1['06-test.md']) } }))
-    const reason = reasonOf(run('readiness', dispatch('agent-team:at-qa'), GATE, fx.p))
+    const reason = reasonOf(run('readiness', dispatch('poundlock:at-qa'), GATE, fx.p))
     assert.match(reason, /已经收口/)
     assert.doesNotMatch(reason, /前置产物还缺|记一次回退/)
   })
@@ -334,9 +334,9 @@ test('M4a 复核 P9：H2 的收口判据排在就绪与重派判据之前——�
 
 test('M4a 复核 G02：已收口时协调者再往下派 → 拒，收到的是「回报给派你的人」，不是 PM 那一版的另起一趟', () => {
   using(AT_S8_CLOSED, (fx) => {
-    const reason = reasonOf(run('readiness', dispatch('agent-team:at-backend', 'agent-team:at-architect'), GATE, fx.p))
+    const reason = reasonOf(run('readiness', dispatch('poundlock:at-backend', 'poundlock:at-architect'), GATE, fx.p))
     assert.match(reason, /回报给派你的人/)
-    assert.doesNotMatch(reason, /\/agent-team:at /)
+    assert.doesNotMatch(reason, /\/poundlock:at /)
   })
 })
 
@@ -353,7 +353,7 @@ test('M4a 复核 P2：已收口的 run 不发【返工预算】（问用户批�
 
 test('M4a 复核 REAL-1：已收口的 run 上，at-acceptance 返回不再发「不是当前阶段的执行者」那条（停在旧阶段、记回退都不对）', () => {
   using(AT_S8_CLOSED, (fx) => {
-    const c = contextOf(run('deliverable', returned('agent-team:at-acceptance'), GATE, fx.p))
+    const c = contextOf(run('deliverable', returned('poundlock:at-acceptance'), GATE, fx.p))
     assert.doesNotMatch(c, /停在旧阶段|记一次回退/)
   })
 })
@@ -361,7 +361,7 @@ test('M4a 复核 REAL-1：已收口的 run 上，at-acceptance 返回不再发�
 test('M4a 复核 REAL-1：已收口的 run 上，at-acceptance 改它交过的 07 → 拒，理由说已经收口，不叫记回退或推进', () => {
   using(AT_S8_CLOSED, (fx) => {
     writeFileSync(join(fx.runDir, 'delivered.json'), JSON.stringify({ stage: 'S8', products: { '07-acceptance.md': sha(DONE_FILES['07-acceptance.md']) } }))
-    const w = { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'agent-team:at-acceptance', tool_input: { file_path: join(fx.runDir, '07-acceptance.md'), content: 'x' } }
+    const w = { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'poundlock:at-acceptance', tool_input: { file_path: join(fx.runDir, '07-acceptance.md'), content: 'x' } }
     const r = run('writepath', w, GATE, fx.p)
     assert.ok(denied(r))
     assert.match(reasonOf(r), /已经收口/)
@@ -384,7 +384,7 @@ test('M4a 复核 P7、G09：【产者交代】在最后一段——只能经协�
 
 test('M4a 复核 F9：at-qa 不重测就停下——H5b 对它本人说「你这一轮重跑之后重写」，并说明结果相同时怎么写', () => {
   using(B, (fx) => {
-    const r = run('stop-gate', stopped('agent-team:at-qa'), GATE, fx.p)
+    const r = run('stop-gate', stopped('poundlock:at-qa'), GATE, fx.p)
     assert.match(r.stderr, /你这一轮重跑之后重写/)
     assert.doesNotMatch(r.stderr, /让它的产者/)
     assert.match(r.stderr, /结论与上一轮相同/)
@@ -393,7 +393,7 @@ test('M4a 复核 F9：at-qa 不重测就停下——H5b 对它本人说「你这
 
 test('M4a 复核 B-6：H2 前置还旧的理由里「重跑之后重写」只说一遍', () => {
   using(B, (fx) => {
-    const reason = reasonOf(run('readiness', dispatch('agent-team:at-acceptance'), GATE, fx.p))
+    const reason = reasonOf(run('readiness', dispatch('poundlock:at-acceptance'), GATE, fx.p))
     assert.equal(reason.split('重跑之后重写').length - 1, 1, reason)
   })
 })
@@ -401,10 +401,10 @@ test('M4a 复核 B-6：H2 前置还旧的理由里「重跑之后重写」只说
 test('M4a 复核 G12、G15：H5a「补收口缺的前置」只说给改得了 state.json 的人；不在最后一段时补记提示带「验证段的产物除外」', () => {
   const { ['07-acceptance.md']: _gone, ...files } = DONE_FILES
   using({ ...AT_S8, files }, (fx) => {
-    assert.doesNotMatch(contextOf(run('deliverable', returned('agent-team:at-acceptance', 'agent-team:at-architect'), GATE, fx.p)), /补收口缺的前置/)
+    assert.doesNotMatch(contextOf(run('deliverable', returned('poundlock:at-acceptance', 'poundlock:at-architect'), GATE, fx.p)), /补收口缺的前置/)
   })
   using(B, (fx) => {
-    assert.match(contextOf(run('deliverable', returned('agent-team:at-backend'), GATE, fx.p)), /验证段的产物除外/)
+    assert.match(contextOf(run('deliverable', returned('poundlock:at-backend'), GATE, fx.p)), /验证段的产物除外/)
   })
 })
 
@@ -423,8 +423,8 @@ test('M4a 复核 G08：最后一段、没收口、前置还是上一轮的 → �
 test('M4a 复核二 G1：06-test.md 是空文件（快照里记着空内容的 sha）→ PM 派 at-qa 补交放行、at-qa 写它放行', () => {
   using({ ...AT_S8, files: { ...DONE_FILES, '06-test.md': '' } }, (fx) => {
     writeFileSync(join(fx.runDir, 'delivered.json'), JSON.stringify({ stage: 'S8', products: { '06-test.md': sha('') } }))
-    assert.ok(!denied(run('readiness', dispatch('agent-team:at-qa'), GATE, fx.p)))
-    const w = { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'agent-team:at-qa', tool_input: { file_path: join(fx.runDir, '06-test.md'), content: 'x' } }
+    assert.ok(!denied(run('readiness', dispatch('poundlock:at-qa'), GATE, fx.p)))
+    const w = { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'poundlock:at-qa', tool_input: { file_path: join(fx.runDir, '06-test.md'), content: 'x' } }
     assert.ok(!denied(run('writepath', w, GATE, fx.p)))
   })
 })
@@ -467,18 +467,18 @@ test('M4a 复核二 P7：最后一段的【产者交代】——at-architect 与
 test('M4a 复核二 PF-2：最后一段补交 at-acceptance 返回 → 回传叫它从第 6 节第一步重走一遍再收口', () => {
   const { ['07-acceptance.md']: _gone, ...files } = DONE_FILES
   using({ ...AT_S8, files }, (fx) => {
-    assert.match(contextOf(run('deliverable', returned('agent-team:at-acceptance'), GATE, fx.p)), /从第一步重走一遍/)
+    assert.match(contextOf(run('deliverable', returned('poundlock:at-acceptance'), GATE, fx.p)), /从第一步重走一遍/)
   })
 })
 
 test('M4a 复核二 D02、F03：已收口 H3 拒绝理由给出路；H5b 对产者本人说只追加一句不算', () => {
   using(AT_S8_CLOSED, (fx) => {
     writeFileSync(join(fx.runDir, 'delivered.json'), JSON.stringify({ stage: 'S8', products: { '07-acceptance.md': sha(DONE_FILES['07-acceptance.md']) } }))
-    const w = { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'agent-team:at-acceptance', tool_input: { file_path: join(fx.runDir, '07-acceptance.md'), content: 'x' } }
+    const w = { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'poundlock:at-acceptance', tool_input: { file_path: join(fx.runDir, '07-acceptance.md'), content: 'x' } }
     assert.match(reasonOf(run('writepath', w, GATE, fx.p)), /写进你的回报，由项目经理另起一趟/)
   })
   using(B, (fx) => {
-    assert.match(run('stop-gate', stopped('agent-team:at-qa'), GATE, fx.p).stderr, /只在末尾追加一句「核过」不算/)
+    assert.match(run('stop-gate', stopped('poundlock:at-qa'), GATE, fx.p).stderr, /只在末尾追加一句「核过」不算/)
   })
 })
 
@@ -489,7 +489,7 @@ const INJECT = fileURLToPath(new URL('./helpers/inject-throw.cjs', import.meta.u
 // F1：空文件在交付那一刻就不算交了——at-qa 交一个空的 06-test.md 停不下来；PM 跳过它派 at-acceptance，H2 按前置缺拒。
 test('M4a 核对 F1：首轮 S6，at-qa 交空的 06-test.md 就停 → H5b 拒，说是空文件', () => {
   using({ stage: 'S6', history: FIRST, files: { ...R1, '06-test.md': '\n  \n' } }, (fx) => {
-    const r = run('stop-gate', stopped('agent-team:at-qa'), GATE, fx.p)
+    const r = run('stop-gate', stopped('poundlock:at-qa'), GATE, fx.p)
     assert.equal(r.status, 2)
     assert.match(r.stderr, /06-test\.md 是空文件/)
   })
@@ -497,7 +497,7 @@ test('M4a 核对 F1：首轮 S6，at-qa 交空的 06-test.md 就停 → H5b 拒�
 
 test('M4a 核对 F1：S7，06-test.md 是空文件，派 at-acceptance → H2 拒，前置缺 06', () => {
   using({ stage: 'S7', history: [...FIRST, ...H('S7')], files: { ...R1, '06-test.md': '' } }, (fx) => {
-    const r = run('readiness', dispatch('agent-team:at-acceptance'), GATE, fx.p)
+    const r = run('readiness', dispatch('poundlock:at-acceptance'), GATE, fx.p)
     assert.ok(denied(r))
     assert.match(reasonOf(r), /前置产物还缺[^\n]*06-test\.md/)
   })
@@ -507,7 +507,7 @@ test('M4a 核对 F1：S7，06-test.md 是空文件，派 at-acceptance → H2 �
 test('M4a 核对 F2：S6，at-ui 的 02-wireframe.html 是空文件，它改已经交过的 02-ui-spec.md → 拒（不当成补派）', () => {
   using({ stage: 'S6', history: FIRST, files: { ...R1, '02-wireframe.html': '' } }, (fx) => {
     writeFileSync(join(fx.runDir, 'delivered.json'), JSON.stringify({ stage: 'S6', products: { '02-ui-spec.md': sha(R1['02-ui-spec.md']) } }))
-    const w = { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'agent-team:at-ui', tool_input: { file_path: join(fx.runDir, '02-ui-spec.md'), content: 'y' } }
+    const w = { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'poundlock:at-ui', tool_input: { file_path: join(fx.runDir, '02-ui-spec.md'), content: 'y' } }
     assert.ok(denied(run('writepath', w, GATE, fx.p)))
   })
 })
@@ -515,7 +515,7 @@ test('M4a 核对 F2：S6，at-ui 的 02-wireframe.html 是空文件，它改已�
 // F3（G07）：ledger 的收口阻碍对「在、却读不出来」那一支——用崩溃注入的 read: 模式造出来。
 test('M4a 核对 G07：最后一段的 08-delivery.md 读不出来 → 【阶段】不催收口，点名读不出来', () => {
   using(AT_S8, (fx) => {
-    const r = run('ledger', postedState(fx), GATE, fx.p, { ...hermeticEnv(), AGENT_TEAM_TEST_THROW: 'read:08-delivery.md' }, { nodeArgs: ['-r', INJECT] })
+    const r = run('ledger', postedState(fx), GATE, fx.p, { ...hermeticEnv(), POUNDLOCK_TEST_THROW: 'read:08-delivery.md' }, { nodeArgs: ['-r', INJECT] })
     const c = contextOf(r)
     assert.doesNotMatch(c, /该收口了/)
     assert.match(c, /08-delivery\.md（在磁盘上但读不出来/)
@@ -526,7 +526,7 @@ test('M4a 核对 G07：最后一段的 08-delivery.md 读不出来 → 【阶段
 test('M4a 核对 PG-6：最后一段补交的 at-acceptance 返回 → 回传不说「两种可能」', () => {
   const { ['07-acceptance.md']: _gone, ...files } = DONE_FILES
   using({ ...AT_S8, files }, (fx) => {
-    const c = contextOf(run('deliverable', returned('agent-team:at-acceptance'), GATE, fx.p))
+    const c = contextOf(run('deliverable', returned('poundlock:at-acceptance'), GATE, fx.p))
     assert.match(c, /补收口缺的前置/)
     assert.doesNotMatch(c, /两种可能/)
   })

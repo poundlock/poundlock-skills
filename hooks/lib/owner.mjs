@@ -5,7 +5,7 @@
 // 对一趟有归属、没收口、主人不是自己的 run——写它的文件、另建一趟、把 current-run 从它切走或指到它、以它的名义派人——门禁拒；子代理照旧
 // 按派发记录认回派它的那一趟，不归这里管。没有归属记录的 run（升级之前建的、用 Bash 建的、hook 输入里没有会话 id 时建的）一切照旧。
 //
-// 命令展开那一刻（/agent-team:at、at-resume、at-status），门禁用 sessionNotice 告诉项目经理这一趟归另一个会话，正文照它问用户：是不是要补充
+// 命令展开那一刻（/poundlock:at、at-resume、at-status），门禁用 sessionNotice 告诉项目经理这一趟归另一个会话，正文照它问用户：是不是要补充
 // 给那一趟、要不要在这个会话接手。标签是这里的单一真源，正文与判据都从这里取。
 import { isPlainObject } from './stages.mjs'
 import { normalizeText } from './text-norm.mjs'
@@ -14,7 +14,7 @@ import { quote } from './trusted.mjs'
 
 export { OWNER_FILE } from './control-files.mjs'
 
-// 规范标签。前两个是「别的会话里起 /agent-team:at、那一趟还在跑」时的两个选项；后两个是接手（门禁只记这两个）；最后一个是「回那个会话」。
+// 规范标签。前两个是「别的会话里起 /poundlock:at、那一趟还在跑」时的两个选项；后两个是接手（门禁只记这两个）；最后一个是「回那个会话」。
 export const SUPPLEMENT_LABEL = '是，回那个会话补充'
 export const END_LABEL = '不是，结束这次'
 export const TAKEOVER_LABEL = '在这个会话接手'
@@ -90,8 +90,8 @@ export function ownerDispatchBlock({ sessionId, pointerId, infoOf }) {
 
 // 同一个窗口里用过 /clear 的，会话 id 已经换了一个：那也算原来那个会话关了。
 const OUT_WAY =
-  '照 /agent-team:at 第 1 节「别的会话的一趟」办：问用户这次是不是要补充给那一趟；原来那个会话已经关了的（同一个窗口里用过 /clear 也算），' +
-  '用 /agent-team:at-resume 在这个会话接手。'
+  '照 /poundlock:at 第 1 节「别的会话的一趟」办：问用户这次是不是要补充给那一趟；原来那个会话已经关了的（同一个窗口里用过 /clear 也算），' +
+  '用 /poundlock:at-resume 在这个会话接手。'
 
 /** H3、H2 的拒绝理由。run id 是磁盘上的值，过 quote。 */
 export function ownerDenyReason(block) {
@@ -103,7 +103,7 @@ export function ownerDenyReason(block) {
   else if (block.kind === 'pointer') what = `${whose}，这个会话不能把 current-run 从它切走。`
   else if (block.kind === 'dispatch') what = `current-run 指着的 ${whose}，这个会话不能以它的名义派人。`
   else what = `${whose}，这个会话不能写它。`
-  return `agent-team 会话归属：${what}${OUT_WAY}`
+  return `poundlock 会话归属：${what}${OUT_WAY}`
 }
 
 const RUN_ID_CHAR = /[A-Za-z0-9._-]/
@@ -168,7 +168,7 @@ export function labelAnswer(toolResponse, labels) {
 
 /**
  * 命令展开那一刻给项目经理的【会话】一段：current-run 指着的那一趟归另一个会话。command：'at' | 'at-resume' | 'at-status' | 'at-tweak'（at-tweak 与 at
- * 同一条出路：照 /agent-team:at 第 1 节「别的会话的一趟」问）。
+ * 同一条出路：照 /poundlock:at 第 1 节「别的会话的一趟」问）。
  * startedAt（那一趟 history 第一条的时间）、wordsHead（原话开头）都是磁盘上的值，过 quote；读不出来为 null，不说那一样。
  */
 export function sessionNotice({ command, runId, startedAt = null, wordsHead = null, delivered = false, via = 'create' }) {
@@ -180,9 +180,9 @@ export function sessionNotice({ command, runId, startedAt = null, wordsHead = nu
   const head =
     `【会话】current-run 指着的 ${quote(runId)} 这一趟${who}${facts.length ? `（${facts.join('，')}）` : ''}，还没收口` +
     (delivered ? '——停在最后一段、交付文档已经写了，只差收口。' : '。')
-  if (command === 'at-resume') return `${head}这个会话不能接着跑它：照 /agent-team:at-resume 第 1 节「别的会话的一趟」问用户。`
+  if (command === 'at-resume') return `${head}这个会话不能接着跑它：照 /poundlock:at-resume 第 1 节「别的会话的一趟」问用户。`
   if (command === 'at-status') return `${head}报进度时说明它归另一个会话；这个会话只能看，不能接着跑它。`
-  return `${head}这个会话不能另起一趟，也不能写它、以它的名义派人：照 /agent-team:at 第 1 节「别的会话的一趟」问用户，不读别的、不写任何文件。`
+  return `${head}这个会话不能另起一趟，也不能写它、以它的名义派人：照 /poundlock:at 第 1 节「别的会话的一趟」问用户，不读别的、不写任何文件。`
 }
 
 const TAKEOVER_WHY = {

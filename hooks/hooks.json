@@ -160,7 +160,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo 'agent-team reminder: before the first Agent dispatch or the first write under .agent-team in this turn, run the gate self-check from your role file. Earlier results do not count: this session may have been resumed in another process.'",
+            "command": "echo 'poundlock reminder: before the first Agent dispatch or the first write under .poundlock in this turn, run the gate self-check from your role file. Earlier results do not count: this session may have been resumed in another process.'",
             "timeout": 10
           }
         ]
@@ -196,7 +196,7 @@
     ],
     "UserPromptExpansion": [
       {
-        "matcher": "^agent-team:(at|at-tweak)$",
+        "matcher": "^poundlock:(at|at-tweak)$",
         "hooks": [
           {
             "type": "command",
@@ -211,7 +211,7 @@
         ]
       },
       {
-        "matcher": "^agent-team:(at|at-resume|at-status|at-tweak)$",
+        "matcher": "^poundlock:(at|at-resume|at-status|at-tweak)$",
         "hooks": [
           {
             "type": "command",

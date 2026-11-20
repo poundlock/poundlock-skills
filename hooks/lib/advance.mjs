@@ -36,7 +36,7 @@ export function requiredBy(stages, name) {
 
 // 这一趟在 sid 那一段叫到过的产者：写入后与写入前 participantsOf 的并集（同一次写入挪走 stage_roles 里的人翻不成「没叫过」，
 // 与 closing.mjs 的 calledIn 同一个口径），再与这一段的产者求交。participantsOf 给 undefined（roster 不是数组的坏 state）按空集算。
-// 旧 run 半路加上 stage_roles（/agent-team:at 第 3 节明令不要）时写入前那一边是整趟 roster，S2 叫过的 at-ui 会被算成 S5 的参与者——
+// 旧 run 半路加上 stage_roles（/poundlock:at 第 3 节明令不要）时写入前那一边是整趟 roster，S2 叫过的 at-ui 会被算成 S5 的参与者——
 // 照收口那一处（复核二 G2）的取舍不剔掉它：剔掉的话「新加 stage_roles」就能把叫过的人翻成没叫过。出路是 trimmed（值写那一段）。
 // dispatched：{ 段: [角色] }，门禁派发记录里在每一段派出去过的角色（可选；调用方读不出来时不给）。
 export function calledIn(stages, sid, state, prior, dispatched = null) {
@@ -64,7 +64,7 @@ export function dispatchedIn(sid, dispatched) {
 // docs/76：isStageDone 也用它（叫到之后又裁掉的免除，与推进同一个口径）。
 export const trimmedAt = (state, role, sid) => isPlainObject(state?.trimmed) && Object.hasOwn(state.trimmed, role) && state.trimmed[role] === sid
 
-// 整段裁掉：这一段的产者都在 trimmed 里、记的就是这一段（PM 裁掉了它们——测试那一段要用户的话，/agent-team:at 第 4 节），这一趟在这一段一个都没叫过（calledIn，
+// 整段裁掉：这一段的产者都在 trimmed 里、记的就是这一段（PM 裁掉了它们——测试那一段要用户的话，/poundlock:at 第 4 节），这一趟在这一段一个都没叫过（calledIn，
 // 写入前后取并集），而且没有一个是 PM——PM 不裁自己的段。推进（departureNeeds）与收口（closing.mjs 的 trimmedAway）共用这一份：
 // 「整段裁掉」此前在两处各写一份，收口那一份没有「PM 不裁自己」这一条（收口的前置不是 PM 的产物，所以两份当时行为相同）。
 export function wholeStageTrimmed(stages, sid, state, prior, dispatched = null) {
@@ -144,7 +144,7 @@ export function decideSingleStep({ before, after, stages }) {
     ok: false,
     reason:
       `一次只推进一段：这次写入从 ${quote(before.stage)} 推进到 ${quote(after.stage)}，跨过了 ${skipped.join('、')}。先只推进到 ` +
-      `${ids[from + 1]}（离开 ${ids[from]} 的账同一次记掉），之后每一段推进各一次 Write（/agent-team:at 第 3 节）——每一次推进，` +
+      `${ids[from + 1]}（离开 ${ids[from]} 的账同一次记掉），之后每一段推进各一次 Write（/poundlock:at 第 3 节）——每一次推进，` +
       '门禁都核离开的那一段交齐了没有。跨过去的段要是确实不做，走到它、推进出它的那一次把它的产者写进 trimmed——后面要它的产物当前置的段' +
       '（例：S7 的验收要 S6 的测试报告），跟着也派不出人，只能一起整段裁掉，交付文档里写明少了哪几段。' +
       (skipped.some((sid) => isTestStage(stages, sid)) ? `${TRIM_TEST_ASK}。` : ''),
@@ -236,7 +236,7 @@ export function departureLines(stages, blockers, unrecorded) {
   if (called.length) {
     lines.push(
       '叫过却没交齐的：还在跑的（后台派发还没返回）等它返回、去磁盘核过再推进；返回了的读它的回复——第一行是「冒泡：」的，照 ' +
-        '/agent-team:at 第 3 节「核实」那一条定（同一段里重派、照第 4 节问用户，或者记回退），没冒泡就是漏了，同一段里重派它（不计返工）。' +
+        '/poundlock:at 第 3 节「核实」那一条定（同一段里重派、照第 4 节问用户，或者记回退），没冒泡就是漏了，同一段里重派它（不计返工）。' +
         '你派不到的（at-ui、S5 的执行角色），经这一段派得到它的那个协调者去派。',
     )
     if (waivable.length) {

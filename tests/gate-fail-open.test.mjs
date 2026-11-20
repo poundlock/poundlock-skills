@@ -31,7 +31,7 @@ const TEMPLATE = JSON.parse(readFileSync(new URL('templates/project.json', REPO)
 // M4g（docs/42）：正路上 PM 照【触达表】写进 reach.json 的那一份——门禁写完会重算核对，占位的 {} 现在会被核出来。
 const REACH_RIGHT = safeJson(computeReach({ roster: JSON.parse(readFileSync(new URL('roster.json', REPO), 'utf8')), paths: TEMPLATE.paths }))
 const INJECT = fileURLToPath(new URL('./helpers/inject-throw.cjs', import.meta.url))
-const PM = 'agent-team:at-pm'
+const PM = 'poundlock:at-pm'
 const MARK = '【门禁】'
 
 const parse = (r) => (r.stdout.trim() ? JSON.parse(r.stdout) : null)
@@ -54,20 +54,20 @@ function healthy({ stage = 'S2', history = null, roster = [], artifacts = [] } =
   const dirs = makeRun({ runId: 'r1', stage, history, roster, artifacts, project: TEMPLATE })
   rmSync(dirs.pluginDir, { recursive: true, force: true })
   const p = dirs.projectDir
-  return { p, runDir: join(p, '.agent-team', 'runs', 'r1'), gate: GATE, cleanup: () => rmSync(p, { recursive: true, force: true }) }
+  return { p, runDir: join(p, '.poundlock', 'runs', 'r1'), gate: GATE, cleanup: () => rmSync(p, { recursive: true, force: true }) }
 }
 
 function noRun() {
-  const p = realpathSync(mkdtempSync(join(tmpdir(), 'agent-team-fo-')))
-  mkdirSync(join(p, '.agent-team'), { recursive: true })
-  writeFileSync(join(p, '.agent-team', 'project.json'), JSON.stringify(TEMPLATE), 'utf8')
+  const p = realpathSync(mkdtempSync(join(tmpdir(), 'poundlock-fo-')))
+  mkdirSync(join(p, '.poundlock'), { recursive: true })
+  writeFileSync(join(p, '.poundlock', 'project.json'), JSON.stringify(TEMPLATE), 'utf8')
   return { p, runDir: null, gate: GATE, cleanup: () => rmSync(p, { recursive: true, force: true }) }
 }
 
 // 插件副本，stages.json 写坏：cause 是 plugin。
 // stagesText / rosterText 缺省时 stages.json 写坏、roster.json 照抄本仓库的。
 function withBrokenPlugin(fx, { stagesText = '{ x', rosterText = null } = {}) {
-  const plugin = realpathSync(mkdtempSync(join(tmpdir(), 'agent-team-fo-plug-')))
+  const plugin = realpathSync(mkdtempSync(join(tmpdir(), 'poundlock-fo-plug-')))
   cpSync(new URL('hooks', REPO), join(plugin, 'hooks'), { recursive: true })
   if (rosterText === null) cpSync(new URL('roster.json', REPO), join(plugin, 'roster.json'))
   else writeFileSync(join(plugin, 'roster.json'), rosterText, 'utf8')
@@ -79,15 +79,15 @@ function withBrokenPlugin(fx, { stagesText = '{ x', rosterText = null } = {}) {
 
 // 判不出来的几种状态，按 runctx 的 cause 分。
 const UNREADABLE = {
-  'pointer（丢了）': ['pointer', () => { const fx = healthy(); rmSync(join(fx.p, '.agent-team', 'current-run')); return fx }],
-  'pointer（悬空）': ['pointer', () => { const fx = healthy(); writeFileSync(join(fx.p, '.agent-team', 'current-run'), 'r9', 'utf8'); return fx }],
+  'pointer（丢了）': ['pointer', () => { const fx = healthy(); rmSync(join(fx.p, '.poundlock', 'current-run')); return fx }],
+  'pointer（悬空）': ['pointer', () => { const fx = healthy(); writeFileSync(join(fx.p, '.poundlock', 'current-run'), 'r9', 'utf8'); return fx }],
   state: ['state', () => { const fx = healthy(); writeFileSync(join(fx.runDir, 'state.json'), '{ x', 'utf8'); return fx }],
-  project: ['project', () => { const fx = healthy(); writeFileSync(join(fx.p, '.agent-team', 'project.json'), '{ x', 'utf8'); return fx }],
+  project: ['project', () => { const fx = healthy(); writeFileSync(join(fx.p, '.poundlock', 'project.json'), '{ x', 'utf8'); return fx }],
   runs: ['runs', () => {
     const fx = healthy()
-    rmSync(join(fx.p, '.agent-team', 'current-run'))
-    rmSync(join(fx.p, '.agent-team', 'runs'), { recursive: true, force: true })
-    writeFileSync(join(fx.p, '.agent-team', 'runs'), '不是目录', 'utf8')
+    rmSync(join(fx.p, '.poundlock', 'current-run'))
+    rmSync(join(fx.p, '.poundlock', 'runs'), { recursive: true, force: true })
+    writeFileSync(join(fx.p, '.poundlock', 'runs'), '不是目录', 'utf8')
     return fx
   }],
   plugin: ['plugin', () => withBrokenPlugin(healthy())],
@@ -141,8 +141,8 @@ test('readiness：任何状态、任何调用者，stdout 都不含受信前缀�
   const states = { 'no-run': noRun, ...Object.fromEntries(Object.entries(UNREADABLE).map(([k, [, make]]) => [k, make])) }
   for (const [label, make] of Object.entries(states)) {
     using(make, (fx) => {
-      for (const caller of [PM, undefined, 'agent-team:at-architect']) {
-        for (const target of ['agent-team:at-product', 'agent-team:at-backend', 'general-purpose']) {
+      for (const caller of [PM, undefined, 'poundlock:at-architect']) {
+        for (const target of ['poundlock:at-product', 'poundlock:at-backend', 'general-purpose']) {
           const r = run('readiness', dispatch('PreToolUse', caller, target), fx.gate, fx.p)
           assert.equal(r.stdout, '', `${label} ${caller} → ${target}：${r.stdout}`)
         }
@@ -150,7 +150,7 @@ test('readiness：任何状态、任何调用者，stdout 都不含受信前缀�
     })
   }
   using(() => healthy({ stage: 'S2' }), (fx) => {
-    const r = run('readiness', dispatch('PreToolUse', PM, 'agent-team:at-product'), fx.gate, fx.p)
+    const r = run('readiness', dispatch('PreToolUse', PM, 'poundlock:at-product'), fx.gate, fx.p)
     assert.ok(!r.stdout.includes(TRUSTED_PREFIX), r.stdout)
   })
 })
@@ -160,7 +160,7 @@ test('readiness：任何状态、任何调用者，stdout 都不含受信前缀�
 test('H5a no-run：PM 与主线程派一个它派得动的团队角色——【门禁】说明有意的放行，给用户一行', () => {
   using(noRun, (fx) => {
     for (const caller of [PM, undefined]) {
-      const r = run('deliverable', dispatch('PostToolUse', caller, 'agent-team:at-product'), fx.gate, fx.p)
+      const r = run('deliverable', dispatch('PostToolUse', caller, 'poundlock:at-product'), fx.gate, fx.p)
       assert.equal(ctxOf(r), `${TRUSTED_PREFIX}：\n${dispatchNoRunNotice()}`)
       assert.equal(smOf(r), systemMessage('dispatch-no-run'))
       assert.match(r.stderr, /当前没有进行中的 run/)
@@ -171,9 +171,9 @@ test('H5a no-run：PM 与主线程派一个它派得动的团队角色——【�
 test('H5a no-run 反例：目标不在调用者的 can_delegate_to 里、或者是协调者发起的——stdout 为空', () => {
   using(noRun, (fx) => {
     const cells = [
-      [PM, 'general-purpose'], [PM, 'Explore'], [PM, 'agent-team:at-backend'], [PM, 'agent-team:at-outsider'],
-      [PM, 'agent-team:at-pm'], [undefined, 'agent-team:at-backend'],
-      ['agent-team:at-architect', 'agent-team:at-backend'], ['agent-team:at-product', 'agent-team:at-ui'], ['', 'agent-team:at-product'],
+      [PM, 'general-purpose'], [PM, 'Explore'], [PM, 'poundlock:at-backend'], [PM, 'poundlock:at-outsider'],
+      [PM, 'poundlock:at-pm'], [undefined, 'poundlock:at-backend'],
+      ['poundlock:at-architect', 'poundlock:at-backend'], ['poundlock:at-product', 'poundlock:at-ui'], ['', 'poundlock:at-product'],
     ]
     for (const [caller, target] of cells) {
       const r = run('deliverable', dispatch('PostToolUse', caller, target), fx.gate, fx.p)
@@ -186,7 +186,7 @@ test('H5a unreadable：PM 与主线程发起的派发收到按原因的修法；
   for (const [label, [cause, make]] of Object.entries(UNREADABLE)) {
     using(make, (fx) => {
       for (const caller of [PM, undefined]) {
-        const r = run('deliverable', dispatch('PostToolUse', caller, 'agent-team:at-product'), fx.gate, fx.p)
+        const r = run('deliverable', dispatch('PostToolUse', caller, 'poundlock:at-product'), fx.gate, fx.p)
         assert.equal(ctxOf(r), `${TRUSTED_PREFIX}：\n${dispatchUnreadableNotice(cause)}`, label)
         assert.equal(smOf(r), systemMessage('dispatch-unreadable', { cause }), label)
         assert.match(r.stderr, /读不到运行上下文/, label)
@@ -198,7 +198,7 @@ test('H5a unreadable：PM 与主线程发起的派发收到按原因的修法；
 test('H5a unreadable：project、plugin、runs 三种原因不把 PM 指去修 current-run 或 state.json', () => {
   for (const label of ['project', 'plugin', 'runs']) {
     using(UNREADABLE[label][1], (fx) => {
-      const ctx = ctxOf(run('deliverable', dispatch('PostToolUse', PM, 'agent-team:at-product'), fx.gate, fx.p))
+      const ctx = ctxOf(run('deliverable', dispatch('PostToolUse', PM, 'poundlock:at-product'), fx.gate, fx.p))
       assert.ok(ctx.includes(MARK), label)
       assert.doesNotMatch(ctx, /current-run|state\.json/, `${label}：${ctx}`)
     })
@@ -208,7 +208,7 @@ test('H5a unreadable：project、plugin、runs 三种原因不把 PM 指去修 c
 test('H5a unreadable 反例：协调者发起的派发只留 stderr（它派的角色写入时会被 H3 以同一个原因拒掉）', () => {
   for (const [label, [, make]] of Object.entries(UNREADABLE)) {
     using(make, (fx) => {
-      const r = run('deliverable', dispatch('PostToolUse', 'agent-team:at-architect', 'agent-team:at-backend'), fx.gate, fx.p)
+      const r = run('deliverable', dispatch('PostToolUse', 'poundlock:at-architect', 'poundlock:at-backend'), fx.gate, fx.p)
       assert.equal(r.stdout, '', label)
       assert.match(r.stderr, /读不到运行上下文/, label)
     })
@@ -218,17 +218,17 @@ test('H5a unreadable 反例：协调者发起的派发只留 stderr（它派的�
 test('H5a 丢指针、有好几趟 run：给规则（最后建的那一趟、拿不准问用户），不列目录名', () => {
   const make = () => {
     const fx = healthy({ stage: 'S8' })
-    const runs = join(fx.p, '.agent-team', 'runs')
+    const runs = join(fx.p, '.poundlock', 'runs')
     const newer = join(runs, '20260929-1100-hello-lang')
     const older = join(runs, '20260918-1000-farewell-draft')
     cpSync(fx.runDir, newer, { recursive: true })
     cpSync(fx.runDir, older, { recursive: true })
     rmSync(fx.runDir, { recursive: true, force: true })
-    rmSync(join(fx.p, '.agent-team', 'current-run'))
+    rmSync(join(fx.p, '.poundlock', 'current-run'))
     return fx
   }
   using(make, (fx) => {
-    const ctx = ctxOf(run('deliverable', dispatch('PostToolUse', PM, 'agent-team:at-product'), fx.gate, fx.p))
+    const ctx = ctxOf(run('deliverable', dispatch('PostToolUse', PM, 'poundlock:at-product'), fx.gate, fx.p))
     assert.match(ctx, /最后建的那一趟/)
     assert.match(ctx, /问用户/)
     assert.doesNotMatch(ctx, /hello-lang|farewell-draft|20260929|20260918/)
@@ -242,7 +242,7 @@ test('ledger unreadable：PM 写 run 目录下的契约与产物——【门禁�
     const [cause, make] = UNREADABLE[label]
     using(make, (fx) => {
       for (const [caller, rel] of [[PM, '00-contract.md'], [undefined, '01-prd.md']]) {
-        const file = join(fx.p, '.agent-team', 'runs', 'r1', rel)
+        const file = join(fx.p, '.poundlock', 'runs', 'r1', rel)
         mkdirSync(dirname(file), { recursive: true })
         writeFileSync(file, '# x\n', 'utf8')
         const r = run('ledger', writing('PostToolUse', caller, file), fx.gate, fx.p)
@@ -253,15 +253,15 @@ test('ledger unreadable：PM 写 run 目录下的契约与产物——【门禁�
   }
 })
 
-test('ledger unreadable 反例：.agent-team 下 run 目录之外的文件、控制文件、.agent-team 之外、非 PM——stdout 为空', () => {
+test('ledger unreadable 反例：.poundlock 下 run 目录之外的文件、控制文件、.poundlock 之外、非 PM——stdout 为空', () => {
   using(UNREADABLE['pointer（丢了）'][1], (fx) => {
     const cells = [
-      [PM, join(fx.p, '.agent-team', 'notes.md'), 'notes'],
+      [PM, join(fx.p, '.poundlock', 'notes.md'), 'notes'],
       [PM, join(fx.runDir, 'state.json'), JSON.stringify({ stage: 'S2' })],
       [PM, join(fx.p, 'src', 'app.js'), 'x'],
       [undefined, join(fx.p, 'README.md'), 'x'],
-      ['agent-team:at-backend', join(fx.runDir, '05-impl', 'at-backend.md'), 'x'],
-      ['agent-team:at-architect', join(fx.runDir, '03-design.md'), 'x'],
+      ['poundlock:at-backend', join(fx.runDir, '05-impl', 'at-backend.md'), 'x'],
+      ['poundlock:at-architect', join(fx.runDir, '03-design.md'), 'x'],
     ]
     for (const [caller, file, content] of cells) {
       mkdirSync(dirname(file), { recursive: true })
@@ -279,11 +279,11 @@ test('ledger unreadable 反例：.agent-team 下 run 目录之外的文件、控
 })
 
 // 第三轮真实会话（docs/30 §3）：PM 用 Bash cd 进了 run 目录，相对路径的 Write 把 state.json 写进了嵌套的
-// .agent-team/runs/<id>/。门禁此前把 run 目录认成项目根、判丢指针、又因为写的是（那个根下的）控制文件一句不说——PM 对用户说
-// 「已修好」，真的 state.json 仍是坏的。项目根不在 .agent-team 里面：照旧认外面那个项目，这次写入落在 runs/ 下、不是控制文件。
-test('ledger：cwd 在 run 目录里、写进嵌套的 .agent-team——项目根照旧是外面那个，【门禁】说 state.json 仍读不出来', () => {
+// .poundlock/runs/<id>/。门禁此前把 run 目录认成项目根、判丢指针、又因为写的是（那个根下的）控制文件一句不说——PM 对用户说
+// 「已修好」，真的 state.json 仍是坏的。项目根不在 .poundlock 里面：照旧认外面那个项目，这次写入落在 runs/ 下、不是控制文件。
+test('ledger：cwd 在 run 目录里、写进嵌套的 .poundlock——项目根照旧是外面那个，【门禁】说 state.json 仍读不出来', () => {
   using(UNREADABLE.state[1], (fx) => {
-    const nested = join(fx.runDir, '.agent-team', 'runs', 'r1', 'state.json')
+    const nested = join(fx.runDir, '.poundlock', 'runs', 'r1', 'state.json')
     mkdirSync(dirname(nested), { recursive: true })
     writeFileSync(nested, JSON.stringify({ stage: 'S2' }), 'utf8')
     const r = run('ledger', writing('PostToolUse', PM, nested), fx.gate, fx.runDir)
@@ -301,37 +301,37 @@ test('ledger：project.json 坏着时走原有那条缝（【project.json】）�
   })
 })
 
-// 偏离 /agent-team:at 第 1 节的顺序（先写 state.json 与 current-run）、直接写契约：PreToolUse 那一帧没有 run（no-run），
+// 偏离 /poundlock:at 第 1 节的顺序（先写 state.json 与 current-run）、直接写契约：PreToolUse 那一帧没有 run（no-run），
 // Write 顺带建出 runs/<id>/，PostToolUse 那一帧就是「有人建过 run 而指针不在」。契约的哈希确实丢了，这一格该出声。
 test('ledger：从没建过 run 的项目里直接写契约——落盘之后判丢指针，【门禁】给出补建的路', () => {
   using(noRun, (fx) => {
-    const file = join(fx.p, '.agent-team', 'runs', '20260930-0100-x', '00-contract.md')
+    const file = join(fx.p, '.poundlock', 'runs', '20260930-0100-x', '00-contract.md')
     const { pre, post } = writeStep(fx, PM, file, '# x\n')
     for (const [c, r] of pre) assert.equal(r.stdout, '', c)
     assert.equal(ctxOf(post), `${TRUSTED_PREFIX}：\n${ledgerUnreadableNotice('pointer')}`)
-    assert.match(ctxOf(post), /一趟都没有 state\.json，就照 \/agent-team:at 第 1 节先写 state\.json/)
+    assert.match(ctxOf(post), /一趟都没有 state\.json，就照 \/poundlock:at 第 1 节先写 state\.json/)
   })
 })
 
 // ---- 正路不出声 ----
 
-// 照 /agent-team:at-init 与 /agent-team:at 第 1、2 节走一遍，PM 的每一次调用：stdout 为空；例外只有两次——写
+// 照 /poundlock:at-init 与 /poundlock:at 第 1、2 节走一遍，PM 的每一次调用：stdout 为空；例外只有两次——写
 // project.json 与写契约的回传，那两份里不许有 systemMessage 与【门禁】。
 test('正路：at-init 与第一趟建 run（先建目录 / 不先建目录），PM 的调用不出【门禁】、不给用户刷一行', () => {
   for (const mkdirFirst of [true, false]) {
     for (const caller of [PM, undefined]) {
-      const p = realpathSync(mkdtempSync(join(tmpdir(), 'agent-team-fo-path-')))
+      const p = realpathSync(mkdtempSync(join(tmpdir(), 'poundlock-fo-path-')))
       const fx = { p, gate: GATE }
       try {
         const id = '20260930-0900-hello'
-        const runDir = join(p, '.agent-team', 'runs', id)
+        const runDir = join(p, '.poundlock', 'runs', id)
         const state = { ...JSON.parse(readFileSync(new URL('templates/state.json', REPO), 'utf8')), run_id: id, stage: 'S1', history: [{ stage: 'S1', at: '2026-09-30T09:00:00Z' }] }
         const steps = [
-          [join(p, '.agent-team', 'project.json'), JSON.stringify(TEMPLATE, null, 2), 'project'],
-          [join(p, '.agent-team', 'reach.json'), REACH_RIGHT, null],
+          [join(p, '.poundlock', 'project.json'), JSON.stringify(TEMPLATE, null, 2), 'project'],
+          [join(p, '.poundlock', 'reach.json'), REACH_RIGHT, null],
           ['mkdir', null, null],
           [join(runDir, 'state.json'), JSON.stringify(state, null, 2), null],
-          [join(p, '.agent-team', 'current-run'), id, null],
+          [join(p, '.poundlock', 'current-run'), id, null],
           [join(runDir, '00-contract.md'), '# 契约\n\n## 1. 用户原话\n\n打个招呼\n', 'contract'],
         ]
         for (const [file, content, exempt] of steps) {
@@ -366,7 +366,7 @@ const S9 = { stage: 'S9', history: [{ stage: 'S1', at: '2026-09-30T01:00:00Z' },
 
 test('unknown-stage：PM 收到【门禁】——history 末条是真阶段时让它改回，用户看到一行', () => {
   using(() => healthy(S9), (fx) => {
-    const r = run('deliverable', dispatch('PostToolUse', PM, 'agent-team:at-product'), fx.gate, fx.p)
+    const r = run('deliverable', dispatch('PostToolUse', PM, 'poundlock:at-product'), fx.gate, fx.p)
     const ctx = ctxOf(r)
     assert.match(ctx, /【门禁】交付物核验这次没有做——state\.stage 是 "S9"，不在阶段链里/)
     assert.match(ctx, /把 state\.stage 改回 history 末条的 S2/)
@@ -379,7 +379,7 @@ test('unknown-stage：PM 收到【门禁】——history 末条是真阶段时�
 test('unknown-stage：history 末条也坏着时不说「改回」，只许追加', () => {
   const history = [...S9.history, { stage: 'S9', at: '2026-09-30T03:00:00Z' }]
   using(() => healthy({ stage: 'S9', history }), (fx) => {
-    const ctx = ctxOf(run('deliverable', dispatch('PostToolUse', PM, 'agent-team:at-product'), fx.gate, fx.p))
+    const ctx = ctxOf(run('deliverable', dispatch('PostToolUse', PM, 'poundlock:at-product'), fx.gate, fx.p))
     assert.ok(ctx.includes(MARK))
     assert.doesNotMatch(ctx, /改回/)
     assert.match(ctx, /追加一条真实的当前阶段/)
@@ -392,7 +392,7 @@ test('unknown-stage：stage 缺失时说「缺失或不是字符串」，不写 
     const state = JSON.parse(readFileSync(file, 'utf8'))
     delete state.stage
     writeFileSync(file, JSON.stringify(state), 'utf8')
-    const ctx = ctxOf(run('deliverable', dispatch('PostToolUse', PM, 'agent-team:at-product'), fx.gate, fx.p))
+    const ctx = ctxOf(run('deliverable', dispatch('PostToolUse', PM, 'poundlock:at-product'), fx.gate, fx.p))
     assert.match(ctx, /state\.stage 缺失或不是字符串/)
     assert.doesNotMatch(ctx, /undefined/)
   })
@@ -400,7 +400,7 @@ test('unknown-stage：stage 缺失时说「缺失或不是字符串」，不写 
 
 test('unknown-stage：协调者收件——冒泡句、修法照带、不带 systemMessage；stderr 留自己的痕，不说「没有放行任何东西」', () => {
   using(() => healthy(S9), (fx) => {
-    const r = run('deliverable', dispatch('PostToolUse', 'agent-team:at-architect', 'agent-team:at-backend'), fx.gate, fx.p)
+    const r = run('deliverable', dispatch('PostToolUse', 'poundlock:at-architect', 'poundlock:at-backend'), fx.gate, fx.p)
     const ctx = ctxOf(r)
     assert.match(ctx, /这一条你改不了/)
     assert.match(ctx, /原样冒泡给派你的人/)
@@ -418,7 +418,7 @@ test('unknown-stage 与账本比对同时成立：两段并进同一份回传，
     const state = JSON.parse(readFileSync(file, 'utf8'))
     state.artifacts = { '01-prd.md': 'a'.repeat(64) }
     writeFileSync(file, JSON.stringify(state), 'utf8')
-    const r = run('deliverable', dispatch('PostToolUse', PM, 'agent-team:at-product'), fx.gate, fx.p)
+    const r = run('deliverable', dispatch('PostToolUse', PM, 'poundlock:at-product'), fx.gate, fx.p)
     const ctx = ctxOf(r)
     assert.ok(ctx.includes(MARK), ctx)
     assert.ok(ctx.includes('【账本比对】'), ctx)
@@ -434,14 +434,14 @@ test('unknown-stage：照回传的修法做——返工预算门禁放行，下�
     const { pre, post } = writeStep(fx, PM, file, content)
     for (const [c, r] of pre) assert.ok(!denied(r), `${c}：${reasonOf(r)}`)
     assert.ok(post)
-    const r = run('deliverable', dispatch('PostToolUse', PM, 'agent-team:at-product'), fx.gate, fx.p)
+    const r = run('deliverable', dispatch('PostToolUse', PM, 'poundlock:at-product'), fx.gate, fx.p)
     assert.ok(!ctxOf(r).includes(MARK), ctxOf(r))
   })
 })
 
 test('unknown-stage：H5b 只留 stderr 一行，stdout 为空、不拦', () => {
   using(() => healthy(S9), (fx) => {
-    const r = run('stop-gate', { hook_event_name: 'SubagentStop', agent_type: 'agent-team:at-product' }, fx.gate, fx.p)
+    const r = run('stop-gate', { hook_event_name: 'SubagentStop', agent_type: 'poundlock:at-product' }, fx.gate, fx.p)
     assert.equal(r.status, 0)
     assert.equal(r.stdout, '')
     assert.match(r.stderr, /不在阶段链里/)
@@ -466,7 +466,7 @@ test('门禁自检：丢指针时「在线」后面追加按原因的修法（�
 test('门禁自检：插件的 stages.json 坏了——追加句叫用户重装，不叫 PM 写回什么', () => {
   using(UNREADABLE.plugin[1], (fx) => {
     const reason = selfCheck(fx)
-    assert.match(reason, /重装或更新 agent-team 插件/)
+    assert.match(reason, /重装或更新 poundlock 插件/)
     assert.doesNotMatch(reason, /写回一份合法的/)
   })
 })
@@ -484,10 +484,10 @@ test('门禁自检反例：没有 run、run 正常、子代理发起、自检写
   using(() => healthy(), (fx) => assert.doesNotMatch(selfCheck(fx), /另外，/))
   using(UNREADABLE['pointer（丢了）'][1], (fx) => {
     // M4i 复核（docs/44 §8，低-4）：子代理带 agent_id（今天 CLI 的形状）；身份那一句（「注意：」开头）也不该出现。
-    const sub = reasonOf(run('writepath', { ...writing('PreToolUse', 'agent-team:at-backend', join(fx.p, GATE_CHECK_PATH)), agent_id: 'a0000000000000e01' }, fx.gate, fx.p))
+    const sub = reasonOf(run('writepath', { ...writing('PreToolUse', 'poundlock:at-backend', join(fx.p, GATE_CHECK_PATH)), agent_id: 'a0000000000000e01' }, fx.gate, fx.p))
     assert.ok(sub.startsWith(GATE_CHECK_ONLINE))
     assert.doesNotMatch(sub, /另外，|注意：发起这次/)
-    const elsewhere = realpathSync(mkdtempSync(join(tmpdir(), 'agent-team-fo-else-')))
+    const elsewhere = realpathSync(mkdtempSync(join(tmpdir(), 'poundlock-fo-else-')))
     try {
       const reason = selfCheck(fx, PM, elsewhere)
       assert.ok(reason.startsWith(GATE_CHECK_ONLINE))
@@ -516,14 +516,14 @@ test('输入读不出来：fail open 的检查项在 Pre/Post 上给用户一行
 // ---- 最外层 catch（注入：hooks 的判定中途抛异常）----
 
 const crash = (fx, check, input, how) =>
-  run(check, input, fx.gate, fx.p, { ...hermeticEnv(), AGENT_TEAM_TEST_THROW: how }, { nodeArgs: ['-r', INJECT], contract: how !== 'exit' && !how.includes('exit') })
+  run(check, input, fx.gate, fx.p, { ...hermeticEnv(), POUNDLOCK_TEST_THROW: how }, { nodeArgs: ['-r', INJECT], contract: how !== 'exit' && !how.includes('exit') })
 
 test('崩溃：ledger 在 PM 写契约时崩——一份【门禁】给 PM、一行给用户；执行角色收到冒泡句、没有 systemMessage', () => {
   using(() => healthy({ stage: 'S1' }), (fx) => {
     const file = join(fx.runDir, '00-contract.md')
     writeFileSync(file, '# x\n', 'utf8')
     const r = crash(fx, 'ledger', writing('PostToolUse', PM, file), 'hash')
-    assert.match(ctxOf(r), /^agent-team 账本回传：\n【门禁】这次写入的回传没有算完——门禁自己出了错（"injected: createHash"）/)
+    assert.match(ctxOf(r), /^poundlock 账本回传：\n【门禁】这次写入的回传没有算完——门禁自己出了错（"injected: createHash"）/)
     assert.equal(smOf(r), systemMessage('crash', { check: 'ledger' }))
     assert.match(r.stderr, /异常崩溃/)
   })
@@ -531,7 +531,7 @@ test('崩溃：ledger 在 PM 写契约时崩——一份【门禁】给 PM、一
     const file = join(fx.runDir, '05-impl', 'at-backend.md')
     mkdirSync(dirname(file), { recursive: true })
     writeFileSync(file, '# x\n', 'utf8')
-    const r = crash(fx, 'ledger', writing('PostToolUse', 'agent-team:at-backend', file), 'hash')
+    const r = crash(fx, 'ledger', writing('PostToolUse', 'poundlock:at-backend', file), 'hash')
     assert.match(ctxOf(r), /原样冒泡给派你的人/)
     assert.equal(smOf(r), null)
   })
@@ -539,7 +539,7 @@ test('崩溃：ledger 在 PM 写契约时崩——一份【门禁】给 PM、一
 
 test('崩溃：deliverable 给 PM 一份【门禁】；readiness 只给用户一行、不带受信块；stop-gate 什么都不写', () => {
   using(() => healthy(), (fx) => {
-    const target = 'agent-team:at-crash'
+    const target = 'poundlock:at-crash'
     const d = crash(fx, 'deliverable', dispatch('PostToolUse', PM, target), `prefix:${target}`)
     assert.match(ctxOf(d), /【门禁】交付物核验这次没有做完——门禁自己出了错/)
     assert.equal(smOf(d), systemMessage('crash', { check: 'deliverable' }))
@@ -566,7 +566,7 @@ test('崩溃：已经往 stdout 写过一份之后再崩（process.exit 被注�
   })
   // 复核（docs/30 §3）：SubagentStop 的拒绝是 stderr + exit 2，不写 stdout——崩溃之后照样按 exit 2 退出，不被改判成放行。
   using(() => healthy({ stage: 'S2', roster: ['at-product'] }), (fx) => {
-    const s = crash(fx, 'stop-gate', { hook_event_name: 'SubagentStop', agent_type: 'agent-team:at-product' }, 'exit')
+    const s = crash(fx, 'stop-gate', { hook_event_name: 'SubagentStop', agent_type: 'poundlock:at-product' }, 'exit')
     assert.equal(s.status, 2, s.stderr)
     assert.ok(s.stderr.includes('01-prd.md'), s.stderr)
     assert.ok(s.stderr.includes(SECOND_WRITE_NOTE))
@@ -577,7 +577,7 @@ test('崩溃：已经往 stdout 写过一份之后再崩（process.exit 被注�
 // 自己抛异常、说成「门禁自己出了错」。
 test('H5a no-run：花名册读坏时不回传、不崩', () => {
   using(() => withBrokenPlugin(noRun(), { stagesText: null, rosterText: 'null' }), (fx) => {
-    const r = run('deliverable', dispatch('PostToolUse', PM, 'agent-team:at-product'), fx.gate, fx.p)
+    const r = run('deliverable', dispatch('PostToolUse', PM, 'poundlock:at-product'), fx.gate, fx.p)
     assert.equal(r.stdout, '')
     assert.doesNotMatch(r.stderr, /异常崩溃/)
   })

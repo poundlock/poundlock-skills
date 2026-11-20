@@ -20,7 +20,7 @@ test('第 39 条：架构师正文的串行规矩——各自地盘的并发派�
   }
 })
 
-test('第 39 条（复核 docs/51 §8）：/agent-team:at 里给项目经理看的那一份串行规矩', () => {
+test('第 39 条（复核 docs/51 §8）：/poundlock:at 里给项目经理看的那一份串行规矩', () => {
   const at = squash(readFileSync(join(ROOT, 'commands', 'at.md'), 'utf8'))
   const k = '架构师可以在一条消息里并发派多个执行角色（几个都要改同一份文件的除外：派一个、等它返回再派下一个）。'
   assert.ok(at.includes(squash(k)), `commands/at.md 缺「${k}」`)

@@ -27,7 +27,7 @@ function ownProductsOf(stages, role) {
 }
 
 // M4s（docs/54，docs/36 §5、docs/37 §5）：调用者是当前这一段的产者、这一段又不是执行段（交的是 run 目录里的规格，插件自带的链里是 S2 的 at-ui）
-// 时，叶子角色被拒的出路是把要落的写进这一段的产物——这一段不补 paths（/agent-team:at 的 S4 才照落盘清单补，执行段被拒时也补）。原来 H3 不知道
+// 时，叶子角色被拒的出路是把要落的写进这一段的产物——这一段不补 paths（/poundlock:at 的 S4 才照落盘清单补，执行段被拒时也补）。原来 H3 不知道
 // 当前段，一律给「由 PM 在 paths 里把它也列到你名下」。认不出这一段、调用者不是它的产者、这一段是执行段：回空串，照旧给原来的出路。stageId 来自
 // state.json，只在它是阶段链里的键时才用（拼进理由的是插件自己的段名与产物名）。
 function specStageWay(stages, stageId, role) {
@@ -66,35 +66,35 @@ function restUnder(target, prefix, base) {
 
 // M4r（docs/53，审查第 34 条那一格、docs/41 §4）：认领一个目录不连带它下面这几类位置——子目录里的 CLAUDE.md、CLAUDE.local.md
 // （Claude Code 在那个目录下干活时当成指令加载）、.claude（skill、命令与设置）、.git（git 当成仓库，hook 会被执行；文件形式的 .git
-// 同样指向一个仓库）、.agent-team（门禁从 cwd 往上认最近的项目根，嵌套一个就换掉了判据）。判的是前缀之下新出现的那一截：前缀本身
+// 同样指向一个仓库）、.poundlock（门禁从 cwd 往上认最近的项目根，嵌套一个就换掉了判据）。判的是前缀之下新出现的那一截：前缀本身
 // 写明了它的（用户在 S4 照 sensitive 批过，validateProject 对写明的这类前缀提醒）照放行，写明的那一截之下再出现的照拒。名字不分
 // 大小写比，哪一段都认（多拒一个大小写不同、平台不加载的名字，或者一个叫 CLAUDE.md 的目录，无害）。键是小写名字，what 是拒绝理由
-// 里的说法，way 是出路——.agent-team 不划给任何角色（/agent-team:at 的 S4：落在 .agent-team/ 下的一律不补），所以不给「写进你名下」。
+// 里的说法，way 是出路——.poundlock 不划给任何角色（/poundlock:at 的 S4：落在 .poundlock/ 下的一律不补），所以不给「写进你名下」。
 // 用 Map 查：普通对象按段名查会查到 constructor、toString 这类继承来的键。
 const PROMOTE_WAY =
-  '认领一个目录不连带它下面的 CLAUDE.md、CLAUDE.local.md、.claude、.git、.agent-team：要写，冒泡给派你的上级，由 PM 先问用户、' +
-  '在 .agent-team/project.json 的 paths 里把这个文件或目录本身写进你名下（你写不了 project.json）。'
+  '认领一个目录不连带它下面的 CLAUDE.md、CLAUDE.local.md、.claude、.git、.poundlock：要写，冒泡给派你的上级，由 PM 先问用户、' +
+  '在 .poundlock/project.json 的 paths 里把这个文件或目录本身写进你名下（你写不了 project.json）。'
 const GUARDED = new Map([
   ['claude.md', { what: '这是一份 CLAUDE.md——Claude Code 在这个目录下干活时会把它当成指令加载', way: PROMOTE_WAY }],
   ['claude.local.md', { what: '这是一份 CLAUDE.local.md——Claude Code 在这个目录下干活时会把它当成指令加载', way: PROMOTE_WAY }],
   ['.claude', { what: '它在一个 .claude 目录里——里面的 skill、命令与设置会被 Claude Code 加载', way: PROMOTE_WAY }],
   ['.git', { what: '它是 .git 或者在 .git 里——git 会把那里当成仓库，里面的 hook 会被执行', way: PROMOTE_WAY }],
-  ['.agent-team', { what: '它在一个 .agent-team 目录里——门禁会把那里当成另一个项目的根', way: '门禁不把它划给任何角色：别建它，冒泡给派你的上级。' }],
+  ['.poundlock', { what: '它在一个 .poundlock 目录里——门禁会把那里当成另一个项目的根', way: '门禁不把它划给任何角色：别建它，冒泡给派你的上级。' }],
 ])
 
 // 这几类会被自动加载或执行的位置的名字（小写）。hooks/lib/skills.mjs 复制用户的 skill 进项目时照这一份跳过——两处各写一份会分叉。
 export const AUTOLOADED_NAMES = [...GUARDED.keys()]
 
 // 调用方先用 underAny 判过「在前缀之下」，这里却一条前缀都对不上：两边口径不一，不放行。
-const NO_MATCH = { what: '门禁核不出它落在你认领的哪一条前缀之下', way: '冒泡给派你的上级，由 PM 看 .agent-team/project.json 的 paths。' }
+const NO_MATCH = { what: '门禁核不出它落在你认领的哪一条前缀之下', way: '冒泡给派你的上级，由 PM 看 .poundlock/project.json 的 paths。' }
 
 // 目标在某条前缀之下时：有一条前缀之下的那一截干净（或者目标正好就是前缀写明的那个文件）回 null，放行；否则回第一处这类位置的
-// { what, way }。.agent-team 不认「写明了」（复核 docs/53 §8）：相对项目根的整条路径上有一段是它，就拒——它不划给任何角色，写明认领了
-// 一个嵌套的 .agent-team 照样换掉门禁认的项目根。
+// { what, way }。.poundlock 不认「写明了」（复核 docs/53 §8）：相对项目根的整条路径上有一段是它，就拒——它不划给任何角色，写明认领了
+// 一个嵌套的 .poundlock 照样换掉门禁认的项目根。
 function guardedBelow(target, prefixes, base) {
   const root = base.endsWith('/') ? base : `${base}/`
-  if (target.startsWith(root) && target.slice(root.length).split('/').some((seg) => seg.toLowerCase() === '.agent-team')) {
-    return GUARDED.get('.agent-team')
+  if (target.startsWith(root) && target.slice(root.length).split('/').some((seg) => seg.toLowerCase() === '.poundlock')) {
+    return GUARDED.get('.poundlock')
   }
   let hit = null
   for (const prefix of Array.isArray(prefixes) ? prefixes : []) {
@@ -179,7 +179,7 @@ export function decideWritePath({ role, filePath, project, runDir, stages, agent
   // 之前——两头的既有判据对控制文件都是错的，而且错的方向相反：
   //   - runs/<id>/state.json 在 runDir 里，落到下面那块会被「不是你这个阶段的
   //     produces」**无条件**拒掉，连 PM 也拒（M1a 记的 I3 死锁）；
-  //   - .agent-team/project.json 与 current-run 不在 runDir 里，落到下面按角色隔离那段时，
+  //   - .poundlock/project.json 与 current-run 不在 runDir 里，落到下面按角色隔离那段时，
   //     花名册外的调用者会被**静默放行**——它能重写项目配置（M4f 之前还有没有键的 at-qa、
   //     at-acceptance，docs/41；M3u 之前是任何不在 paths 里登记的角色，docs/29）。
   // 一个太紧、一个太松，所以这不是「在某一段里加个 if」能解决的，必须自成一段。
@@ -266,7 +266,7 @@ export function decideWritePath({ role, filePath, project, runDir, stages, agent
     }
   }
 
-  // 以下是 run 目录之外的按角色隔离，判据是 .agent-team/project.json 的 paths（M3u，docs/29，全量审查第 10 条）。
+  // 以下是 run 目录之外的按角色隔离，判据是 .poundlock/project.json 的 paths（M3u，docs/29，全量审查第 10 条）。
   // 此前只要 project.json 是个合法对象，调用者在 paths 里「没有键」就放行——paths 缺失、键名拼错、带插件前缀、
   // 被删掉、run 进行中整份文件不在，效果都是按角色隔离静默全开。现在逐步判；形状问题只让本检查项看，不把整趟
   // run 判成读不出来（那样 H2、H5 会跟着一起降级，一个键名拼错就让交付物校验停摆）。
@@ -299,21 +299,21 @@ export function decideWritePath({ role, filePath, project, runDir, stages, agent
       decision: 'deny',
       reason:
         `${who} 不得写 ${fp}——roster.json 读不出来，门禁判不出你是不是本插件的角色，按安全边界拒绝。` +
-        '插件安装可能不完整：冒泡给派你的上级，由 PM 告诉用户重装或更新 agent-team 插件。',
+        '插件安装可能不完整：冒泡给派你的上级，由 PM 告诉用户重装或更新 poundlock 插件。',
     }
   }
 
   // 4. 不在花名册里的调用者不归本插件管（H1 保证团队角色派不出花名册外的 agent）。
   if (!Object.hasOwn(roster, role)) return { decision: 'allow' }
 
-  // 括注指向规则，不指向命令：PM 就地改 project.json 就行，不必让用户重跑 /agent-team:at-init。
-  const fixIt = '这是配置问题，不是这次调用的问题：冒泡给派你的上级，由 PM 改 .agent-team/project.json（规则见 /agent-team:at-init 第 2 节）。'
+  // 括注指向规则，不指向命令：PM 就地改 project.json 就行，不必让用户重跑 /poundlock:at-init。
+  const fixIt = '这是配置问题，不是这次调用的问题：冒泡给派你的上级，由 PM 改 .poundlock/project.json（规则见 /poundlock:at-init 第 2 节）。'
 
   // 5. run 进行中而 project.json 不在：没有判据。
   if (!project) {
     return {
       decision: 'deny',
-      reason: `${who} 不得写 ${fp}——run 进行中，但 .agent-team/project.json 不在，写路径隔离没有判据。${fixIt}`,
+      reason: `${who} 不得写 ${fp}——run 进行中，但 .poundlock/project.json 不在，写路径隔离没有判据。${fixIt}`,
     }
   }
 
@@ -322,7 +322,7 @@ export function decideWritePath({ role, filePath, project, runDir, stages, agent
     const what = paths === undefined ? '缺失' : `不是对象（是 ${quote(paths)}）`
     return {
       decision: 'deny',
-      reason: `${who} 不得写 ${fp}——.agent-team/project.json 的 paths ${what}，写路径隔离没有判据。${fixIt}`,
+      reason: `${who} 不得写 ${fp}——.poundlock/project.json 的 paths ${what}，写路径隔离没有判据。${fixIt}`,
     }
   }
 
@@ -333,13 +333,13 @@ export function decideWritePath({ role, filePath, project, runDir, stages, agent
     return {
       decision: 'deny',
       reason:
-        `${who} 不得写 ${fp}——.agent-team/project.json 的 paths 里没有 ${who} 的键，run 目录之外它哪都写不了。` +
+        `${who} 不得写 ${fp}——.poundlock/project.json 的 paths 里没有 ${who} 的键，run 目录之外它哪都写不了。` +
         `${hint}${fixIt}`,
     }
   }
 
   // project.paths 的值是相对项目根的前缀；项目根由 runDir 往上推三级得到
-  // （.agent-team/runs/<id> → 项目根），没有 runDir 时退回用 filePath 的根。
+  // （.poundlock/runs/<id> → 项目根），没有 runDir 时退回用 filePath 的根。
   const base = runDir ? norm(`${runDir}/../../..`) : '/'
   // 问题按 audience: 'role' 取：只说问题本身，不带「删掉这一条……收尾时告诉用户」这类说给 PM 的改法——执行角色
   // 改不了 project.json、也见不到用户，它的出路是冒泡。
@@ -357,7 +357,7 @@ export function decideWritePath({ role, filePath, project, runDir, stages, agent
       decision: 'deny',
       reason:
         `${who} 不得写 ${fp}——你不写 run 目录之外的文件（只写自己那份 run 产物），这次写入不是你的活；` +
-        '另外 .agent-team/project.json 的 paths 里不该有你的键（按设计不认领路径）：回报时提一句，由 PM 删掉它。',
+        '另外 .poundlock/project.json 的 paths 里不该有你的键（按设计不认领路径）：回报时提一句，由 PM 删掉它。',
     }
   }
 
@@ -367,19 +367,19 @@ export function decideWritePath({ role, filePath, project, runDir, stages, agent
     return {
       decision: 'deny',
       reason:
-        `${who} 不得写 ${fp}——.agent-team/project.json 里 ${own.block.slice(0, 3).join('；')}。` +
+        `${who} 不得写 ${fp}——.poundlock/project.json 里 ${own.block.slice(0, 3).join('；')}。` +
         `这让 ${who} 的整条 paths 条目作废，写它其余合法的前缀也被拒。${fixIt}`,
     }
   }
 
   const myPaths = paths[role]
   if (underAny(target, myPaths, base)) {
-    // M4r：认领的目录之下新出现的 CLAUDE.md、.claude、.git、.agent-team 不随目录一起划出去（guardedBelow 头部）。
+    // M4r：认领的目录之下新出现的 CLAUDE.md、.claude、.git、.poundlock 不随目录一起划出去（guardedBelow 头部）。
     const guarded = guardedBelow(target, myPaths, base)
     if (!guarded) return { decision: 'allow' }
-    // 复核（docs/53 §8）：它已经写明划给了别的角色时，出路不是「写进你名下」，是归那个角色（.agent-team 谁都不归）。
+    // 复核（docs/53 §8）：它已经写明划给了别的角色时，出路不是「写进你名下」，是归那个角色（.poundlock 谁都不归）。
     const owners =
-      guarded === GUARDED.get('.agent-team') || !isValidRoster(roster)
+      guarded === GUARDED.get('.poundlock') || !isValidRoster(roster)
         ? []
         : Object.entries(paths)
             .filter(
@@ -441,11 +441,11 @@ export function decideWritePath({ role, filePath, project, runDir, stages, agent
     const voided = claimants.filter((c) => !off.includes(c) && entryProblems(c, paths[c], { audience: 'role' }).block.length)
     const usable = claimants.filter((c) => !off.includes(c) && !voided.includes(c))
     const notes = []
-    if (off.length) notes.push(`${off.map((c) => quote(c)).join('、')} 按设计不该有 paths 键——冒泡给派你的上级，由 PM 改 .agent-team/project.json`)
-    if (voided.length) notes.push(`${voided.map((c) => quote(c)).join('、')} 的条目眼下整条作废——冒泡给派你的上级，由 PM 先修 .agent-team/project.json`)
+    if (off.length) notes.push(`${off.map((c) => quote(c)).join('、')} 按设计不该有 paths 键——冒泡给派你的上级，由 PM 改 .poundlock/project.json`)
+    if (voided.length) notes.push(`${voided.map((c) => quote(c)).join('、')} 的条目眼下整条作废——冒泡给派你的上级，由 PM 先修 .poundlock/project.json`)
     let way
     if (!rosterOk) {
-      way = 'roster.json 里你这一条读不出来，门禁判不出该给你哪条出路：冒泡给派你的上级，由 PM 告诉用户重装或更新 agent-team 插件。'
+      way = 'roster.json 里你这一条读不出来，门禁判不出该给你哪条出路：冒泡给派你的上级，由 PM 告诉用户重装或更新 poundlock 插件。'
     } else if (entry.can_delegate_to.length) {
       way = usable.length
         ? `这是认领者的活：到你分发它的那一段再派给 ${usable.map((c) => quote(c)).join(' 或 ')}（还在出方案的，把这件事写进你这一段的` +
@@ -455,7 +455,7 @@ export function decideWritePath({ role, filePath, project, runDir, stages, agent
       way =
         specStageWay(stages, stageId, role) ||
         '跨角色的改动要经上级协调，不要直接动别人的地盘。这份文件要是本来就该几个角色一起改（根级清单、构建配置、' +
-          '测试目录），冒泡给派你的上级，由 PM 在 .agent-team/project.json 的 paths 里把它也列到你名下（你写不了 project.json）。'
+          '测试目录），冒泡给派你的上级，由 PM 在 .poundlock/project.json 的 paths 里把它也列到你名下（你写不了 project.json）。'
     }
     return {
       decision: 'deny',
@@ -470,7 +470,7 @@ export function decideWritePath({ role, filePath, project, runDir, stages, agent
   return {
     decision: 'deny',
     reason:
-      `${who} 不得写 ${fp}——这条路径在 .agent-team/project.json 里没有被任何角色认领` +
+      `${who} 不得写 ${fp}——这条路径在 .poundlock/project.json 里没有被任何角色认领` +
       // M4b：逐条引——整份数组只过一次 quote 会被截在 80 个字符，排在末尾的（正好是之后补进来的）被截掉。
       `（${who} 认领的是 ${myPaths.length ? myPaths.map((p) => quote(p)).join('、') : '[]（只写 run 目录）'}；` +
       '前缀按字面比较，不是通配符）。' +
@@ -479,7 +479,7 @@ export function decideWritePath({ role, filePath, project, runDir, stages, agent
       // 落到这里的只可能是有键的执行角色，它写不了 project.json（控制文件）。不拼 fixIt：没人认领也可能是这次
       // 调用越界了，不一定是配置问题。M4s：规格段的产者照这一段给出路（specStageWay）。
       (specStageWay(stages, stageId, role) ||
-        '确实要写这里，冒泡给派你的上级，由 PM 决定要不要在 .agent-team/project.json 的 paths 里把它划给某个角色' +
+        '确实要写这里，冒泡给派你的上级，由 PM 决定要不要在 .poundlock/project.json 的 paths 里把它划给某个角色' +
           '（你写不了 project.json）。'),
   }
 }

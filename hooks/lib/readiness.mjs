@@ -199,8 +199,8 @@ export function decideReadiness({
     const awayOut = away.length
       ? `${away.join('、')} 整段裁掉了（${seg}的产者都记在 trimmed 里、这一趟在${seg}谁都没叫过），${away.length > 1 ? '它们' : '它'}的产物不会有了：` +
         (callerCanWriteState
-          ? '要么回退到要补的那一段把它补回来（照 /agent-team:at 第 3 节的「回退」记，同一次写入里把它的产者从 trimmed 里拿掉，再在那一段派它），' +
-            '要么把要它当前置的段也整段裁掉、交付文档里写明少了哪几段（/agent-team:at 第 3 节第 4 条）。'
+          ? '要么回退到要补的那一段把它补回来（照 /poundlock:at 第 3 节的「回退」记，同一次写入里把它的产者从 trimmed 里拿掉，再在那一段派它），' +
+            '要么把要它当前置的段也整段裁掉、交付文档里写明少了哪几段（/poundlock:at 第 3 节第 4 条）。'
           : '这要项目经理定，把这一点写进你的回报冒泡给派你的人。')
       : ''
 

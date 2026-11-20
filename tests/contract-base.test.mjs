@@ -352,7 +352,7 @@ test('M4j：outdatedProducts——内容跟修订那一刻一样的；修订之�
 })
 
 test('M4j：outdatedFix（复核 F1）——早于当前段的回退到最早那一段；在当前段的同段重派（自己的产物重写）；只在后面的段走到时照常重出', () => {
-  assert.deepEqual(outdatedFix(STAGES, ['06-test.md', '07-acceptance.md', '08-delivery.md'], 'S8'), { kind: 'rollback', sid: 'S6', text: '照 /agent-team:at 第 3 节的「回退」记回到 S6，让产者对着这一版重出' })
+  assert.deepEqual(outdatedFix(STAGES, ['06-test.md', '07-acceptance.md', '08-delivery.md'], 'S8'), { kind: 'rollback', sid: 'S6', text: '照 /poundlock:at 第 3 节的「回退」记回到 S6，让产者对着这一版重出' })
   assert.deepEqual(outdatedFix(STAGES, ['06-test.md'], 'S6'), { kind: 'redo', sid: 'S6', text: '在 S6 里同段重派它的产者重出（同一段里重派不计返工）' })
   assert.deepEqual(outdatedFix(STAGES, ['08-delivery.md'], 'S8'), { kind: 'own', sid: 'S8', text: '08-delivery.md 是你自己的产物，对着这一版重写' })
   assert.deepEqual(outdatedFix(STAGES, ['06-test.md', '07-acceptance.md'], 'S5'), { kind: 'later', sid: null, text: '06-test.md、07-acceptance.md 在后面的段，这一轮走到那一段时照常重出，现在不用回退' })

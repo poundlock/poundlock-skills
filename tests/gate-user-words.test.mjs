@@ -1,6 +1,6 @@
 // 第 20 条修法 A（docs/50，M4o）：门禁子进程这一层——
-//   - 记录器（user-words，UserPromptExpansion）：/agent-team:at 展开时把参数记进项目一级的 .agent-team/user-words.json（连同这个会话的 id、
-//     那一刻 runs/ 下已有的 run），一个字都不往 stdout 写、永不拒；.agent-team 不在不建；不带参数的命令清掉这个会话还挂着的那份；
+//   - 记录器（user-words，UserPromptExpansion）：/poundlock:at 展开时把参数记进项目一级的 .poundlock/user-words.json（连同这个会话的 id、
+//     那一刻 runs/ 下已有的 run），一个字都不往 stdout 写、永不拒；.poundlock 不在不建；不带参数的命令清掉这个会话还挂着的那份；
 //   - 绑定：只在这个会话用 Write 建出一趟新 run 的 state.json（第一段）的那一次（H6，写之前文件还不在）；账本不绑。记下之前就有的那一趟
 //     没收口却被写了（续跑了它，不论它自己带没带记录），记录作废；绑过、作废的不再绑；
 //   - 核：第一段里写契约时第 1 节对不上原话，【契约】当场说；第一段的产物齐了时【阶段】那一句补上；推进出第一段时 H6 拒；
@@ -28,31 +28,31 @@ const contract = (section1) =>
 const VERBATIM = contract(ARGS.split(NL))
 const QUOTED = contract(ARGS.split(NL).map((l) => '> ' + l))
 const PARAPHRASED = contract(['做一个待办应用：能加、能删，用 npm 装。'])
-const TALK = '对不上用户在 /agent-team:at 后面写的原话'
+const TALK = '对不上用户在 /poundlock:at 后面写的原话'
 const count = (s, k) => s.split(k).length - 1
 
 const expansion = (args = ARGS, over = {}) => ({
   hook_event_name: 'UserPromptExpansion',
   expansion_type: 'slash_command',
-  command_name: 'agent-team:at',
+  command_name: 'poundlock:at',
   command_args: args,
   command_source: 'plugin',
-  prompt: '/agent-team:at ' + args,
+  prompt: '/poundlock:at ' + args,
   session_id: 's-1',
   ...over,
 })
-const posted = (file, sid = 's-1') => ({ hook_event_name: 'PostToolUse', tool_name: 'Write', agent_type: 'agent-team:at-pm', session_id: sid, tool_input: { file_path: file } })
-const pendingPath = (projectDir) => join(projectDir, '.agent-team', USER_WORDS_FILE)
+const posted = (file, sid = 's-1') => ({ hook_event_name: 'PostToolUse', tool_name: 'Write', agent_type: 'poundlock:at-pm', session_id: sid, tool_input: { file_path: file } })
+const pendingPath = (projectDir) => join(projectDir, '.poundlock', USER_WORDS_FILE)
 // 项目一级那份按会话分开记：取这个会话那一条。
 const pendingOf = (projectDir, sid = 's-1') => wordsFor(readWordsBook(readFileSync(pendingPath(projectDir))), sid)
 const boundOf = (runDir) => JSON.parse(readFileSync(join(runDir, USER_WORDS_FILE), 'utf8'))
-const point = (projectDir, id) => writeFileSync(join(projectDir, '.agent-team', 'current-run'), id)
+const point = (projectDir, id) => writeFileSync(join(projectDir, '.poundlock', 'current-run'), id)
 // docs/78：建 run 的那一次要带着 stage_roles（照模板写成 {}），不带的 H6 拒。
 const stateOf = (id, stage = 'S1', history = H('S1')) => ({ run_id: id, stage, contract_sha: 'PENDING', roster: [], stage_roles: {}, artifacts: {}, rework: {}, never_invoked: [], escalations: [], history })
 const stateWrite = (runDir, state, sid = 's-1') => ({
   hook_event_name: 'PreToolUse',
   tool_name: 'Write',
-  agent_type: 'agent-team:at-pm',
+  agent_type: 'poundlock:at-pm',
   session_id: sid,
   tool_input: { file_path: join(runDir, 'state.json'), content: JSON.stringify(state, null, 2) },
 })
@@ -66,7 +66,7 @@ function cleanup(dirs) {
 // 否则直接落盘（Bash 写的、门禁没见到建的那一次）。
 // 复核（docs/58 §8）：照真实会话的顺序——H6（PreToolUse，目录还不在），落盘（Write 建目录、写 state.json），账本（PostToolUse，绑的第二步），再写指针。
 function createRun(projectDir, id, { sid = 's-1', viaGate = true } = {}) {
-  const dir = join(projectDir, '.agent-team', 'runs', id)
+  const dir = join(projectDir, '.poundlock', 'runs', id)
   const state = stateOf(id)
   if (viaGate) {
     const d = decisionOf(run('rework', stateWrite(dir, state, sid), GATE, projectDir).stdout)
@@ -79,11 +79,11 @@ function createRun(projectDir, id, { sid = 's-1', viaGate = true } = {}) {
   return dir
 }
 
-// 项目里先没有 run；这个会话发 /agent-team:at（args），之后建 r1（creator 那个会话建的、经不经 H6）。stage 不是 S1 时，建好之后直接把它推到那一段。
+// 项目里先没有 run；这个会话发 /poundlock:at（args），之后建 r1（creator 那个会话建的、经不经 H6）。stage 不是 S1 时，建好之后直接把它推到那一段。
 function freshRun(body, { stage = 'S1', args = ARGS, sid = 's-1', creator = sid, viaGate = true } = {}) {
   const dirs = makeRun({ runId: 'r1', stage: 'S1' })
   try {
-    rmSync(join(dirs.projectDir, '.agent-team', 'runs', 'r1'), { recursive: true, force: true })
+    rmSync(join(dirs.projectDir, '.poundlock', 'runs', 'r1'), { recursive: true, force: true })
     run('user-words', expansion(args, { session_id: sid }), GATE, dirs.projectDir)
     const runDir = createRun(dirs.projectDir, 'r1', { sid: creator, viaGate })
     if (stage !== 'S1') {
@@ -107,7 +107,7 @@ function advance(runDir, to, sid = 's-1') {
   return stateWrite(runDir, { ...now, stage: to, history: next, rework: reworkFromHistory(next), contract_sha }, sid)
 }
 
-test('记录器：/agent-team:at 展开时把参数、会话 id、那一刻 runs/ 下已有的 run 记进 .agent-team/user-words.json；stdout 一个字都不写；同一个会话再来一次就换成新的，别的会话的那份不动', () => {
+test('记录器：/poundlock:at 展开时把参数、会话 id、那一刻 runs/ 下已有的 run 记进 .poundlock/user-words.json；stdout 一个字都不写；同一个会话再来一次就换成新的，别的会话的那份不动', () => {
   const dirs = makeRun({ runId: 'r0', stage: 'S5' })
   try {
     const r = run('user-words', expansion(), GATE, dirs.projectDir)
@@ -131,12 +131,12 @@ test('记录器：/agent-team:at 展开时把参数、会话 id、那一刻 runs
   }
 })
 
-test('记录器：别的命令、不是斜杠命令、没有会话 id 都不记；项目里没有 .agent-team 时不建它', () => {
+test('记录器：别的命令、不是斜杠命令、没有会话 id 都不记；项目里没有 .poundlock 时不建它', () => {
   const dirs = makeRun({ runId: 'r0', stage: 'S5' })
   try {
     for (const input of [
-      expansion(ARGS, { command_name: 'agent-team:at-init' }),
-      expansion(ARGS, { command_name: 'agent-team:at-resume' }),
+      expansion(ARGS, { command_name: 'poundlock:at-init' }),
+      expansion(ARGS, { command_name: 'poundlock:at-resume' }),
       expansion('   '),
       expansion(ARGS, { expansion_type: 'mcp_prompt' }),
       expansion(ARGS, { session_id: undefined }),
@@ -149,26 +149,26 @@ test('记录器：别的命令、不是斜杠命令、没有会话 id 都不记�
   } finally {
     cleanup(dirs)
   }
-  const bare = realpathSync(mkdtempSync(join(tmpdir(), 'agent-team-bare-')))
+  const bare = realpathSync(mkdtempSync(join(tmpdir(), 'poundlock-bare-')))
   try {
     const r = run('user-words', expansion(), GATE, bare)
     assert.equal(r.status, 0, r.stderr)
-    assert.ok(!existsSync(join(bare, '.agent-team')), '不建 .agent-team')
+    assert.ok(!existsSync(join(bare, '.poundlock')), '不建 .poundlock')
   } finally {
     rmSync(bare, { recursive: true, force: true })
   }
 })
 
-test('记录器（复核 docs/50 §9，门禁低 3）：不带参数的 /agent-team:at 清掉这个会话还挂着的那份；别的会话的那份不动', () => {
+test('记录器（复核 docs/50 §9，门禁低 3）：不带参数的 /poundlock:at 清掉这个会话还挂着的那份；别的会话的那份不动', () => {
   const dirs = makeRun({ runId: 'r0', stage: 'S5' })
   try {
     run('user-words', expansion('再加一个导出功能'), GATE, dirs.projectDir)
-    const r = run('user-words', expansion('', { prompt: '/agent-team:at' }), GATE, dirs.projectDir)
+    const r = run('user-words', expansion('', { prompt: '/poundlock:at' }), GATE, dirs.projectDir)
     assert.equal(r.status, 0, r.stderr)
     assert.equal(r.stdout, '')
     assert.ok(!existsSync(pendingPath(dirs.projectDir)), '这个会话的那份清掉了')
     run('user-words', expansion('别的会话的需求', { session_id: 's-2' }), GATE, dirs.projectDir)
-    run('user-words', expansion('  ', { prompt: '/agent-team:at' }), GATE, dirs.projectDir)
+    run('user-words', expansion('  ', { prompt: '/poundlock:at' }), GATE, dirs.projectDir)
     assert.equal(pendingOf(dirs.projectDir, 's-2').args, '别的会话的需求', '别的会话的那份不动')
   } finally {
     cleanup(dirs)
@@ -188,12 +188,12 @@ test('绑定：这个会话用 Write 建出新的一趟（state.json 写之前�
   })
 })
 
-// 真实形状（复核 docs/58 §8）：at-init 之后的项目——.agent-team 下只有 project.json，没有 runs/、没有 current-run。
+// 真实形状（复核 docs/58 §8）：at-init 之后的项目——.poundlock 下只有 project.json，没有 runs/、没有 current-run。
 function bareProject(body) {
   const dirs = makeRun({ runId: 'r1', stage: 'S1' })
   try {
-    rmSync(join(dirs.projectDir, '.agent-team', 'runs'), { recursive: true, force: true })
-    rmSync(join(dirs.projectDir, '.agent-team', 'current-run'), { force: true })
+    rmSync(join(dirs.projectDir, '.poundlock', 'runs'), { recursive: true, force: true })
+    rmSync(join(dirs.projectDir, '.poundlock', 'current-run'), { force: true })
     return body(dirs)
   } finally {
     cleanup(dirs)
@@ -205,12 +205,12 @@ test('绑定（实测 docs/58）：建出这一趟的那一次，连 runs/ 都�
   // 项目一级那份却已经标了 bound——这一趟从此不核第 1 节。原来的 createRun 先建了目录，测不到这一格。
   bareProject(({ projectDir }) => {
     run('user-words', expansion(ARGS, { session_id: 's-1' }), GATE, projectDir)
-    const runDir = join(projectDir, '.agent-team', 'runs', 'r1')
+    const runDir = join(projectDir, '.poundlock', 'runs', 'r1')
     const state = stateOf('r1')
     const d = decisionOf(run('rework', stateWrite(runDir, state, 's-1'), GATE, projectDir).stdout)
     assert.equal(d, null, JSON.stringify(d))
     // H6 那一刻：只记 binding，不建目录、不标 bound。
-    assert.ok(!existsSync(join(projectDir, '.agent-team', 'runs')), 'H6 不该建目录')
+    assert.ok(!existsSync(join(projectDir, '.poundlock', 'runs')), 'H6 不该建目录')
     assert.equal(pendingOf(projectDir).binding, 'r1')
     assert.equal(pendingOf(projectDir).bound, null)
     // Write 落盘：建目录、写 state.json；同一次写入的账本完成绑定；再写指针。
@@ -230,10 +230,10 @@ test('绑定（实测 docs/58）：建出这一趟的那一次，连 runs/ 都�
 test('绑定（复核 docs/58 §8，中 1）：H6 放行了、这次 Write 却没落盘（用户在权限确认里拒了）——什么都不留；换个 run id 再建，绑到新的那一趟', () => {
   bareProject(({ projectDir }) => {
     run('user-words', expansion(ARGS, { session_id: 's-1' }), GATE, projectDir)
-    const r1 = join(projectDir, '.agent-team', 'runs', 'r1')
+    const r1 = join(projectDir, '.poundlock', 'runs', 'r1')
     assert.equal(decisionOf(run('rework', stateWrite(r1, stateOf('r1'), 's-1'), GATE, projectDir).stdout), null)
     // 没落盘：没有 PostToolUse。runs/ 下不多出目录，记录还没绑。
-    assert.ok(!existsSync(join(projectDir, '.agent-team', 'runs')), '被拒的写入不该留下目录')
+    assert.ok(!existsSync(join(projectDir, '.poundlock', 'runs')), '被拒的写入不该留下目录')
     assert.equal(pendingOf(projectDir).bound, null)
     const r2 = createRun(projectDir, 'r2')
     assert.equal(pendingOf(projectDir).bound, 'r2')
@@ -245,8 +245,8 @@ test('绑定（复核 docs/58 §8，中 1）：H6 放行了、这次 Write 却�
 test('绑定（复核 docs/58 §8）：别的角色的写入不记 binding（H3 拒它，几道门禁并行）；落盘之后的那一步也只认项目经理、同一个会话、binding 指着的那一趟', () => {
   bareProject(({ projectDir }) => {
     run('user-words', expansion(ARGS, { session_id: 's-1' }), GATE, projectDir)
-    const r1 = join(projectDir, '.agent-team', 'runs', 'r1')
-    run('rework', { ...stateWrite(r1, stateOf('r1'), 's-1'), agent_type: 'agent-team:at-backend' }, GATE, projectDir)
+    const r1 = join(projectDir, '.poundlock', 'runs', 'r1')
+    run('rework', { ...stateWrite(r1, stateOf('r1'), 's-1'), agent_type: 'poundlock:at-backend' }, GATE, projectDir)
     assert.equal(pendingOf(projectDir).binding, null)
     // 项目经理记下 binding 之后：文件不在磁盘上的、别的会话、别的角色、别的一趟、不是 runs/<id>/state.json 的落盘都不完成它。
     run('rework', stateWrite(r1, stateOf('r1'), 's-1'), GATE, projectDir)
@@ -255,14 +255,14 @@ test('绑定（复核 docs/58 §8）：别的角色的写入不记 binding（H3 
     mkdirSync(r1, { recursive: true })
     writeFileSync(join(r1, 'state.json'), JSON.stringify(stateOf('r1'), null, 2))
     run('ledger', posted(join(r1, 'state.json'), 's-2'), GATE, projectDir)
-    run('ledger', { ...posted(join(r1, 'state.json')), agent_type: 'agent-team:at-backend' }, GATE, projectDir)
-    const r9 = join(projectDir, '.agent-team', 'runs', 'r9')
+    run('ledger', { ...posted(join(r1, 'state.json')), agent_type: 'poundlock:at-backend' }, GATE, projectDir)
+    const r9 = join(projectDir, '.poundlock', 'runs', 'r9')
     mkdirSync(r9, { recursive: true })
     writeFileSync(join(r9, 'state.json'), JSON.stringify(stateOf('r9'), null, 2))
     run('ledger', posted(join(r9, 'state.json')), GATE, projectDir)
     writeFileSync(join(r1, '00-contract.md'), VERBATIM)
     run('ledger', posted(join(r1, '00-contract.md')), GATE, projectDir)
-    const elsewhere = join(projectDir, '.agent-team', 'archive', 'r1')
+    const elsewhere = join(projectDir, '.poundlock', 'archive', 'r1')
     mkdirSync(elsewhere, { recursive: true })
     writeFileSync(join(elsewhere, 'state.json'), JSON.stringify(stateOf('r1'), null, 2))
     run('ledger', posted(join(elsewhere, 'state.json')), GATE, projectDir)
@@ -328,7 +328,7 @@ test('不绑：别的会话建的这一趟；不经门禁建的（Bash 写的 st
 test('不绑（复核 docs/50 §9，门禁低 4）：别的会话在命令之后建了一趟，这个会话续跑它——不晚绑，推进出第一段不按这条命令核', () => {
   const dirs = makeRun({ runId: 'r1', stage: 'S1' })
   try {
-    rmSync(join(dirs.projectDir, '.agent-team', 'runs', 'r1'), { recursive: true, force: true })
+    rmSync(join(dirs.projectDir, '.poundlock', 'runs', 'r1'), { recursive: true, force: true })
     run('user-words', expansion('做一个记账本'), GATE, dirs.projectDir)
     const r2 = createRun(dirs.projectDir, 'r2', { sid: 's-2' })
     writeFileSync(join(r2, '00-contract.md'), contract(['别的会话的用户说的话']))
@@ -344,7 +344,7 @@ test('不绑（复核 docs/50 §9，门禁低 4）：别的会话在命令之后
 test('作废：记下之前就有、没收口的那一趟被写了（续跑了它）——记录作废，之后另起的一趟不绑；替它收口的那一次不作废', () => {
   const dirs = makeRun({ runId: 'r0', stage: 'S5', history: H('S1', 'S2', 'S3', 'S4', 'S5') })
   try {
-    const r0 = join(dirs.projectDir, '.agent-team', 'runs', 'r0')
+    const r0 = join(dirs.projectDir, '.poundlock', 'runs', 'r0')
     run('user-words', expansion(), GATE, dirs.projectDir)
     run('ledger', posted(join(r0, 'state.json')), GATE, dirs.projectDir)
     assert.equal(pendingOf(dirs.projectDir).dropped, 'r0')
@@ -358,7 +358,7 @@ test('作废：记下之前就有、没收口的那一趟被写了（续跑了�
   }
   const closed = makeRun({ runId: 'r0', stage: 'S8', history: H('S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8') })
   try {
-    const r0 = join(closed.projectDir, '.agent-team', 'runs', 'r0')
+    const r0 = join(closed.projectDir, '.poundlock', 'runs', 'r0')
     run('user-words', expansion(), GATE, closed.projectDir)
     const st = JSON.parse(readFileSync(join(r0, 'state.json'), 'utf8'))
     writeFileSync(join(r0, 'state.json'), JSON.stringify({ ...st, closed_at: '2026-10-07T10:30:00Z' }))
@@ -376,7 +376,7 @@ test('作废：记下之前就有、没收口的那一趟被写了（续跑了�
 test('作废（复核 docs/50 §9，中 1）：续跑的那一趟自己带着原话记录——项目一级那份照样作废，旧的那份原样留着，之后另起的一趟不绑', () => {
   const dirs = makeRun({ runId: 'r0', stage: 'S3', history: H('S1', 'S2', 'S3') })
   try {
-    const r0 = join(dirs.projectDir, '.agent-team', 'runs', 'r0')
+    const r0 = join(dirs.projectDir, '.poundlock', 'runs', 'r0')
     writeFileSync(join(r0, USER_WORDS_FILE), JSON.stringify({ at: 't', session_id: 's-0', args: '需求 X', runs_before: [], bound: 'r0', dropped: null }))
     run('user-words', expansion('需求 Y'), GATE, dirs.projectDir)
     run('ledger', posted(join(r0, 'state.json')), GATE, dirs.projectDir)
@@ -395,7 +395,7 @@ test('作废（复核 docs/50 §9，中 1）：续跑的那一趟自己带着原
 test('作废（复核 docs/50 §9，门禁 G23）：续跑一趟停在第一段、没有记录的旧 run——不按新命令核，记录作废', () => {
   const dirs = makeRun({ runId: 'r0', stage: 'S1', history: H('S1') })
   try {
-    const r0 = join(dirs.projectDir, '.agent-team', 'runs', 'r0')
+    const r0 = join(dirs.projectDir, '.poundlock', 'runs', 'r0')
     run('user-words', expansion('需求 Y'), GATE, dirs.projectDir)
     writeFileSync(join(r0, '00-contract.md'), contract(['旧的那一趟的需求']))
     const c = ctxOf(run('ledger', posted(join(r0, '00-contract.md')), GATE, dirs.projectDir).stdout)
@@ -412,7 +412,7 @@ test('作废（复核 docs/50 §9，门禁 G3）：Windows 上指针写的 run i
   try {
     run('user-words', expansion(), GATE, dirs.projectDir)
     point(dirs.projectDir, 'R0')
-    run('ledger', posted(join(dirs.projectDir, '.agent-team', 'runs', 'R0', 'state.json')), GATE, dirs.projectDir)
+    run('ledger', posted(join(dirs.projectDir, '.poundlock', 'runs', 'R0', 'state.json')), GATE, dirs.projectDir)
     assert.ok(pendingOf(dirs.projectDir).dropped?.toLowerCase() === 'r0', JSON.stringify(pendingOf(dirs.projectDir)))
   } finally {
     cleanup(dirs)
@@ -441,7 +441,7 @@ test('H6：推进出第一段时第 1 节对不上绑着的原话——拒；改
   })
   const old = makeRun({ runId: 'r1', stage: 'S1', history: H('S1') })
   try {
-    const runDir = join(old.projectDir, '.agent-team', 'runs', 'r1')
+    const runDir = join(old.projectDir, '.poundlock', 'runs', 'r1')
     writeFileSync(join(runDir, '00-contract.md'), PARAPHRASED)
     assert.equal(decisionOf(run('rework', advance(runDir, 'S2'), GATE, old.projectDir).stdout), null, '没有原话记录：不核')
   } finally {
@@ -480,24 +480,24 @@ test('H3：两份原话记录都是门禁专属文件——项目经理的 Write
         const input = {
           hook_event_name: 'PreToolUse',
           tool_name: tool,
-          agent_type: 'agent-team:at-pm',
+          agent_type: 'poundlock:at-pm',
           session_id: 's-1',
           tool_input: tool === 'Write' ? { file_path: file, content: '{}' } : { file_path: file, old_string: 'a', new_string: 'b' },
         }
         const d = decisionOf(run('writepath', input, GATE, projectDir).stdout)
         assert.equal(d?.permissionDecision, 'deny', `${tool} ${file}`)
         // 复核（docs/50 §9，正文中 3）：原来落到「交付快照」那一句。
-        assert.ok(d.permissionDecisionReason.includes('用户发出 /agent-team:at 时记下的原话') && !d.permissionDecisionReason.includes('交付快照'), d.permissionDecisionReason)
+        assert.ok(d.permissionDecisionReason.includes('用户发出 /poundlock:at 时记下的原话') && !d.permissionDecisionReason.includes('交付快照'), d.permissionDecisionReason)
       }
     }
   })
 })
 
 // 一趟只归一个会话：项目一级那份原话记录按会话分开记，两个会话起命令不再互相覆盖。
-test('按会话分开记：两个会话先后展开 /agent-team:at，两份原话都在；s-1 之后建 run，绑的是 s-1 那一份、s-2 那份不动', () => {
+test('按会话分开记：两个会话先后展开 /poundlock:at，两份原话都在；s-1 之后建 run，绑的是 s-1 那一份、s-2 那份不动', () => {
   const dirs = makeRun({ runId: 'r1', stage: 'S1' })
   try {
-    rmSync(join(dirs.projectDir, '.agent-team', 'runs', 'r1'), { recursive: true, force: true })
+    rmSync(join(dirs.projectDir, '.poundlock', 'runs', 'r1'), { recursive: true, force: true })
     run('user-words', expansion(ARGS), GATE, dirs.projectDir)
     run('user-words', expansion('另一个会话的需求', { session_id: 's-2' }), GATE, dirs.projectDir)
     assert.equal(pendingOf(dirs.projectDir, 's-1').args, ARGS)
@@ -516,7 +516,7 @@ test('按会话分开记：两个会话先后展开 /agent-team:at，两份原�
 test('按会话分开记：别的会话已经绑上或作废的条目，下一次写回时清掉（这张表不只增不减）；还挂着的不动', () => {
   const dirs = makeRun({ runId: 'r1', stage: 'S1' })
   try {
-    rmSync(join(dirs.projectDir, '.agent-team', 'runs', 'r1'), { recursive: true, force: true })
+    rmSync(join(dirs.projectDir, '.poundlock', 'runs', 'r1'), { recursive: true, force: true })
     run('user-words', expansion(ARGS), GATE, dirs.projectDir)
     run('user-words', expansion('还挂着的需求', { session_id: 's-3' }), GATE, dirs.projectDir)
     createRun(dirs.projectDir, 'r1', { sid: 's-1' })
@@ -530,7 +530,7 @@ test('按会话分开记：别的会话已经绑上或作废的条目，下一�
   }
 })
 
-test('按会话分开记：十几个会话同时展开 /agent-team:at，每个会话那一条都在（读改写在锁里做）', async () => {
+test('按会话分开记：十几个会话同时展开 /poundlock:at，每个会话那一条都在（读改写在锁里做）', async () => {
   const dirs = makeRun({ runId: 'r0', stage: 'S5' })
   try {
     const sids = Array.from({ length: 14 }, (_, i) => 'c-' + i)
@@ -546,7 +546,7 @@ test('按会话分开记：s-2 不带参数的命令只清掉 s-2 那一份', ()
   try {
     run('user-words', expansion(ARGS), GATE, dirs.projectDir)
     run('user-words', expansion('另一个会话的需求', { session_id: 's-2' }), GATE, dirs.projectDir)
-    run('user-words', expansion('', { session_id: 's-2', prompt: '/agent-team:at' }), GATE, dirs.projectDir)
+    run('user-words', expansion('', { session_id: 's-2', prompt: '/poundlock:at' }), GATE, dirs.projectDir)
     assert.equal(pendingOf(dirs.projectDir, 's-2'), null)
     assert.equal(pendingOf(dirs.projectDir, 's-1').args, ARGS)
   } finally {
@@ -557,7 +557,7 @@ test('按会话分开记：s-2 不带参数的命令只清掉 s-2 那一份', ()
 test('按会话分开记：升级之前写下的单份 user-words.json（s-1 的、还没绑）照旧绑给 s-1 建的那一趟', () => {
   const dirs = makeRun({ runId: 'r1', stage: 'S1' })
   try {
-    rmSync(join(dirs.projectDir, '.agent-team', 'runs', 'r1'), { recursive: true, force: true })
+    rmSync(join(dirs.projectDir, '.poundlock', 'runs', 'r1'), { recursive: true, force: true })
     const legacy = pendingRecord({ at: '2026-11-01T10:00:00Z', sessionId: 's-1', args: ARGS, runsBefore: [] })
     writeFileSync(pendingPath(dirs.projectDir), JSON.stringify(legacy, null, 2) + NL)
     const runDir = createRun(dirs.projectDir, 'r1', { sid: 's-1' })
@@ -572,9 +572,9 @@ test('按会话分开记：s-2 记原话时，s-1 那份记下的 binding（建 
   const dirs = makeRun({ runId: 'r1', stage: 'S1' })
   try {
     const projectDir = dirs.projectDir
-    rmSync(join(projectDir, '.agent-team', 'runs', 'r1'), { recursive: true, force: true })
+    rmSync(join(projectDir, '.poundlock', 'runs', 'r1'), { recursive: true, force: true })
     run('user-words', expansion(ARGS), GATE, projectDir)
-    const dir = join(projectDir, '.agent-team', 'runs', 'r1')
+    const dir = join(projectDir, '.poundlock', 'runs', 'r1')
     // s-1 建 r1：H6 记下 binding → s-2 在落盘之前起了命令 → 落盘 → 账本绑上。
     assert.equal(decisionOf(run('rework', stateWrite(dir, stateOf('r1'), 's-1'), GATE, projectDir).stdout), null)
     run('user-words', expansion('另一个会话的需求', { session_id: 's-2' }), GATE, projectDir)

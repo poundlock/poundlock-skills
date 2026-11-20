@@ -429,7 +429,7 @@ test('M4f 复核：__main__ 与 at-pm 都单列在「不受 paths 管」那一�
   for (const r of ['__main__', 'at-pm']) assert.ok(!s.includes(`${r} 还能写到`), s)
 })
 
-// M4g（docs/42，审查第 28 条）：PM 照【触达表】把 JSON 手抄进 .agent-team/reach.json，原来没有任何东西核它。现在写完之后门禁按当前
+// M4g（docs/42，审查第 28 条）：PM 照【触达表】把 JSON 手抄进 .poundlock/reach.json，原来没有任何东西核它。现在写完之后门禁按当前
 // project.json 与花名册重算：语义上相同（键序、BOM、CRLF 都不算不同）不吭声；不同、或者写进去的不是合法 JSON，给出正确的那一份。
 test('M4g 第 28 条 reachCheckNotice：与门禁算的相同就不吭声；不同、不是合法 JSON 都给出正确的那一份', () => {
   const expected = {
@@ -442,12 +442,12 @@ test('M4g 第 28 条 reachCheckNotice：与门禁算的相同就不吭声；不�
   for (const ok of [text, reordered, bomCrlf]) assert.equal(reachCheckNotice({ writtenText: ok, expected }), null, ok.slice(0, 30))
   const wrong = JSON.stringify({ ...expected, a: { ...expected.a, unrestricted: true } })
   for (const [bad, head] of [
-    [wrong, '【触达表】刚写进 .agent-team/reach.json 的与门禁按当前 project.json 与花名册算出来的不一样'],
-    ['{', '【触达表】刚写进 .agent-team/reach.json 的不是一份合法的 JSON'],
-    ['', '【触达表】刚写进 .agent-team/reach.json 的不是一份合法的 JSON'],
+    [wrong, '【触达表】刚写进 .poundlock/reach.json 的与门禁按当前 project.json 与花名册算出来的不一样'],
+    ['{', '【触达表】刚写进 .poundlock/reach.json 的不是一份合法的 JSON'],
+    ['', '【触达表】刚写进 .poundlock/reach.json 的不是一份合法的 JSON'],
   ]) {
     const n = reachCheckNotice({ writtenText: bad, expected })
     assert.ok(typeof n === 'string' && n.startsWith(head), n)
-    assert.ok(n.includes('把下面这份 JSON 原样重写进 .agent-team/reach.json：' + String.fromCharCode(10) + JSON.stringify(expected, null, 2)), n)
+    assert.ok(n.includes('把下面这份 JSON 原样重写进 .poundlock/reach.json：' + String.fromCharCode(10) + JSON.stringify(expected, null, 2)), n)
   }
 })

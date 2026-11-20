@@ -25,8 +25,8 @@ const REPO = new URL('..', import.meta.url)
 
 // 插件副本：hooks/ 整个目录 + gate.mjs 读的两份插件文件。damage 在副本上动手。
 function withBrokenPlugin(damage, body) {
-  const pluginDir = mkdtempSync(join(tmpdir(), 'agent-team-boot-'))
-  const projectDir = mkdtempSync(join(tmpdir(), 'agent-team-boot-proj-'))
+  const pluginDir = mkdtempSync(join(tmpdir(), 'poundlock-boot-'))
+  const projectDir = mkdtempSync(join(tmpdir(), 'poundlock-boot-proj-'))
   try {
     cpSync(new URL('hooks', REPO), join(pluginDir, 'hooks'), { recursive: true })
     for (const f of ['roster.json', 'stages.json']) cpSync(new URL(f, REPO), join(pluginDir, f))
@@ -47,19 +47,19 @@ const topLevelThrow = (dir) =>
 // 各检查项一份「形状正确」的输入。输入内容对加载失败时的判定无关紧要——判定逻辑根本
 // 没加载起来——但它必须是平台真会送来的那种形状，免得测到的是「输入读不出来」那条路。
 const INPUTS = {
-  delegation: { hook_event_name: 'PreToolUse', tool_name: 'Agent', tool_input: { subagent_type: 'agent-team:at-product' } },
-  readiness: { hook_event_name: 'PreToolUse', tool_name: 'Agent', tool_input: { subagent_type: 'agent-team:at-product' } },
-  writepath: { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'agent-team:at-backend', tool_input: { file_path: '/p/x', content: '' } },
-  contract: { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'agent-team:at-backend', tool_input: { file_path: '/p/x', content: '' } },
+  delegation: { hook_event_name: 'PreToolUse', tool_name: 'Agent', tool_input: { subagent_type: 'poundlock:at-product' } },
+  readiness: { hook_event_name: 'PreToolUse', tool_name: 'Agent', tool_input: { subagent_type: 'poundlock:at-product' } },
+  writepath: { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'poundlock:at-backend', tool_input: { file_path: '/p/x', content: '' } },
+  contract: { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'poundlock:at-backend', tool_input: { file_path: '/p/x', content: '' } },
   rework: { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'at-pm', tool_input: { file_path: '/p/x', content: '' } },
-  deliverable: { hook_event_name: 'PostToolUse', tool_name: 'Agent', tool_input: { subagent_type: 'agent-team:at-product' } },
-  'stop-gate': { hook_event_name: 'SubagentStop', agent_type: 'agent-team:at-product' },
+  deliverable: { hook_event_name: 'PostToolUse', tool_name: 'Agent', tool_input: { subagent_type: 'poundlock:at-product' } },
+  'stop-gate': { hook_event_name: 'SubagentStop', agent_type: 'poundlock:at-product' },
   // docs/99：CLI 2.1.301 auto 模式下交回的两道（键照实测）。
-  handback: { hook_event_name: 'PreToolUse', tool_name: 'SubagentHandback', agent_type: 'agent-team:at-product', agent_id: 'a0000000000000001', tool_input: { message: 'x' } },
+  handback: { hook_event_name: 'PreToolUse', tool_name: 'SubagentHandback', agent_type: 'poundlock:at-product', agent_id: 'a0000000000000001', tool_input: { message: 'x' } },
   'handback-sent': {
     hook_event_name: 'PostToolUse',
     tool_name: 'SubagentHandback',
-    agent_type: 'agent-team:at-product',
+    agent_type: 'poundlock:at-product',
     agent_id: 'a0000000000000001',
     tool_input: { message: 'x' },
     tool_response: { success: true, message: 'Report delivered to your caller.' },
@@ -74,8 +74,8 @@ const INPUTS = {
   },
   'approval-prompt': { hook_event_name: 'UserPromptSubmit', prompt: 'x' },
   completion: { hook_event_name: 'UserPromptSubmit', prompt: 'x' },
-  'user-words': { hook_event_name: 'UserPromptExpansion', expansion_type: 'slash_command', command_name: 'agent-team:at', command_args: 'x', session_id: 's' },
-  'session-notice': { hook_event_name: 'UserPromptExpansion', expansion_type: 'slash_command', command_name: 'agent-team:at', command_args: 'x', session_id: 's' },
+  'user-words': { hook_event_name: 'UserPromptExpansion', expansion_type: 'slash_command', command_name: 'poundlock:at', command_args: 'x', session_id: 's' },
+  'session-notice': { hook_event_name: 'UserPromptExpansion', expansion_type: 'slash_command', command_name: 'poundlock:at', command_args: 'x', session_id: 's' },
 }
 
 test('前置：INPUTS 覆盖 checks.mjs 里的每一个检查项——否则下面的逐项断言在空转', () => {
@@ -110,7 +110,7 @@ for (const [label, damage] of [
         const { stdout, stderr, status } = gate(check, INPUTS[check])
         assert.equal(stdout, '', `${check} 不该往 stdout 写任何决策`)
         assert.equal(status, 1, `${check}：放行但要让平台记一条 hook error，不能装作判过了`)
-        assert.match(stderr, /agent-team/, `${check} 的 stderr 要说明是谁`)
+        assert.match(stderr, /poundlock/, `${check} 的 stderr 要说明是谁`)
         assert.match(stderr, /加载失败/, `${check} 的 stderr 要说明是加载失败`)
         // M3v（docs/30）：界面只显示 stderr 的第一个非空行（docs/28）——那一行就要说出放行了、为什么。
         const head = stderr.split('\n').find((l) => l.trim()) ?? ''
@@ -227,9 +227,9 @@ test('拒绝理由带上错误的种类，stderr 带上完整的栈——排查�
 const FAKE = fileURLToPath(new URL('./helpers/fake-node-version.cjs', import.meta.url))
 
 function withFakeNode(version, body, execPath) {
-  const projectDir = mkdtempSync(join(tmpdir(), 'agent-team-boot-ver-'))
+  const projectDir = mkdtempSync(join(tmpdir(), 'poundlock-boot-ver-'))
   try {
-    const env = { ...hermeticEnv(), AGENT_TEAM_FAKE_NODE: version, ...(execPath ? { AGENT_TEAM_FAKE_EXECPATH: execPath } : {}) }
+    const env = { ...hermeticEnv(), POUNDLOCK_FAKE_NODE: version, ...(execPath ? { POUNDLOCK_FAKE_EXECPATH: execPath } : {}) }
     body(
       (check, input) => run(check, input, GATE, projectDir, env, { nodeArgs: ['-r', FAKE] }),
       projectDir,
@@ -290,7 +290,7 @@ for (const v of TOO_OLD) {
   // 版本检查就会报「在线」，而 H1 正在拒一切派发。
   test(`Node v${v}（低于 ${MIN_NODE}）：写自检文件拿不到「在线」`, () => {
     withFakeNode(v, (gate, dir) => {
-      for (const agent of [undefined, 'agent-team:at-pm']) {
+      for (const agent of [undefined, 'poundlock:at-pm']) {
         const { stdout } = gate('writepath', gateCheckWrite(dir, agent))
         const reason = decisionOf(stdout)?.permissionDecisionReason ?? ''
         assert.equal(decisionOf(stdout)?.permissionDecision, 'deny', stdout)
@@ -304,7 +304,7 @@ for (const v of TOO_OLD) {
 test(`Node 恰好 ${MIN_NODE}，以及更高的跨位数版本：照常判定——自检拿到「在线」`, () => {
   for (const v of [MIN_NODE, `${MIN_PARTS[0] + 90}.0.0`]) {
     withFakeNode(v, (gate, dir) => {
-      const { stdout, stderr } = gate('writepath', gateCheckWrite(dir, 'agent-team:at-pm'))
+      const { stdout, stderr } = gate('writepath', gateCheckWrite(dir, 'poundlock:at-pm'))
       assert.ok(decisionOf(stdout)?.permissionDecisionReason?.startsWith(GATE_CHECK_ONLINE), `v${v}：${stdout}${stderr}`)
       assert.ok(!stderr.includes('需要 Node'), stderr)
     })
@@ -323,7 +323,7 @@ for (const [label, damage] of [
 ]) {
   test(`${label}：写自检文件拿不到「在线」`, () => {
     withBrokenPlugin(damage, (gate) => {
-      for (const agent of [undefined, 'agent-team:at-pm']) {
+      for (const agent of [undefined, 'poundlock:at-pm']) {
         const { stdout } = gate('writepath', gateCheckWrite(tmpdir(), agent))
         assert.equal(decisionOf(stdout)?.permissionDecision, 'deny', `${agent ?? '主线程'}：${stdout}`)
         assert.ok(!stdout.includes(GATE_CHECK_ONLINE), stdout)

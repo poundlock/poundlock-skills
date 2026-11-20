@@ -206,8 +206,8 @@ function uncShare(s) {
  * 判错是多拦或漏拦，ledger 那份判错是该说话时不说话——但「靠两边各自记得改」维持不住
  * 这件事是一样的（Task 6 评审 I-2）。
  *
- * 前缀比对必须带上末尾的 `/`：只用 startsWith(d) 会把 `.agent-team-backup` 误判成
- * `.agent-team` 底下的东西（`.agent-team-backup` 确实以 `.agent-team` 这个字符串
+ * 前缀比对必须带上末尾的 `/`：只用 startsWith(d) 会把 `.poundlock-backup` 误判成
+ * `.poundlock` 底下的东西（`.poundlock-backup` 确实以 `.poundlock` 这个字符串
  * 开头，但它是兄弟目录，不是子目录）。tests/path-norm.test.mjs 的「前缀粘连」那条
  * 单独钉住这一点。
  */

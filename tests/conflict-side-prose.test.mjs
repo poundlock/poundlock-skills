@@ -41,7 +41,7 @@ test('docs/73：at-pm「什么时候打断用户」——契约冲突指到第 4
   const from = pm.indexOf('## 什么时候打断用户')
   const end = pm.indexOf('\n## ', from + 1)
   const sec = pm.slice(from, end < 0 ? pm.length : end)
-  assert.ok(flat(sec).includes(flat('契约冲突（哪些要问、哪些照契约改或你自己定，见 `/agent-team:at` 第 4 节表格下那一段）、')), 'at-pm 那一句')
+  assert.ok(flat(sec).includes(flat('契约冲突（哪些要问、哪些照契约改或你自己定，见 `/poundlock:at` 第 4 节表格下那一段）、')), 'at-pm 那一句')
 })
 
 test('docs/73：README 两半「契约冲突」那一行、04-dispatch 模板的裁决那一节', () => {
@@ -52,7 +52,7 @@ test('docs/73：README 两半「契约冲突」那一行、04-dispatch 模板的
     'README 英文',
   )
   assert.ok(
-    flat(read('templates/04-dispatch.md')).includes(flat('PM 在这里定（扩出原话、或者改契约第 2、3 节去迁就产出的要问用户，见 /agent-team:at 第 4 节表格下那一段）。')),
+    flat(read('templates/04-dispatch.md')).includes(flat('PM 在这里定（扩出原话、或者改契约第 2、3 节去迁就产出的要问用户，见 /poundlock:at 第 4 节表格下那一段）。')),
     '04-dispatch 模板',
   )
 })
@@ -70,8 +70,8 @@ test('docs/73 §8：「第 2、3 节」与「不用问／自己定／自决」�
   ].filter((p) => p.endsWith('.md'))
   assert.ok(files.length > 10, '前置：扫得到正文')
   for (const p of files) {
-    // 「/agent-team:at-init 第 2、3 节」这类说的是那条命令自己的节，不是契约的——先剥掉。
-    for (const s of flat(read(p)).replace(/\/agent-team:[a-z-]+`?第[0-9、]+节/g, '').split('。')) {
+    // 「/poundlock:at-init 第 2、3 节」这类说的是那条命令自己的节，不是契约的——先剥掉。
+    for (const s of flat(read(p)).replace(/\/poundlock:[a-z-]+`?第[0-9、]+节/g, '').split('。')) {
       if (sec23.test(s) && decide.test(s)) assert.ok(allowed.includes(s), `${p}：「第 2、3 节」与自决同一句——${s.slice(0, 80)}`)
     }
   }

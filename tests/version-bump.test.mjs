@@ -179,7 +179,7 @@ test('plugin.json 一侧读不出来：留在清单里，宁可多要求一位',
 const CLI = join(dirname(fileURLToPath(import.meta.url)), '..', 'scripts', 'check-version-bump.mjs')
 
 function withRepo(body) {
-  const dir = realpathSync(mkdtempSync(join(tmpdir(), 'agent-team-vb-')))
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), 'poundlock-vb-')))
   const git = (...args) =>
     execFileSync('git', ['-c', 'commit.gpgsign=false', '-c', 'core.autocrlf=false', ...args], {
       cwd: dir,

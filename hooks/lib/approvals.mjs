@@ -159,7 +159,7 @@ const ASK_DELIVER =
 function deliverWhyText(why, cause, label = '验收结论') {
   switch (why) {
     case 'closed':
-      return '这一趟已经收口，批准记不进去，也用不上。交付之后的新改动或修复另起一趟（/agent-team:at）。'
+      return '这一趟已经收口，批准记不进去，也用不上。交付之后的新改动或修复另起一趟（/poundlock:at）。'
     case 'no-acceptance':
       return (
         `还没有${label}（${label}不在，或者是空的）：照现状交付的批准要对着一份写成的${label}记（按它那一刻的样子绑定）。` +
@@ -207,12 +207,12 @@ function whyText(why, name, cause, ask = ASK_AGAIN, what = '再返工一轮') {
         '门禁拒了某次回退、说要先问用户时再问。'
       )
     case 'closed':
-      return '这一趟已经收口，批准记不进去：收口之后不再回退、不再返工。交付之后的新改动或修复另起一趟（/agent-team:at）。'
+      return '这一趟已经收口，批准记不进去：收口之后不再回退、不再返工。交付之后的新改动或修复另起一趟（/poundlock:at）。'
     case 'no-run':
       return '当前没有进行中的 run，批准无处可记。'
     case 'other-session':
       // 一趟只归一个会话：别的会话里的回答不记进这一趟。
-      return 'current-run 指着的那一趟归另一个会话，这个会话里的回答不记进它。要在这里接着做那一趟，先照 /agent-team:at-resume 第 1 节「别的会话的一趟」问用户接手。'
+      return 'current-run 指着的那一趟归另一个会话，这个会话里的回答不记进它。要在这里接着做那一趟，先照 /poundlock:at-resume 第 1 节「别的会话的一趟」问用户接手。'
     case 'unreadable':
       return `门禁读不到这个项目的运行状态，批准记不下。修法：${runContextFix(cause)}修好之后重新问一次。`
     case 'write-failed':
@@ -236,7 +236,7 @@ export function approvalNotices({ results, total, cause, stages } = {}) {
     if (r.deliver) {
       out.push(
         typeof r.sha === 'string'
-          ? `【门禁】已记下照现状交付的批准：只对现在这份 ${r.name} 有效——它再改一个字，这条批准就不算了。照 /agent-team:at 第 4 节：` +
+          ? `【门禁】已记下照现状交付的批准：只对现在这份 ${r.name} 有效——它再改一个字，这条批准就不算了。照 /poundlock:at 第 4 节：` +
               'escalation 那一条的 answer 补上用户的原话；答复写进修订块（标题照模板写，kind 照问的那一类）——门禁记着这条批准，它之后的第一次' +
               '改契约算记这条答复，不算改需求、验证段的结论不用重出（一条批准只盖一次修订）；交付文档里写明哪些没过、哪些没验证；再推进或收口。'
           : `【门禁】这次的回答没有记成照现状交付的批准：${deliverWhyText(r.why, cause, r.label)}`,
@@ -246,7 +246,7 @@ export function approvalNotices({ results, total, cause, stages } = {}) {
     if (Array.isArray(r.covers)) {
       out.push(
         `【门禁】已记下返工批准：回到 ${r.stage}（覆盖 ${r.covers.join('、')}；这一趟共 ${total} 条）。` +
-          '照 /agent-team:at 第 4 节：契约追加修订块（回传给你新的 contract_sha）；之前那次被拒的写入（回退或推进），在原来的内容上' +
+          '照 /poundlock:at 第 4 节：契约追加修订块（回传给你新的 contract_sha）；之前那次被拒的写入（回退或推进），在原来的内容上' +
           '补进这条 escalation 与新的 contract_sha 再写一次。没有被拒的写入、是【阶段】或【返工预算】叫你问的：记上 escalation 与 ' +
           'contract_sha，照常往下走这一轮，不要为它再记一次回退。',
       )

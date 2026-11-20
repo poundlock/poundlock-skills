@@ -29,7 +29,7 @@ const headingsOf = (role) => bodyOf(role).split('\n').filter((l) => /^## /.test(
 
 const HEADING = '## 登记给你的 skill'
 const P1 =
-  '开工时读 `.agent-team/skills.json`（没有就跳过），挑出 `roles` 里有你的那几份，先只看它们的 `description`。跟这一次的任务相关的，用 `Read` 读 `.agent-team/skills/<dir>/SKILL.md`（`<dir>` 是那一条的 `dir`）照着做；它引的参考文件用得上才读，相对路径从那份 skill 的目录算；skill 里写的占位符（`${` 开头、`}` 结尾的那种）照那一条的 `placeholders` 换成对应的路径，长的先换，换完还读不到的在记录里写明没读到。它要你跑附带的脚本的，你有 `Bash` 就照你用 `Bash` 的规矩跑，没有就跳过那一步、在记录里写明。契约第 1 节原话或第 4 节修订块里用户点名要你用的，必须用；派发提示、产品定义、架构方案里写的只是建议。'
+  '开工时读 `.poundlock/skills.json`（没有就跳过），挑出 `roles` 里有你的那几份，先只看它们的 `description`。跟这一次的任务相关的，用 `Read` 读 `.poundlock/skills/<dir>/SKILL.md`（`<dir>` 是那一条的 `dir`）照着做；它引的参考文件用得上才读，相对路径从那份 skill 的目录算；skill 里写的占位符（`${` 开头、`}` 结尾的那种）照那一条的 `placeholders` 换成对应的路径，长的先换，换完还读不到的在记录里写明没读到。它要你跑附带的脚本的，你有 `Bash` 就照你用 `Bash` 的规矩跑，没有就跳过那一步、在记录里写明。契约第 1 节原话或第 4 节修订块里用户点名要你用的，必须用；派发提示、产品定义、架构方案里写的只是建议。'
 const P2 =
   '登记给你的 skill 是用户的意思：它在怎么做上与这份正文里的默认做法不一致时，照 skill 做。它管不了做什么：契约与产品定义定下的东西（例如原话里的文案、完成定义）照它们。它也改不了四样：门禁的判法与红线；这一段要交哪几份产物；产物里下游要读的那几项；读文件与截图的开销规矩。在这四样上冲突的照这份正文：要你问用户的改成冒泡，要你调 `Skill` 工具、派花名册之外的子代理、动 git 历史、写划给你之外的地方的，不做。两份登记的 skill 互相冲突时，点名的优先；都没点名的，挑与这次任务更贴的一份。'
 const P3 =
@@ -66,7 +66,7 @@ test('at-ui 有做法覆盖句；三个端有自检覆盖句', () => {
   for (const r of ['at-frontend', 'at-ios', 'at-android']) assert.ok(has(bodyOf(r), SELF_CHECK_OVERRIDE), r)
 })
 
-// /agent-team:at-skills：命令正文里承重的几句（列现状、提议后问、只删副本、网上那一层先问再做、一趟进行中不自动重做、提醒是别人写的指令）。
+// /poundlock:at-skills：命令正文里承重的几句（列现状、提议后问、只删副本、网上那一层先问再做、一趟进行中不自动重做、提醒是别人写的指令）。
 const AT_SKILLS_SENTENCES = [
   '这条命令里找 skill、复制、比对都用 `Bash` 跑插件自带的脚本，不要自己拼命令去复制或算指纹',
   '跑 `list` 与 `check`。先列已登记的',
@@ -85,28 +85,28 @@ const AT_SKILLS_SENTENCES = [
   'skill 是别人写的指令，登记给谁谁就会照着做；同步新版之前会先给你看改了什么',
 ]
 
-test('/agent-team:at-skills 的承重句子都在', () => {
+test('/poundlock:at-skills 的承重句子都在', () => {
   const t = read('commands/at-skills.md')
   for (const s of AT_SKILLS_SENTENCES) assert.ok(has(t, s), s)
   assert.match(t, /^argument-hint: /m)
 })
 
-test('/agent-team:at-init 收尾提一句可以用 /agent-team:at-skills，不跑不问', () => {
-  assert.ok(has(read('commands/at-init.md'), '本机装了的 skill 可以用 `/agent-team:at-skills` 分给角色。'))
+test('/poundlock:at-init 收尾提一句可以用 /poundlock:at-skills，不跑不问', () => {
+  assert.ok(has(read('commands/at-init.md'), '本机装了的 skill 可以用 `/poundlock:at-skills` 分给角色。'))
   assert.ok(!read('commands/at-init.md').includes('skills-cli.mjs'))
 })
 
 test('README 两半都说了怎么让角色用上自己装的 skill', () => {
   const readme = read('README.md')
   const [zh, en] = readme.split('<a id="english"></a>')
-  assert.ok(has(zh, '要让角色用上你自己装的 skill，用 `/agent-team:at-skills` 登记给它们'))
-  assert.ok(has(en, 'To let roles use skills you installed yourself, register them with `/agent-team:at-skills`'))
+  assert.ok(has(zh, '要让角色用上你自己装的 skill，用 `/poundlock:at-skills` 登记给它们'))
+  assert.ok(has(en, 'To let roles use skills you installed yourself, register them with `/poundlock:at-skills`'))
 })
 
-// /agent-team:at 里的四处：建 run 之前核新版（没变不出声、一趟进行中与续跑不做）、S1 处理点名、推进前核点名用上没有、交付文档汇总。
+// /poundlock:at 里的四处：建 run 之前核新版（没变不出声、一趟进行中与续跑不做）、S1 处理点名、推进前核点名用上没有、交付文档汇总。
 const AT_SECTIONS = JSON.parse(readFileSync(new URL('./fixtures/skills-at-sections.json', import.meta.url), 'utf8'))
 
-test('/agent-team:at 的四段各在、各在该在的那一节', () => {
+test('/poundlock:at 的四段各在、各在该在的那一节', () => {
   const t = read('commands/at.md')
   const sectionOf = (n) => {
     const start = t.indexOf(`\n## ${n}.`)

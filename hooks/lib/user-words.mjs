@@ -1,4 +1,4 @@
-// M4o（docs/50，审查第 20 条修法 A）：门禁记下用户在 /agent-team:at 后面写的那段话，契约第 1 节对着它核。
+// M4o（docs/50，审查第 20 条修法 A）：门禁记下用户在 /poundlock:at 后面写的那段话，契约第 1 节对着它核。
 //
 // 契约第 1 节要逐字照抄 $ARGUMENTS（commands/at.md 第 2 节），此前没有任何旁证：项目经理首记时转写偏了，门禁照样把偏了的那一份记成基线
 // （contract-base.mjs 只核推进出第一段之后第 1 节变没变）。平台在斜杠命令展开时发 UserPromptExpansion，输入带 command_name（插件命令是
@@ -6,7 +6,7 @@
 // （docs/50 §1）。
 //
 // 两份门禁专属文件，名字都是 USER_WORDS_FILE（control-files.mjs 登记，任何人的 Edit/Write 都拒）：
-//   - 项目一级 .agent-team/user-words.json：记录器（gate.mjs 的 user-words 检查项）每次带参数展开都整份重写——原话、会话 id、那一刻 runs/
+//   - 项目一级 .poundlock/user-words.json：记录器（gate.mjs 的 user-words 检查项）每次带参数展开都整份重写——原话、会话 id、那一刻 runs/
 //     下已有的 run（runs_before）。这一刻这一趟的 run 还没建，只能先记在项目一级。不带参数的那一次，清掉这个会话还挂着的那份（blankAtSession）。
 //   - run 一级 runs/<id>/user-words.json：绑定之后的那一份。之后这一趟只认它。
 // 绑不绑（bindDecision）：同一个会话、还没绑也没作废的记录——这个会话用 Write 建出一趟新 run（不在 runs_before 里）的 state.json、停在第一段的
@@ -20,7 +20,7 @@
 // 引用块（每行一个「>」或「> 」）也认——真实会话里两种写法都有（docs/50 §1）。按原话的行数往下认，原话里自带的「## 2. …」不会把它切断。
 // 复核（docs/50 §9）：比之前两边都把空白变体（不换行空格、全角空格、制表符这类）折成一个普通空格、连续空白算一个，去掉零宽与格式字符——
 // 实测 sonnet 照抄时把不换行空格换成了普通空格，拒绝理由里两段肉眼一样、改不出来，这一趟就推进不出第一段。
-// 需求稿（docs/95）：/agent-team:at 建 run 之前，项目经理照第 1 节「先把需求问清楚」问过用户、把问清的整理成一份需求稿，用 AskUserQuestion 单选问
+// 需求稿（docs/95）：/poundlock:at 建 run 之前，项目经理照第 1 节「先把需求问清楚」问过用户、把问清的整理成一份需求稿，用 AskUserQuestion 单选问
 // 要不要照它开始——题面就是整份需求稿。用户选了规范标签「照这份需求开始」，批准记录器（gate.mjs 的 approval-ask）把题面当作这一次的原话，整份重写
 // 项目一级那份记录（source: 'ask'），之后的绑定、核对与命令带参数时一样。认的是题面（用户点的那张卡片上的字），不是项目经理在消息里另贴的那一份。
 // 只认 AskUserQuestion：用户在对话里单独发这一句，门禁不知道批的是哪一份。
@@ -47,7 +47,7 @@ const FORMAT_RE = new RegExp('[' + BS + 'p{Cf}' + BS + 'p{Default_Ignorable_Code
 // 空白：制表符与 Unicode 的空格分隔符（不换行空格、全角空格、窄空格……），连续几个算一个。
 const SPACES_RE = new RegExp('[' + TAB + BS + 'p{Zs}]+', 'gu')
 
-// 单个微调：/agent-team:at-tweak 的原话同样记，记录里写明是哪条命令——建微调的一趟（state 的 mode 为 tweak）要这个会话发过 at-tweak 的记录，
+// 单个微调：/poundlock:at-tweak 的原话同样记，记录里写明是哪条命令——建微调的一趟（state 的 mode 为 tweak）要这个会话发过 at-tweak 的记录，
 // 不然项目经理写一个 mode 就绕开了产品定义与架构。
 function isAt(input) {
   return (
@@ -59,7 +59,7 @@ function isAt(input) {
 }
 
 /**
- * UserPromptExpansion 的输入是不是 /agent-team:at（或 at-tweak）带着非空参数展开、带会话 id 的那一次：是就给 { args, sessionId, command }，否则 null。
+ * UserPromptExpansion 的输入是不是 /poundlock:at（或 at-tweak）带着非空参数展开、带会话 id 的那一次：是就给 { args, sessionId, command }，否则 null。
  * command：'at' 或 'at-tweak'。
  */
 export function wordsOf(input) {
@@ -71,7 +71,7 @@ export function wordsOf(input) {
   return { args, sessionId: sid, command: input.command_name === TWEAK_COMMAND ? 'at-tweak' : 'at' }
 }
 
-/** /agent-team:at 不带参数展开的那一次：给会话 id（调用方清掉这个会话还挂着的那份），否则 null。 */
+/** /poundlock:at 不带参数展开的那一次：给会话 id（调用方清掉这个会话还挂着的那份），否则 null。 */
 export function blankAtSession(input) {
   if (!isAt(input)) return null
   const args = input.command_args
@@ -160,7 +160,7 @@ export function briefAnswer(toolResponse) {
 }
 
 // 需求稿没有记下的原因，按出路分三组：用户这次的回答不是一句干净的批准（照用户的话改、再问）；这一问本身不合要求（照要求重问）；门禁这一侧记不下
-// （请用户把需求稿贴在命令后面重发——没有 .agent-team 的先跑 at-init）。
+// （请用户把需求稿贴在命令后面重发——没有 .poundlock 的先跑 at-init）。
 const BRIEF_WHY = {
   afk: '用户离开了键盘，对话框自动提交了',
   'follow-up': '用户要先追问',
@@ -174,11 +174,11 @@ const BRIEF_WHY = {
   hidden: '题面里有界面上可能看不见的内容（控制字符、零宽或双向控制这类不可见的字、行分隔符、私用区的字、HTML 注释或标签、Markdown 的链接或图片），用户看到的与门禁记下的会不一样',
   'not-alone': '这一次问里还有别的题，那几题的答案进不了契约第 1 节',
   'no-session': '读不到这个会话的 id',
-  'no-agent-team': '这个项目里还没有 .agent-team',
+  'no-poundlock': '这个项目里还没有 .poundlock',
   'write-failed': '门禁写不进原话记录',
 }
 const FORM_SIDE = new Set(['blank', 'unmatched', 'hidden', 'not-alone'])
-const GATE_SIDE = new Set(['no-session', 'no-agent-team', 'write-failed'])
+const GATE_SIDE = new Set(['no-session', 'no-poundlock', 'write-failed'])
 const REASK = `单独问这一道题，单选，题面就是整份纯文本的需求稿，标签逐字写「${BRIEF_LABEL}」`
 
 /**
@@ -188,8 +188,8 @@ const REASK = `单独问这一道题，单选，题面就是整份纯文本的�
 export function briefNotice(why = null, { staleRun = false } = {}) {
   if (!why) {
     return (
-      `【需求稿】门禁记下了用户批准的这份需求稿（就是那道题的题面，记在 .agent-team/${USER_WORDS_FILE}，换掉了之前记下的原话）。` +
-      '照 /agent-team:at 第 1 节接着建这一趟新 run，契约第 1 节逐字照抄它；推进出第一段时门禁拿它核。' +
+      `【需求稿】门禁记下了用户批准的这份需求稿（就是那道题的题面，记在 .poundlock/${USER_WORDS_FILE}，换掉了之前记下的原话）。` +
+      '照 /poundlock:at 第 1 节接着建这一趟新 run，契约第 1 节逐字照抄它；推进出第一段时门禁拿它核。' +
       (staleRun
         ? '另外，current-run 指着的那一趟是批准之前就建好的、还没收口：这份需求稿不会绑给它。照需求稿走，就换一个新的 run id 另建一趟（刚才那一趟原样留在磁盘上，' +
           '它是这一轮你自己建的，不用问用户续不续跑）；接着用那一趟的话，它的第 1 节照它建起来时记下的原话核。'
@@ -198,9 +198,9 @@ export function briefNotice(why = null, { staleRun = false } = {}) {
   }
   const reason = BRIEF_WHY[why] ?? '回答的形状认不出'
   if (GATE_SIDE.has(why)) {
-    const first = why === 'no-agent-team' ? '先请用户跑 /agent-team:at-init，再' : '请用户'
+    const first = why === 'no-poundlock' ? '先请用户跑 /poundlock:at-init，再' : '请用户'
     return (
-      `【需求稿】门禁没有记下用户批准的这份需求稿：${reason}。${first}把这份需求稿原样贴在 /agent-team:at 后面重发一次（门禁在命令展开时记下它）；` +
+      `【需求稿】门禁没有记下用户批准的这份需求稿：${reason}。${first}把这份需求稿原样贴在 /poundlock:at 后面重发一次（门禁在命令展开时记下它）；` +
       '不要照现在这样往下建 run——那样契约第 1 节要么不核，要么拿之前记下的那一份核、对不上。'
     )
   }
@@ -273,7 +273,7 @@ function wordsOfValue(v) {
     args: v.args,
     // 没有这个键的（这一版之前记的）是命令带的参数。
     source: v.source === 'ask' ? 'ask' : 'command',
-    // 没有这个键的（这一版之前记的）、认不得的值都是 /agent-team:at。
+    // 没有这个键的（这一版之前记的）、认不得的值都是 /poundlock:at。
     command: v.command === 'at-tweak' ? 'at-tweak' : 'at',
     runs_before: Array.isArray(v.runs_before) ? v.runs_before.filter((n) => typeof n === 'string') : [],
     binding: typeof v.binding === 'string' ? v.binding : null,
@@ -414,7 +414,7 @@ export function wordsMismatchText(m, source = 'command') {
   const head =
     source === 'ask'
       ? `契约第 1 节对不上用户批准的需求稿（门禁在用户点「${BRIEF_LABEL}」时记下了它，原样在这一趟 run 目录的 ${USER_WORDS_FILE} 里，args 那一项）：`
-      : '契约第 1 节对不上用户在 /agent-team:at 后面写的原话（门禁在用户发出那条命令时记下了它，原样在这一趟 run 目录的 ' +
+      : '契约第 1 节对不上用户在 /poundlock:at 后面写的原话（门禁在用户发出那条命令时记下了它，原样在这一趟 run 目录的 ' +
         `${USER_WORDS_FILE} 里，args 那一项）：`
   if (!m || m.kind === 'no-section') return head + '契约里切不出第 1 节（「## 1. 用户原话」那一行）'
   if (m.kind === 'short') return head + `第 1 节到第 ${m.line} 行就没了，原话从这一行起还有 ${shown(m.want)} 等`

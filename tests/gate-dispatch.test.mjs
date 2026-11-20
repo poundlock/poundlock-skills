@@ -13,14 +13,14 @@ import { CHECKS } from '../hooks/lib/checks.mjs'
 import { run, decisionOf } from './helpers/gate-runner.mjs'
 
 // 整理项 6：下面两条 stop-gate 用例此前跑在继承来的 cwd（仓库根）上，靠
-// "仓库根此刻恰好没有 .agent-team" 这个环境状态才得到它们想要的结果。而
-// .agent-team/ 不在 .gitignore 里，一旦有人在本仓库 dogfood agent-team，仓库根
+// "仓库根此刻恰好没有 .poundlock" 这个环境状态才得到它们想要的结果。而
+// .poundlock/ 不在 .gitignore 里，一旦有人在本仓库 dogfood poundlock，仓库根
 // 就会真的出现一个进行中的 run，H5b 会因为产物缺失而真拦截（exit 2）——这两条
 // 会因为"门禁正常工作"而变红。改成传一个 mkdtempSync 出来的干净临时目录（run()
 // 的第四个参数，helper 早就支持），把"没有进行中的 run"从环境状态变成夹具的
 // 一部分。
 function cleanCwd() {
-  return mkdtempSync(join(tmpdir(), 'agent-team-dispatch-cwd-'))
+  return mkdtempSync(join(tmpdir(), 'poundlock-dispatch-cwd-'))
 }
 
 // 这是本任务存在的理由：SubagentStop 不带 tool_name，
@@ -34,7 +34,7 @@ test('stop-gate：输入里没有 tool_name 也不能因此 deny', () => {
   try {
     const { status } = run(
       'stop-gate',
-      { hook_event_name: 'SubagentStop', agent_type: 'agent-team:at-backend' },
+      { hook_event_name: 'SubagentStop', agent_type: 'poundlock:at-backend' },
       undefined,
       cwd,
     )
@@ -53,13 +53,13 @@ test('stop-gate 若拒绝，必须走 SubagentStop 契约：exit 2 + stderr，�
   try {
     const { stdout, stderr, status } = run(
       'stop-gate',
-      { hook_event_name: 'SubagentStop', agent_type: 'agent-team:at-backend' },
+      { hook_event_name: 'SubagentStop', agent_type: 'poundlock:at-backend' },
       undefined,
       cwd,
     )
     assert.ok(status === 0 || status === 2, `stop-gate 不该以其它退出码结束，实际是 ${status}`)
     // Task 6 已经给 stop-gate 接上了判定逻辑，但这条测试跑在一个干净的临时
-    // 目录上（没有 .agent-team）——H5b 对读不到运行上下文是 fail open
+    // 目录上（没有 .poundlock）——H5b 对读不到运行上下文是 fail open
     // （见 hooks/gate.mjs），所以这里的 status 恒为 0，下面这个 if 分支依旧是
     // 防御性的，不代表这条测试验证过 exit 2。exit 2 的真实执行路径（造一个
     // 产物真的缺失的 run，逼 H5b 真拦截）由 tests/gate-deliverable.test.mjs

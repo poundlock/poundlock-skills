@@ -1,4 +1,4 @@
-// M4j（docs/45，审查第 20 条与「契约修订之后，验证段的结论不要求重出」）：正文——/agent-team:at 第 4 节写修订块那一段之后、契约格式的
+// M4j（docs/45，审查第 20 条与「契约修订之后，验证段的结论不要求重出」）：正文——/poundlock:at 第 4 节写修订块那一段之后、契约格式的
 // skill、契约模板的修订块格式、项目经理红线里第 1 节那一条、README 两半的 run 目录树。门禁那一半在 tests/contract-base.test.mjs、
 // tests/gate-contract-base.test.mjs。承重的句子整句钉（空白不计）。复核（docs/45 §8）之后改了 at.md 那一段、加了模板与 skill 的标题那一句。
 import { test } from 'node:test'
@@ -18,7 +18,7 @@ const AT_AFTER_REVISION =
   '重派（交付文档是你自己的，重写），在后面的段走到时照常重出。重出之前它们也不算交了的前置：拿它们当前置的段派不出人。' +
   '第 1 节推进出 S1 之后门禁也记下了：之后改了它，推进与收口都会被拒——用户改需求' +
   '写修订块，第 1 节原样留着。'
-test('M4j：/agent-team:at 第 4 节——改需求的修订之后验证段的结论要重出（按标题分、出路看当前段），第 1 节推进出 S1 之后就定了', () => {
+test('M4j：/poundlock:at 第 4 节——改需求的修订之后验证段的结论要重出（按标题分、出路看当前段），第 1 节推进出 S1 之后就定了', () => {
   const at = read('commands/at.md')
   const s = at.slice(at.indexOf('**用户主动改需求**'), at.indexOf('**返工预算耗尽（`budget-exhausted`）不靠你自己数**'))
   assert.ok(has(s, AT_AFTER_REVISION), s)

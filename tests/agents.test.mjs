@@ -322,7 +322,7 @@ test('每一份在 templates/project.json 里认领了 paths 的角色正文里�
 
 // 正向锚（`docs/11` §3.3 第 2 条）：拿已知违规样本证明 hasPathScopeLine() 认得出违规。
 test('前置条件：hasPathScopeLine() 认得出「被改松」的样本，也不被意思相反的一句 paths 提及喂饱', () => {
-  const real = '`.agent-team/project.json` 的 `paths` 里划给你的那些前缀（目录或单个文件），**只有那些**。'
+  const real = '`.poundlock/project.json` 的 `paths` 里划给你的那些前缀（目录或单个文件），**只有那些**。'
   assert.ok(hasPathScopeLine(real), '真实原文形状都认不出来，判据本身坏了')
 
   // ① 限定整条删掉，只留一句「这是你的主场」。
@@ -613,7 +613,7 @@ test('前置条件：hasBoundary() 认得出一个已知违规样本——保留
 // 空间、恰好形状相同，而花名册只收角色。`tests/commands.test.mjs` 早在 M2a Task 9 就撞上
 // 并解决过（它从自己的 FILES 派生了一个排除集），**而这一条用着逐字相同的正则却没有任何
 // 排除**——不是分叉，是一边压根不知道另一边解决过这个问题。代价是具体的：角色正文因此
-// 写不了 `/agent-team:at-init`，只能绕成「写 .agent-team/project.json 的那条勘察命令」
+// 写不了 `/poundlock:at-init`，只能绕成「写 .poundlock/project.json 的那条勘察命令」
 // 这种描述特征的说法（docs/11 §5.15）。排除集现在是 tests/helpers/command-names.mjs
 // 的单一真源，从 commands/ 目录读出来，两个测试文件共用。
 //
@@ -1154,7 +1154,7 @@ test('自检：statesPathsEscape() 认得出一个已知违规样本——保留
 test('故意不认领 project.paths 的角色，正文里必须写明写路径隔离在 run 目录之外拒它——而且门禁真的拒', () => {
   const project = JSON.parse(readFileSync(url('templates/project.json'), 'utf8'))
   for (const role of ROLES_WITHOUT_PATHS) {
-    const r = decideWritePath({ role, filePath: '/proj/src/server/a.ts', project, runDir: '/proj/.agent-team/runs/r1', stages, agentTeamDir: '/proj/.agent-team', roster })
+    const r = decideWritePath({ role, filePath: '/proj/src/server/a.ts', project, runDir: '/proj/.poundlock/runs/r1', stages, agentTeamDir: '/proj/.poundlock', roster })
     assert.equal(r.decision, 'deny', `${role} 写 run 目录之外没被拒——正文那一句与门禁对不上：${JSON.stringify(r)}`)
     assert.ok(
       statesPathsEscape(bodyOf(`${role}.md`)),

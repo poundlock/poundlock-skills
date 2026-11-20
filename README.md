@@ -1,6 +1,6 @@
 <div align="center">
 
-# agent-team
+# poundlock
 
 **十角色软件开发 agent team —— 一个 Claude Code 插件**
 
@@ -28,13 +28,13 @@
 
 ```sh
 claude plugin marketplace add poundlock/poundlock-skills --scope local
-claude plugin install agent-team@agent-team-marketplace --scope local
+claude plugin install poundlock@poundlock --scope local
 ```
 
 装好后在这个目录里新开一个会话，主会话就是项目经理。插件只对这一个项目生效，不影响别的项目。
 
 > [!WARNING]
-> **安装命令要带 `--scope local`。** `install` 不带它、或者在 `/plugin` 面板里选了默认的第一项，装的是 user 作用域：这台机器上此后开的每一个新会话、不分项目，主会话都会变成项目经理。装错了就执行 `claude plugin uninstall agent-team@agent-team-marketplace`（不带 `--scope`，卸的就是 user 作用域那一份），再照上面重装。`marketplace add` 不带它，只是把市场登记在 user 一层，不接管会话。
+> **安装命令要带 `--scope local`。** `install` 不带它、或者在 `/plugin` 面板里选了默认的第一项，装的是 user 作用域：这台机器上此后开的每一个新会话、不分项目，主会话都会变成项目经理。装错了就执行 `claude plugin uninstall poundlock@poundlock`（不带 `--scope`，卸的就是 user 作用域那一份），再照上面重装。`marketplace add` 不带它，只是把市场登记在 user 一层，不接管会话。
 
 **前提**：
 
@@ -42,29 +42,29 @@ claude plugin install agent-team@agent-team-marketplace --scope local
 - **Claude Code 2.1.276 或更新**。桌面端保持应用为最新即可。
 - **原生 Windows 上要装 Git for Windows**。团队角色跑命令只用 `Bash`（Git Bash）；没装的话 Claude Code 只给 PowerShell，角色装依赖、编译、跑测试都做不了，项目经理会停下来告诉你。
 
-Node 找不到、旧到门禁起不来，或者 hooks 被关掉时，平台不拦任何调用，门禁一道都不生效，界面上至多一行不起眼的灰字。所以项目经理在 `/agent-team:at`、`/agent-team:at-tweak`、`/agent-team:at-resume`、`/agent-team:at-init`、`/agent-team:at-skills` 开头，以及之后你每发一条消息、它这一轮第一次派发或写 `.agent-team` 之前（续会话之后也一样），都会做一次**门禁自检**：故意写一个门禁一定会拦下的文件。每次自检都会在界面上留下一条被拦下的写入（显示为一条错误），内容以「门禁自检：在线」开头——那就是自检，属预期。门禁没拦下它，项目经理会停下来，告诉你怎么查。`/agent-team:at-status` 只读，不做这项检查。
+Node 找不到、旧到门禁起不来，或者 hooks 被关掉时，平台不拦任何调用，门禁一道都不生效，界面上至多一行不起眼的灰字。所以项目经理在 `/poundlock:at`、`/poundlock:at-tweak`、`/poundlock:at-resume`、`/poundlock:at-init`、`/poundlock:at-skills` 开头，以及之后你每发一条消息、它这一轮第一次派发或写 `.poundlock` 之前（续会话之后也一样），都会做一次**门禁自检**：故意写一个门禁一定会拦下的文件。每次自检都会在界面上留下一条被拦下的写入（显示为一条错误），内容以「门禁自检：在线」开头——那就是自检，属预期。门禁没拦下它，项目经理会停下来，告诉你怎么查。`/poundlock:at-status` 只读，不做这项检查。
 
 Node 起得来但太旧时，门禁会拒绝每一次派发与写入，并写明要装哪个版本。自检不核 Claude Code 的版本：版本不够时，门禁可能照常在跑、自检也通过，分层派发却走不通——所以要自己确认，终端里用 `claude --version`，桌面端保持应用为最新。
 
-**更新**——版本号变了才会拉到新版，已经开着的会话要重开才生效。每一版改了什么写在 [CHANGELOG.md](CHANGELOG.md)，每一版都打了对应的 tag（`v` 加版本号）。更新最好放在两趟之间；进行中的那一趟更新之后可以接着跑，万一被门禁拦得没有出路，另起一趟（`/agent-team:at`）。
+**更新**——版本号变了才会拉到新版，已经开着的会话要重开才生效。每一版改了什么写在 [CHANGELOG.md](CHANGELOG.md)，每一版都打了对应的 tag（`v` 加版本号）。更新最好放在两趟之间；进行中的那一趟更新之后可以接着跑，万一被门禁拦得没有出路，另起一趟（`/poundlock:at`）。
 
 ```sh
-claude plugin update agent-team@agent-team-marketplace --scope local
+claude plugin update poundlock@poundlock --scope local
 ```
 
 **卸载**：
 
 ```sh
-claude plugin uninstall agent-team@agent-team-marketplace --scope local
+claude plugin uninstall poundlock@poundlock --scope local
 ```
 
-卸载不会移除市场，也不会删掉 `~/.claude/plugins/cache/` 下的插件副本。要彻底清理，再执行 `claude plugin marketplace remove agent-team-marketplace --scope local`，并手动删掉那份缓存。
+卸载不会移除市场，也不会删掉 `~/.claude/plugins/cache/` 下的插件副本。要彻底清理，再执行 `claude plugin marketplace remove poundlock --scope local`，并手动删掉那份缓存。
 
 <details>
 <summary>不安装，直接从本地克隆加载（开发用）</summary>
 
 ```sh
-claude --plugin-dir /path/to/agent-team
+claude --plugin-dir /path/to/poundlock
 ```
 
 用这种方式时，每次续会话都要带上这个参数，见[已知边界](#已知边界)。
@@ -77,18 +77,18 @@ claude --plugin-dir /path/to/agent-team
 
 | 命令 | 作用 |
 |---|---|
-| `/agent-team:at-init` | **先跑它，每个项目一次。** 勘察项目，写出 `.agent-team/project.json` |
-| `/agent-team:at <需求>` | **起一趟 run。** 原话逐字写进契约，从 `S1` 一路带到 `S8` |
-| `/agent-team:at-tweak <要改什么>` | **交付之后的小改动。** 项目经理直接派开发角色，改了给你看，你说「可以了，收尾」才跑测试、交付 |
-| `/agent-team:at-status` | **看进度。** 只读：当前阶段、产物、返工与待你回答的问题 |
-| `/agent-team:at-resume` | **接着跑。** 上下文压缩后或换了会话时，从磁盘恢复这一趟 |
-| `/agent-team:at-skills` | **给角色配 skill。** 把本机装的 skill 登记给角色、复制进项目；有新版时先问你再同步 |
+| `/poundlock:at-init` | **先跑它，每个项目一次。** 勘察项目，写出 `.poundlock/project.json` |
+| `/poundlock:at <需求>` | **起一趟 run。** 原话逐字写进契约，从 `S1` 一路带到 `S8` |
+| `/poundlock:at-tweak <要改什么>` | **交付之后的小改动。** 项目经理直接派开发角色，改了给你看，你说「可以了，收尾」才跑测试、交付 |
+| `/poundlock:at-status` | **看进度。** 只读：当前阶段、产物、返工与待你回答的问题 |
+| `/poundlock:at-resume` | **接着跑。** 上下文压缩后或换了会话时，从磁盘恢复这一趟 |
+| `/poundlock:at-skills` | **给角色配 skill。** 把本机装的 skill 登记给角色、复制进项目；有新版时先问你再同步 |
 
-需求还没想清楚也可以直接发。`/agent-team:at` 不带需求，或者话里还有几处没说清时，项目经理先问你几个问题（一次一个），整理成一份需求稿给你过目；你选「照这份需求开始」，就照它起这一趟，契约里记的是这份需求稿。话已经说清楚的，直接开始。
+需求还没想清楚也可以直接发。`/poundlock:at` 不带需求，或者话里还有几处没说清时，项目经理先问你几个问题（一次一个），整理成一份需求稿给你过目；你选「照这份需求开始」，就照它起这一趟，契约里记的是这份需求稿。话已经说清楚的，直接开始。
 
-在别处想好的需求（比如在没装 agent-team 的会话里用 superpowers 头脑风暴出的设计文档），只贴要做什么、给谁用、做完是什么样子、不做什么，不要整份贴：贴在 `/agent-team:at` 后面的每一句都会被当成你的原话。
+在别处想好的需求（比如在没装 poundlock 的会话里用 superpowers 头脑风暴出的设计文档），只贴要做什么、给谁用、做完是什么样子、不做什么，不要整份贴：贴在 `/poundlock:at` 后面的每一句都会被当成你的原话。
 
-小改动用 `/agent-team:at-tweak`：几个会话可以同时各跑一趟微调，门禁记下每一趟里开发角色改过的文件，另一趟再改同一个文件会被拒（后来的那一趟要等先改的那一趟收尾；用 Bash 改的文件门禁不记）。开着微调的时候起不了完整的一趟，开着完整的一趟时也起不了微调。哪一趟不想做了可以放弃：项目经理列出改过的文件、问你退不退回，你选「放弃这一趟」，它就冻结，不再挡别的。
+小改动用 `/poundlock:at-tweak`：几个会话可以同时各跑一趟微调，门禁记下每一趟里开发角色改过的文件，另一趟再改同一个文件会被拒（后来的那一趟要等先改的那一趟收尾；用 Bash 改的文件门禁不记）。开着微调的时候起不了完整的一趟，开着完整的一趟时也起不了微调。哪一趟不想做了可以放弃：项目经理列出改过的文件、问你退不退回，你选「放弃这一趟」，它就冻结，不再挡别的。
 
 ### 一趟 run 怎么走
 
@@ -111,7 +111,7 @@ flowchart TB
 
 实现角色为每一条新行为写自动化测试；测试角色只跑、不写，缺测试判不通过，退回实现阶段补。不写测试只有两种情形：这一次没有新行为，或者你说过不要（在需求原话里，或者之后答复的问题里）。这一趟之前就挂着的用例照样算没过，除非你同样说过它们不算；没说过的，项目经理会问你要不要照现状交付。
 
-交付之后这一趟就收口了：不再回退，也不再派人。接着要改动或修复，用 `/agent-team:at <改动>` 另起一趟（新的契约、新的返工预算）。返工时，测试、验收与交付报告一律重新出，不沿用上一轮的。
+交付之后这一趟就收口了：不再回退，也不再派人。接着要改动或修复，用 `/poundlock:at <改动>` 另起一趟（新的契约、新的返工预算）。返工时，测试、验收与交付报告一律重新出，不沿用上一轮的。
 
 ### 什么时候会问你
 
@@ -128,8 +128,8 @@ flowchart TB
 
 每次提问都会引用契约原文，给出 2–4 个具体选项、各自的后果和它的推荐；你的回答会作为修订写进契约。技术选型、裁掉哪些角色、代码风格这类事，它自己决定；只是要把测试整个裁掉（验收也就跟着没了）的，除非这一次只动了文档、或者你说过这一趟不要测试，它会先问你。
 
-另外，上一趟还没走完你又起了一趟新的，它会先问你接着跑哪一趟；项目在 git 仓库里时，初始化还会问一次要不要把 `.agent-team/` 加进 `.gitignore`。
-一趟只归起它的那个会话：在另一个会话里再起 `/agent-team:at`，不会另起一趟，它会问你这次是不是要补充给那一趟，是就请你回原来那个会话去说；原来那个会话已经关了，在新会话里用 `/agent-team:at-resume` 明确接手。收口时，团队记下来、还在跑的服务，它会列出来问你要不要停；命令行里带着项目文件夹名的其他进程只列给你看，不动。
+另外，上一趟还没走完你又起了一趟新的，它会先问你接着跑哪一趟；项目在 git 仓库里时，初始化还会问一次要不要把 `.poundlock/` 加进 `.gitignore`。
+一趟只归起它的那个会话：在另一个会话里再起 `/poundlock:at`，不会另起一趟，它会问你这次是不是要补充给那一趟，是就请你回原来那个会话去说；原来那个会话已经关了，在新会话里用 `/poundlock:at-resume` 明确接手。收口时，团队记下来、还在跑的服务，它会列出来问你要不要停；命令行里带着项目文件夹名的其他进程只列给你看，不动。
 
 测试或验收没过时，只有选项「照现状交付」会被门禁记成照现状交付的批准，在对话里单独发一条只写这一句的消息也算；批准只对那一刻的测试报告或验收结论有效。
 
@@ -138,11 +138,11 @@ flowchart TB
 ### 产物在哪
 
 ```text
-.agent-team/
+.poundlock/
 ├── project.json         勘察结果：各角色能写的目录、可用角色、构建与测试命令
 ├── reach.json           算上派发之后，各角色实际能写到的地方
 ├── current-run          当前这一趟的 run id
-├── user-words.json      你最近一次在 /agent-team:at 后面写的原话，或者批准的需求稿（门禁自己记）
+├── user-words.json      你最近一次在 /poundlock:at 后面写的原话，或者批准的需求稿（门禁自己记）
 └── runs/<run_id>/
     ├── 00-contract.md   契约：你的原话与修订记录
     ├── …                各阶段的产物（实现阶段每个执行角色各一份）
@@ -156,7 +156,7 @@ flowchart TB
 
 代码本身写进 `project.json` 分给各角色的目录里。
 
-`.agent-team/` 建议加进 `.gitignore`（初始化时项目经理会先问你）：既不进版本库也不忽略的话，`git clean -fd`、`git stash -u` 会把进行中的 run 一起清掉或藏起，门禁随之失效；提交进了版本库的话，`git stash`、`git checkout -- .` 会把 `state.json` 倒回提交时那一版，返工计数一起清零。
+`.poundlock/` 建议加进 `.gitignore`（初始化时项目经理会先问你）：既不进版本库也不忽略的话，`git clean -fd`、`git stash -u` 会把进行中的 run 一起清掉或藏起，门禁随之失效；提交进了版本库的话，`git stash`、`git checkout -- .` 会把 `state.json` 倒回提交时那一版，返工计数一起清零。
 
 ## 怎么看每个角色
 
@@ -170,13 +170,13 @@ flowchart TB
 ## 已知边界
 
 > [!WARNING]
-> **这不是沙箱。** 写路径隔离按 `project.json` 的 `paths` 管项目经理以外的各个角色：在 run 目录之外，只能写划给自己的前缀，没有条目就哪都写不了——按设计不认领目录的 `at-qa` 与 `at-acceptance` 也一样，它们只写 run 目录里自己那份产物。划给一个角色的目录不连带它下面的 `CLAUDE.md`、`CLAUDE.local.md`、`.claude/`、`.git`——要写这几处，得把它们本身划过去（先问你）；目录下面另建 `.agent-team/` 谁都不行。`Bash` 没有任何门禁看着，而执行角色保留它来构建和测试。项目经理在实现之前（实现中有角色被拒时也会）照架构方案往 `paths` 里补前缀（只加不删；落在 `.claude/`、CI/CD、凭据这类位置的先问你；补了什么会告诉你），这些前缀留给以后各趟。
+> **这不是沙箱。** 写路径隔离按 `project.json` 的 `paths` 管项目经理以外的各个角色：在 run 目录之外，只能写划给自己的前缀，没有条目就哪都写不了——按设计不认领目录的 `at-qa` 与 `at-acceptance` 也一样，它们只写 run 目录里自己那份产物。划给一个角色的目录不连带它下面的 `CLAUDE.md`、`CLAUDE.local.md`、`.claude/`、`.git`——要写这几处，得把它们本身划过去（先问你）；目录下面另建 `.poundlock/` 谁都不行。`Bash` 没有任何门禁看着，而执行角色保留它来构建和测试。项目经理在实现之前（实现中有角色被拒时也会）照架构方案往 `paths` 里补前缀（只加不删；落在 `.claude/`、CI/CD、凭据这类位置的先问你；补了什么会告诉你），这些前缀留给以后各趟。
 
 > [!WARNING]
-> **主会话会被接管成 `at-pm`。** 它的工具面是 `Agent(...)`（受派发白名单约束）、`AskUserQuestion`、`Bash`、`Read`、`Glob`、`Grep`、`Write`、`Edit`——能改动的范围与普通会话相当，把它限制在目标项目里的是角色说明，不是工具权限。它拿不到你在普通会话里能用的 MCP 工具与网页搜索、抓取（WebSearch、WebFetch）。它也拿不到 Skill 工具，别的插件带的 skill 它调不起来。要让角色用上你自己装的 skill，用 `/agent-team:at-skills` 登记给它们：整份复制进项目，角色按清单读来用；skill 是别人写的指令，登记给谁谁就照着做，同步新版之前会先给你看改了什么。团队里只有 `at-ui` 多一组看页面用的浏览器工具：你装了官方插件市场的 Playwright 插件，它就在本机打开自己起的页面截图看效果（会弹出一个浏览器窗口，截图留在项目根的 .playwright-mcp/ 下），没装就照实说没看过；其余角色都拿不到 MCP 与网页工具——每个角色只拿自己清单里的工具。按上面的方式安装，影响范围只在安装它的那个项目目录；也不要用 `--agent`、或在你自己的设置里设 `agent` 键，把主会话换成别的角色，门禁按主会话的身份判定。
+> **主会话会被接管成 `at-pm`。** 它的工具面是 `Agent(...)`（受派发白名单约束）、`AskUserQuestion`、`Bash`、`Read`、`Glob`、`Grep`、`Write`、`Edit`——能改动的范围与普通会话相当，把它限制在目标项目里的是角色说明，不是工具权限。它拿不到你在普通会话里能用的 MCP 工具与网页搜索、抓取（WebSearch、WebFetch）。它也拿不到 Skill 工具，别的插件带的 skill 它调不起来。要让角色用上你自己装的 skill，用 `/poundlock:at-skills` 登记给它们：整份复制进项目，角色按清单读来用；skill 是别人写的指令，登记给谁谁就照着做，同步新版之前会先给你看改了什么。团队里只有 `at-ui` 多一组看页面用的浏览器工具：你装了官方插件市场的 Playwright 插件，它就在本机打开自己起的页面截图看效果（会弹出一个浏览器窗口，截图留在项目根的 .playwright-mcp/ 下），没装就照实说没看过；其余角色都拿不到 MCP 与网页工具——每个角色只拿自己清单里的工具。按上面的方式安装，影响范围只在安装它的那个项目目录；也不要用 `--agent`、或在你自己的设置里设 `agent` 键，把主会话换成别的角色，门禁按主会话的身份判定。
 
 > [!NOTE]
-> **设置里的 `agent` 会盖掉项目经理。** 用户、项目或本地设置里写了别的 `agent`（或者起会话时带了别的 `--agent`），主会话就不是 `agent-team:at-pm`，团队跑不起来（门禁会说出来）：去掉那一项设置，或者起会话时加 `--agent agent-team:at-pm`。
+> **设置里的 `agent` 会盖掉项目经理。** 用户、项目或本地设置里写了别的 `agent`（或者起会话时带了别的 `--agent`），主会话就不是 `poundlock:at-pm`，团队跑不起来（门禁会说出来）：去掉那一项设置，或者起会话时加 `--agent poundlock:at-pm`。
 
 > [!NOTE]
 > **项目的 `CLAUDE.md` 引了很大的文档时，项目经理所在的主会话照样整份读它**（团队里的其余角色不自动带它，开工时只读项目根那一份）：在项目的 `.claude/settings.local.json` 里用 `claudeMdExcludes` 排除那几份文件（只对你自己生效）。
@@ -202,7 +202,7 @@ flowchart TB
 > [!NOTE]
 > 项目经理自己发起的调用上，门禁判不出这次该怎么判时（比如运行状态读不出来、阶段记录不在阶段链里），会告诉项目经理怎么修，并在界面上给你一行提示。没有进行中的 run 时，项目经理派团队角色，界面上也会有一行提示，说明这次派发不受门禁约束。
 >
-> 正常放行默认不留记录。要让每次门禁调用都在会话转录里留一行，起会话时加 `--settings '{"env":{"AGENT_TEAM_GATE_TRACE":"1"}}'`。
+> 正常放行默认不留记录。要让每次门禁调用都在会话转录里留一行，起会话时加 `--settings '{"env":{"POUNDLOCK_GATE_TRACE":"1"}}'`。
 
 ## 开发
 
@@ -226,13 +226,13 @@ MIT — 见 [LICENSE](./LICENSE)。
 
 <div align="center">
 
-# agent-team
+# poundlock
 
 **A ten-role software development agent team — as a Claude Code plugin**
 
 The project manager is your main session: it dispatches work through a layered hierarchy, gates enforce the order, and business acceptance runs as its own track.
 
-[简体中文](#agent-team) · **English**
+[简体中文](#poundlock) · **English**
 
 </div>
 
@@ -252,13 +252,13 @@ Run these in the **project directory** you want the team to work in:
 
 ```sh
 claude plugin marketplace add poundlock/poundlock-skills --scope local
-claude plugin install agent-team@agent-team-marketplace --scope local
+claude plugin install poundlock@poundlock --scope local
 ```
 
 Then start a new session in that directory — the main session is the project manager. The plugin applies to this one project only.
 
 > [!WARNING]
-> **Install with `--scope local`.** If `install` runs without it, or you pick the default first option in the `/plugin` panel, you get a user-scope install: every new session on this machine, in every project, starts with the project manager as its main session. If that happened, run `claude plugin uninstall agent-team@agent-team-marketplace` (no `--scope` — that removes the user-scope copy) and reinstall as above. `marketplace add` without it only registers the marketplace at user level and takes over no session.
+> **Install with `--scope local`.** If `install` runs without it, or you pick the default first option in the `/plugin` panel, you get a user-scope install: every new session on this machine, in every project, starts with the project manager as its main session. If that happened, run `claude plugin uninstall poundlock@poundlock` (no `--scope` — that removes the user-scope copy) and reinstall as above. `marketplace add` without it only registers the marketplace at user level and takes over no session.
 
 **Language:** the plugin runs in Chinese — role prompts, artifact templates, gate messages and status lines are all Chinese, and the gates recognise a few Chinese labels verbatim (for example the rework-approval label under “When it asks you”).
 
@@ -268,29 +268,29 @@ Then start a new session in that directory — the main session is the project m
 - **Claude Code 2.1.276 or later.** For the desktop app, keeping the app up to date is enough.
 - **On native Windows, Git for Windows.** The roles run commands only through `Bash` (Git Bash); without it Claude Code offers only PowerShell, so the roles cannot install, build or test, and the project manager stops and tells you.
 
-If Node is missing or too old for the gates to start, or hooks are disabled, the platform blocks nothing: no gate takes effect, and at most one easy-to-miss grey line appears. That is why the project manager runs a **gate self-check** at the start of `/agent-team:at`, `/agent-team:at-tweak`, `/agent-team:at-resume`, `/agent-team:at-init` and `/agent-team:at-skills`, and again after each message you send, before its first dispatch or first write under `.agent-team` in that turn (including after a session is resumed): it deliberately writes a file the gates always block. Each self-check shows up as a blocked write (shown as an error) whose text starts with the self-check's “online” message — that is expected. If the gates fail to block it, the project manager stops and tells you what to check. `/agent-team:at-status` is read-only and skips this check.
+If Node is missing or too old for the gates to start, or hooks are disabled, the platform blocks nothing: no gate takes effect, and at most one easy-to-miss grey line appears. That is why the project manager runs a **gate self-check** at the start of `/poundlock:at`, `/poundlock:at-tweak`, `/poundlock:at-resume`, `/poundlock:at-init` and `/poundlock:at-skills`, and again after each message you send, before its first dispatch or first write under `.poundlock` in that turn (including after a session is resumed): it deliberately writes a file the gates always block. Each self-check shows up as a blocked write (shown as an error) whose text starts with the self-check's “online” message — that is expected. If the gates fail to block it, the project manager stops and tells you what to check. `/poundlock:at-status` is read-only and skips this check.
 
 If Node starts but is too old, the gates refuse every dispatch and write and say which version to install. The self-check does not check the Claude Code version: on an older Claude Code the gates may run and the self-check pass while layered dispatch still fails — so check it yourself with `claude --version` in a terminal, and keep the desktop app up to date.
 
-**Update** — a new release arrives only when its version number changes, and sessions already open need a restart. What changed in each version is in [CHANGELOG.md](CHANGELOG.md), and every version has a matching tag (`v` plus the version number). Updating between runs is best; a run in progress can carry on after an update, and if the gates ever block it with no way forward, start a new run (`/agent-team:at`).
+**Update** — a new release arrives only when its version number changes, and sessions already open need a restart. What changed in each version is in [CHANGELOG.md](CHANGELOG.md), and every version has a matching tag (`v` plus the version number). Updating between runs is best; a run in progress can carry on after an update, and if the gates ever block it with no way forward, start a new run (`/poundlock:at`).
 
 ```sh
-claude plugin update agent-team@agent-team-marketplace --scope local
+claude plugin update poundlock@poundlock --scope local
 ```
 
 **Uninstall**:
 
 ```sh
-claude plugin uninstall agent-team@agent-team-marketplace --scope local
+claude plugin uninstall poundlock@poundlock --scope local
 ```
 
-Uninstalling neither removes the marketplace nor deletes the plugin copy under `~/.claude/plugins/cache/`. For a full cleanup, also run `claude plugin marketplace remove agent-team-marketplace --scope local` and delete that cache by hand.
+Uninstalling neither removes the marketplace nor deletes the plugin copy under `~/.claude/plugins/cache/`. For a full cleanup, also run `claude plugin marketplace remove poundlock --scope local` and delete that cache by hand.
 
 <details>
 <summary>Load from a local clone without installing (for development)</summary>
 
 ```sh
-claude --plugin-dir /path/to/agent-team
+claude --plugin-dir /path/to/poundlock
 ```
 
 Loaded this way, pass the flag again every time you resume a session — see [Known Limitations](#known-limitations).
@@ -303,18 +303,18 @@ Loaded this way, pass the flag again every time you resume a session — see [Kn
 
 | Command | What it does |
 |---|---|
-| `/agent-team:at-init` | **First, once per project.** Writes `.agent-team/project.json` |
-| `/agent-team:at <requirement>` | **Start a run.** Your words become the contract; it runs `S1` to `S8` |
-| `/agent-team:at-tweak <change>` | **Small changes after delivery.** The project manager dispatches developers directly and shows you each round; tests and delivery only after you pick 「可以了，收尾」 |
-| `/agent-team:at-status` | **Check progress.** Stage, deliverables, rework, open questions |
-| `/agent-team:at-resume` | **Resume a run.** After compaction or in a new session |
-| `/agent-team:at-skills` | **Give roles your skills.** Register skills installed on this machine to roles (copied into the project); asks before syncing a newer version |
+| `/poundlock:at-init` | **First, once per project.** Writes `.poundlock/project.json` |
+| `/poundlock:at <requirement>` | **Start a run.** Your words become the contract; it runs `S1` to `S8` |
+| `/poundlock:at-tweak <change>` | **Small changes after delivery.** The project manager dispatches developers directly and shows you each round; tests and delivery only after you pick 「可以了，收尾」 |
+| `/poundlock:at-status` | **Check progress.** Stage, deliverables, rework, open questions |
+| `/poundlock:at-resume` | **Resume a run.** After compaction or in a new session |
+| `/poundlock:at-skills` | **Give roles your skills.** Register skills installed on this machine to roles (copied into the project); asks before syncing a newer version |
 
-You can start before the request is worked out. When `/agent-team:at` comes without a request, or the request leaves things open, the project manager first asks you a few questions (one at a time) and writes up the request for you to review; pick 「照这份需求开始」 (start with this request) and the run starts from it, with that write-up recorded in the contract. A request that is already clear starts right away.
+You can start before the request is worked out. When `/poundlock:at` comes without a request, or the request leaves things open, the project manager first asks you a few questions (one at a time) and writes up the request for you to review; pick 「照这份需求开始」 (start with this request) and the run starts from it, with that write-up recorded in the contract. A request that is already clear starts right away.
 
-If you worked the request out elsewhere (say, a design doc brainstormed with superpowers in a session without agent-team), paste only what to build, who it is for, what done looks like and what is out of scope, not the whole document: every sentence after `/agent-team:at` is taken as your own words.
+If you worked the request out elsewhere (say, a design doc brainstormed with superpowers in a session without poundlock), paste only what to build, who it is for, what done looks like and what is out of scope, not the whole document: every sentence after `/poundlock:at` is taken as your own words.
 
-Small changes go through `/agent-team:at-tweak`: several sessions can each run a tweak at the same time; the gates record the files the developers in each tweak change, and another tweak that tries to edit one of them is refused (the later one waits for the earlier one to wrap up; files changed through Bash are not recorded). While a tweak is open you cannot start a full run, and while a full run is open you cannot start a tweak. You can abandon a run you no longer want: the project manager lists the changed files, asks whether to revert them, and once you pick 「放弃这一趟」 (abandon this run) it is frozen and stops blocking others.
+Small changes go through `/poundlock:at-tweak`: several sessions can each run a tweak at the same time; the gates record the files the developers in each tweak change, and another tweak that tries to edit one of them is refused (the later one waits for the earlier one to wrap up; files changed through Bash are not recorded). While a tweak is open you cannot start a full run, and while a full run is open you cannot start a tweak. You can abandon a run you no longer want: the project manager lists the changed files, asks whether to revert them, and once you pick 「放弃这一趟」 (abandon this run) it is frozen and stops blocking others.
 
 ### How a run flows
 
@@ -337,7 +337,7 @@ Implementation roles are dispatched by the architect — the project manager doe
 
 Implementation roles write automated tests for every new behavior; the testing role runs them but never writes them, and missing tests fail the testing stage and send the run back to implementation. Tests are skipped only when a run adds no new behavior or when you said so — in your original request or in an answer you gave later. Tests that were already failing before the run still count as failures unless you said, the same way, that they do not; otherwise the project manager asks whether to deliver as is.
 
-Once delivered, the run is closed: no more rollbacks and no more dispatches. For further changes or fixes, start a new run with `/agent-team:at <change>` (a new contract and a fresh rework budget). During rework, the test, acceptance and delivery reports are always produced anew rather than carried over from the previous round.
+Once delivered, the run is closed: no more rollbacks and no more dispatches. For further changes or fixes, start a new run with `/poundlock:at <change>` (a new contract and a fresh rework budget). During rework, the test, acceptance and delivery reports are always produced anew rather than carried over from the previous round.
 
 ### When it asks you
 
@@ -354,8 +354,8 @@ The project manager is the only role that talks to you, and it stops to ask only
 
 Each question quotes the contract and offers two to four concrete options with their consequences and a recommendation; your answer is added to the contract as a revision. Technology choices, which roles to leave out and code style are decided without asking you — except dropping testing altogether (which drops acceptance with it): unless the run only touches documentation or you said this run needs no testing, it asks you first.
 
-Also, if you start a new run while the previous one is unfinished, it first asks which one to continue; in a git repository, setup also asks once whether to add `.agent-team/` to `.gitignore`.
-A run belongs to the session that started it: running `/agent-team:at` in another session does not start a second run — it asks whether you meant to add to that run, and if so sends you back to the original session to say it there; if the original session is closed, take the run over in the new session with `/agent-team:at-resume`. When closing a run, it lists the services the team recorded that are still running and asks whether to stop them; other processes whose command line mentions the project folder are only listed, never touched.
+Also, if you start a new run while the previous one is unfinished, it first asks which one to continue; in a git repository, setup also asks once whether to add `.poundlock/` to `.gitignore`.
+A run belongs to the session that started it: running `/poundlock:at` in another session does not start a second run — it asks whether you meant to add to that run, and if so sends you back to the original session to say it there; if the original session is closed, take the run over in the new session with `/poundlock:at-resume`. When closing a run, it lists the services the team recorded that are still running and asks whether to stop them; other processes whose command line mentions the project folder are only listed, never touched.
 
 When tests or acceptance did not pass, only the option 「照现状交付」 is recorded by the gates as approval to deliver as is, and a message containing just that line counts too; the approval only covers the test report or acceptance conclusion as it was at that moment.
 
@@ -364,11 +364,11 @@ When rework runs out, only the option 「再返工一轮：回到 <stage>」 is 
 ### Where things land
 
 ```text
-.agent-team/
+.poundlock/
 ├── project.json         the survey: writable directories per role, available roles, build and test commands
 ├── reach.json           where each role can actually write once dispatch is taken into account
 ├── current-run          the id of the current run
-├── user-words.json      the words you last wrote after /agent-team:at, or the request write-up you approved (recorded by the gates)
+├── user-words.json      the words you last wrote after /poundlock:at, or the request write-up you approved (recorded by the gates)
 └── runs/<run_id>/
     ├── 00-contract.md   the contract: your words and its revisions
     ├── …                each stage's deliverables (one per implementation role in the implementation stage)
@@ -382,7 +382,7 @@ When rework runs out, only the option 「再返工一轮：回到 <stage>」 is 
 
 The code itself goes into the directories `project.json` assigns to each role.
 
-We suggest adding `.agent-team/` to `.gitignore` (the project manager asks you first during setup): left untracked and unignored, `git clean -fd` or `git stash -u` sweeps away or stashes the run in progress and the gates lose it; committed, `git stash` or `git checkout -- .` rolls `state.json` back to the committed version, rework counts included.
+We suggest adding `.poundlock/` to `.gitignore` (the project manager asks you first during setup): left untracked and unignored, `git clean -fd` or `git stash -u` sweeps away or stashes the run in progress and the gates lose it; committed, `git stash` or `git checkout -- .` rolls `state.json` back to the committed version, rework counts included.
 
 ## Watching each role
 
@@ -396,13 +396,13 @@ You can watch a role but not talk to it: roles report their questions to the pro
 ## Known Limitations
 
 > [!WARNING]
-> **This is not a sandbox.** Write-path isolation governs every team role except the project manager by the `paths` in `project.json`: outside the run directory a role may write only its own prefixes, and nothing at all without an entry — including `at-qa` and `at-acceptance`, which claim no directories by design and write only their own deliverable in the run directory. A claimed directory does not carry the `CLAUDE.md`, `CLAUDE.local.md`, `.claude/` or `.git` below it — those have to be claimed by name (after asking you) — and no role may create an `.agent-team/` inside it. `Bash` is not watched by any gate, and implementation roles keep it to build and test. Before implementation (and during it, when a role is refused) the project manager adds prefixes to `paths` from the architecture plan (it only adds; it asks you first for `.claude/`, CI/CD or credential locations; it tells you what it added); they stay for later runs.
+> **This is not a sandbox.** Write-path isolation governs every team role except the project manager by the `paths` in `project.json`: outside the run directory a role may write only its own prefixes, and nothing at all without an entry — including `at-qa` and `at-acceptance`, which claim no directories by design and write only their own deliverable in the run directory. A claimed directory does not carry the `CLAUDE.md`, `CLAUDE.local.md`, `.claude/` or `.git` below it — those have to be claimed by name (after asking you) — and no role may create an `.poundlock/` inside it. `Bash` is not watched by any gate, and implementation roles keep it to build and test. Before implementation (and during it, when a role is refused) the project manager adds prefixes to `paths` from the architecture plan (it only adds; it asks you first for `.claude/`, CI/CD or credential locations; it tells you what it added); they stay for later runs.
 
 > [!WARNING]
-> **The main session is taken over as `at-pm`.** Its tool surface is `Agent(...)` (bound by the dispatch whitelist), `AskUserQuestion`, `Bash`, `Read`, `Glob`, `Grep`, `Write` and `Edit` — it can change anything an ordinary session can, and what keeps it inside the target project is its role definition, not its permissions. It does not get the MCP tools or the web search and fetch tools (WebSearch, WebFetch) that an ordinary session has. It does not get the Skill tool either, so skills that come with other plugins are out of its reach. To let roles use skills you installed yourself, register them with `/agent-team:at-skills`: each is copied into the project and roles read it from there; a skill is instructions someone else wrote, so the roles you register it to will follow it, and you are shown what changed before a newer version is synced. On the team only `at-ui` gets an extra set of browser tools for looking at pages: if you have installed the Playwright plugin from the official plugin marketplace, it opens the pages it serves on your machine and takes screenshots to check how they look (a browser window pops up, and the screenshots stay under .playwright-mcp/ in the project root); without that plugin it says plainly that it has not looked. No other role gets MCP or web tools: each role gets only the tools on its own list. Installed as above, its reach is limited to the one project directory that declares it. Don't swap the main session for another role with `--agent` or an `agent` key in your own settings either: the gates judge by the main session's identity.
+> **The main session is taken over as `at-pm`.** Its tool surface is `Agent(...)` (bound by the dispatch whitelist), `AskUserQuestion`, `Bash`, `Read`, `Glob`, `Grep`, `Write` and `Edit` — it can change anything an ordinary session can, and what keeps it inside the target project is its role definition, not its permissions. It does not get the MCP tools or the web search and fetch tools (WebSearch, WebFetch) that an ordinary session has. It does not get the Skill tool either, so skills that come with other plugins are out of its reach. To let roles use skills you installed yourself, register them with `/poundlock:at-skills`: each is copied into the project and roles read it from there; a skill is instructions someone else wrote, so the roles you register it to will follow it, and you are shown what changed before a newer version is synced. On the team only `at-ui` gets an extra set of browser tools for looking at pages: if you have installed the Playwright plugin from the official plugin marketplace, it opens the pages it serves on your machine and takes screenshots to check how they look (a browser window pops up, and the screenshots stay under .playwright-mcp/ in the project root); without that plugin it says plainly that it has not looked. No other role gets MCP or web tools: each role gets only the tools on its own list. Installed as above, its reach is limited to the one project directory that declares it. Don't swap the main session for another role with `--agent` or an `agent` key in your own settings either: the gates judge by the main session's identity.
 
 > [!NOTE]
-> **An `agent` in your settings overrides the project manager.** If user, project or local settings name another `agent` (or the session was started with another `--agent`), the main session is not `agent-team:at-pm` and the team cannot run (the gates say so): remove that setting, or start the session with `--agent agent-team:at-pm`.
+> **An `agent` in your settings overrides the project manager.** If user, project or local settings name another `agent` (or the session was started with another `--agent`), the main session is not `poundlock:at-pm` and the team cannot run (the gates say so): remove that setting, or start the session with `--agent poundlock:at-pm`.
 
 > [!NOTE]
 > **If the project's `CLAUDE.md` imports large documents, the main session, where the project manager runs, still reads them in full** (the other roles do not get it automatically and read only the one at the project root when they start): exclude those files with `claudeMdExcludes` in the project's `.claude/settings.local.json` (it applies to you only).
@@ -428,7 +428,7 @@ You can watch a role but not talk to it: roles report their questions to the pro
 > [!NOTE]
 > On the project manager's own calls, when a gate cannot tell how to rule (for example, the run state cannot be read, or the recorded stage is not in the stage chain), it tells the project manager how to fix it and shows you a one-line notice. When no run is in progress, each time the project manager dispatches a team role you also see a one-line notice that the dispatch is not gated.
 >
-> An ordinary pass leaves no record by default. To log one line per gate invocation in the session transcript, start the session with `--settings '{"env":{"AGENT_TEAM_GATE_TRACE":"1"}}'`.
+> An ordinary pass leaves no record by default. To log one line per gate invocation in the session transcript, start the session with `--settings '{"env":{"POUNDLOCK_GATE_TRACE":"1"}}'`.
 
 ## Development
 

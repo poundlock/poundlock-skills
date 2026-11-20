@@ -15,7 +15,7 @@ import { sha256OfContract } from '../hooks/lib/contract-hash.mjs'
 import { verifyStageOf } from '../hooks/lib/stages.mjs'
 
 const OTHER_SHA = 'sha256:' + 'b'.repeat(64)
-const dispatch = (target, caller = 'agent-team:at-pm') => ({
+const dispatch = (target, caller = 'poundlock:at-pm') => ({
   hook_event_name: 'PreToolUse',
   tool_name: 'Agent',
   ...(caller === null ? {} : { agent_type: caller }),
@@ -30,7 +30,7 @@ function withRun({ stage, artifacts, contract, tweak = (s) => s }, body, gate = 
   const files = contract === 'missing' || contract === 'unstarted' ? artifacts.filter((a) => a !== '00-contract.md') : artifacts
   const dirs = makeRun({ runId: 'r1', stage, artifacts: files })
   try {
-    const runDir = join(dirs.projectDir, '.agent-team', 'runs', 'r1')
+    const runDir = join(dirs.projectDir, '.poundlock', 'runs', 'r1')
     const statePath = join(runDir, 'state.json')
     const state = JSON.parse(readFileSync(statePath, 'utf8'))
     const disk = files.includes('00-contract.md') ? sha256OfContract(readFileSync(join(runDir, '00-contract.md'))) : null
@@ -49,26 +49,26 @@ const decide = (dirs, target, caller) => {
 
 test('H2（docs/60）：契约的账对得上——派 at-qa、at-acceptance 照常放行', () => {
   withRun({ stage: 'S6', artifacts: S6_READY, contract: 'match' }, (dirs) => {
-    const { d, r } = decide(dirs, 'agent-team:at-qa')
+    const { d, r } = decide(dirs, 'poundlock:at-qa')
     assert.equal(d, null, JSON.stringify(d) + r.stderr)
   })
   withRun({ stage: 'S7', artifacts: S7_READY, contract: 'match' }, (dirs) => {
-    const { d, r } = decide(dirs, 'agent-team:at-acceptance')
+    const { d, r } = decide(dirs, 'poundlock:at-acceptance')
     assert.equal(d, null, JSON.stringify(d) + r.stderr)
   })
 })
 
 test('H2（docs/60）：contract_sha 与磁盘上的契约对不上——拒派 at-qa、at-acceptance，理由是【契约】那一句加「处理完再派」，不报磁盘上算出来的值', () => {
   for (const [stage, artifacts, target] of [
-    ['S6', S6_READY, 'agent-team:at-qa'],
-    ['S7', S7_READY, 'agent-team:at-acceptance'],
+    ['S6', S6_READY, 'poundlock:at-qa'],
+    ['S7', S7_READY, 'poundlock:at-acceptance'],
   ]) {
     withRun({ stage, artifacts, contract: 'drift' }, (dirs) => {
       const { d, r } = decide(dirs, target)
       assert.equal(d?.permissionDecision, 'deny', target + r.stderr)
       const why = d.permissionDecisionReason
       assert.ok(why.includes('【契约】') && why.includes('对不上'), why)
-      assert.ok(why.includes(target.replace('agent-team:', '')) && why.includes('处理完再派'), why)
+      assert.ok(why.includes(target.replace('poundlock:', '')) && why.includes('处理完再派'), why)
       assert.ok(!why.includes(dirs.disk), '不报磁盘上算出来的值：' + why)
     })
   }
@@ -82,7 +82,7 @@ test('H2（docs/60）：PENDING 而契约在、contract_sha 不合法、记着�
   ]
   for (const [contract, says] of cases) {
     withRun({ stage: 'S6', artifacts: S6_READY, contract }, (dirs) => {
-      const { d, r } = decide(dirs, 'agent-team:at-qa')
+      const { d, r } = decide(dirs, 'poundlock:at-qa')
       assert.equal(d?.permissionDecision, 'deny', contract + r.stderr)
       assert.ok(d.permissionDecisionReason.includes(says) && d.permissionDecisionReason.includes('处理完再派'), contract + '：' + d.permissionDecisionReason)
     })
@@ -91,24 +91,24 @@ test('H2（docs/60）：PENDING 而契约在、contract_sha 不合法、记着�
 
 test('H2（docs/60）：只管验证段的产者——契约的账对不上时派 at-product、at-architect 不在这里拦（派发返回时【契约】照常说）', () => {
   withRun({ stage: 'S3', artifacts: ['00-contract.md', '01-prd.md'], contract: 'drift' }, (dirs) => {
-    const { d, r } = decide(dirs, 'agent-team:at-architect')
+    const { d, r } = decide(dirs, 'poundlock:at-architect')
     assert.equal(d, null, JSON.stringify(d) + r.stderr)
   })
   withRun({ stage: 'S2', artifacts: ['00-contract.md'], contract: 'drift' }, (dirs) => {
-    const { d, r } = decide(dirs, 'agent-team:at-product')
+    const { d, r } = decide(dirs, 'poundlock:at-product')
     assert.equal(d, null, JSON.stringify(d) + r.stderr)
   })
 })
 
 test('H2（docs/60）：PENDING、契约还没写——不是契约的账的事，这一条不拦（前置缺不缺照旧由前置判）', () => {
   withRun({ stage: 'S6', artifacts: S6_READY, contract: 'unstarted' }, (dirs) => {
-    const { d, r } = decide(dirs, 'agent-team:at-qa')
+    const { d, r } = decide(dirs, 'poundlock:at-qa')
     assert.ok(d === null || !d.permissionDecisionReason.includes('处理完再派'), JSON.stringify(d) + r.stderr)
   })
 })
 
 test('H2（docs/60）：「验证段的产者」从 stages.json 的 verifies 派生——插件副本里把 S6 的 verifies 拿掉，派 at-qa 不再核契约的账', () => {
-  const plugin = realpathSync(mkdtempSync(join(tmpdir(), 'agent-team-h2-verifies-')))
+  const plugin = realpathSync(mkdtempSync(join(tmpdir(), 'poundlock-h2-verifies-')))
   try {
     const repo = new URL('../', import.meta.url)
     cpSync(new URL('hooks', repo), join(plugin, 'hooks'), { recursive: true })
@@ -118,11 +118,11 @@ test('H2（docs/60）：「验证段的产者」从 stages.json 的 verifies 派
     writeFileSync(join(plugin, 'stages.json'), JSON.stringify(stages), 'utf8')
     const gate = join(plugin, 'hooks', 'boot.mjs')
     withRun({ stage: 'S6', artifacts: S6_READY, contract: 'drift' }, (dirs) => {
-      const { d, r } = decide(dirs, 'agent-team:at-qa')
+      const { d, r } = decide(dirs, 'poundlock:at-qa')
       assert.equal(d, null, JSON.stringify(d) + r.stderr)
     }, gate)
     withRun({ stage: 'S7', artifacts: S7_READY, contract: 'drift' }, (dirs) => {
-      const { d, r } = decide(dirs, 'agent-team:at-acceptance')
+      const { d, r } = decide(dirs, 'poundlock:at-acceptance')
       assert.equal(d?.permissionDecision, 'deny', '没拿掉的 S7 照拒' + r.stderr)
     }, gate)
   } finally {
@@ -143,7 +143,7 @@ test('verifyStageOf（docs/60）：验证段的产者回那一段（链上第一
   assert.equal(verifyStageOf(custom, 'y'), 'A', '链上第一个')
 })
 
-test('正文（docs/60）：/agent-team:at 与 at-acceptance 说派验证段之前门禁对一遍契约的账、对不上不放行——门禁真的拒（上面几条）', () => {
+test('正文（docs/60）：/poundlock:at 与 at-acceptance 说派验证段之前门禁对一遍契约的账、对不上不放行——门禁真的拒（上面几条）', () => {
   const at = readFileSync(new URL('../commands/at.md', import.meta.url), 'utf8').split(String.fromCharCode(13)).join('').split('\n').join('')
   assert.ok(at.includes('派验证段的产者（`at-qa`、`at-acceptance`）之前也对一遍，对不上不放行'), 'commands/at.md')
   const acc = readFileSync(new URL('../agents/at-acceptance.md', import.meta.url), 'utf8')
@@ -154,7 +154,7 @@ test('正文（docs/60）：/agent-team:at 与 at-acceptance 说派验证段之�
 test('H2（docs/60）：契约在却读不出——不拦，stderr 说这一次没核契约的账', () => {
   withRun({ stage: 'S6', artifacts: S6_READY, contract: 'drift' }, (dirs) => {
     const { env, opts } = failRead('00-contract.md')
-    const r = run('readiness', dispatch('agent-team:at-qa'), dirs.gate, dirs.projectDir, env, opts)
+    const r = run('readiness', dispatch('poundlock:at-qa'), dirs.gate, dirs.projectDir, env, opts)
     const d = decisionOf(r.stdout)
     // 复核（docs/84 §8）：标题说「不拦」，就要求放行——原来的断言放得过「读不出就拒派」。
     assert.equal(d, null, JSON.stringify(d))
@@ -168,13 +168,13 @@ test('H2（复核 docs/60 §8）：顺序——收口、前置、重做那几条
   const S8_FILES = [...S7_READY, '07-acceptance.md']
   // 已收口：收口那一句。
   withRun({ stage: 'S8', artifacts: S8_FILES, contract: 'drift', tweak: (s) => ({ ...s, closed_at: '2026-10-10T12:00:00Z' }) }, (dirs) => {
-    const { d } = decide(dirs, 'agent-team:at-qa')
+    const { d } = decide(dirs, 'poundlock:at-qa')
     assert.equal(d?.permissionDecision, 'deny')
     assert.ok(d.permissionDecisionReason.includes('收口') && !d.permissionDecisionReason.includes('处理完再派'), d.permissionDecisionReason)
   })
   // 前置缺：前置那一句。
   withRun({ stage: 'S6', artifacts: S6_READY.filter((a) => a !== '04-dispatch.md'), contract: 'drift' }, (dirs) => {
-    const { d } = decide(dirs, 'agent-team:at-qa')
+    const { d } = decide(dirs, 'poundlock:at-qa')
     assert.equal(d?.permissionDecision, 'deny')
     assert.ok(d.permissionDecisionReason.includes('04-dispatch.md') && !d.permissionDecisionReason.includes('处理完再派'), d.permissionDecisionReason)
   })
@@ -182,7 +182,7 @@ test('H2（复核 docs/60 §8）：顺序——收口、前置、重做那几条
   withRun({ stage: 'S8', artifacts: S8_FILES, contract: 'drift' }, (dirs) => {
     const test06 = sha256OfContract(readFileSync(join(dirs.runDir, '06-test.md')))
     writeFileSync(join(dirs.runDir, 'delivered.json'), JSON.stringify({ stage: 'S8', products: { '06-test.md': test06 } }))
-    const { d } = decide(dirs, 'agent-team:at-qa')
+    const { d } = decide(dirs, 'poundlock:at-qa')
     assert.equal(d?.permissionDecision, 'deny')
     assert.ok(!d.permissionDecisionReason.includes('处理完再派'), d.permissionDecisionReason)
   })
@@ -191,17 +191,17 @@ test('H2（复核 docs/60 §8）：顺序——收口、前置、重做那几条
 test('H2（复核 docs/60 §8）：顺序——派它的是别的一趟的人：说那一趟不是当前 run，不说契约的账', () => {
   const dirs = makeRun({ runId: 'r1', stage: 'S5' })
   try {
-    const at = join(dirs.projectDir, '.agent-team')
+    const at = join(dirs.projectDir, '.poundlock')
     const r2 = join(at, 'runs', 'r2')
     mkdirSync(r2, { recursive: true })
     for (const f of S6_READY) writeFileSync(join(r2, f), `fixture ${f}\n`)
     const st = JSON.parse(readFileSync(join(at, 'runs', 'r1', 'state.json'), 'utf8'))
     writeFileSync(join(r2, 'state.json'), JSON.stringify({ ...st, run_id: 'r2', stage: 'S6', contract_sha: OTHER_SHA, history: [{ stage: 'S6', at: '2026-10-10T12:00:00Z' }] }))
     // r1 的项目经理派出过一个架构师（门禁的派发记录记在 r1），之后指针切到 r2。
-    const launched = { hook_event_name: 'PostToolUse', tool_name: 'Agent', tool_use_id: 'toolu_01AAAA', tool_input: { subagent_type: 'agent-team:at-architect', description: 'x', prompt: 'y' }, tool_response: { isAsync: true, status: 'async_launched', agentId: 'a0000000000000601', description: 'x', prompt: 'y' } }
+    const launched = { hook_event_name: 'PostToolUse', tool_name: 'Agent', tool_use_id: 'toolu_01AAAA', tool_input: { subagent_type: 'poundlock:at-architect', description: 'x', prompt: 'y' }, tool_response: { isAsync: true, status: 'async_launched', agentId: 'a0000000000000601', description: 'x', prompt: 'y' } }
     run('deliverable', launched, undefined, dirs.projectDir)
     writeFileSync(join(at, 'current-run'), 'r2')
-    const input = { ...dispatch('agent-team:at-qa', 'agent-team:at-architect'), agent_id: 'a0000000000000601' }
+    const input = { ...dispatch('poundlock:at-qa', 'poundlock:at-architect'), agent_id: 'a0000000000000601' }
     const d = decisionOf(run('readiness', input, undefined, dirs.projectDir).stdout)
     assert.equal(d?.permissionDecision, 'deny')
     assert.ok(d.permissionDecisionReason.includes('不是当前 run') && !d.permissionDecisionReason.includes('【契约】'), d.permissionDecisionReason)
@@ -213,14 +213,14 @@ test('H2（复核 docs/60 §8）：顺序——派它的是别的一趟的人：
 
 test('H2（复核 docs/60 §8）：主线程（没有 agent_type）派、裸名、S5 提前派 at-qa——账对不上照样拒', () => {
   withRun({ stage: 'S6', artifacts: S6_READY, contract: 'drift' }, (dirs) => {
-    for (const [target, caller] of [['agent-team:at-qa', null], ['at-qa', 'agent-team:at-pm']]) {
+    for (const [target, caller] of [['poundlock:at-qa', null], ['at-qa', 'poundlock:at-pm']]) {
       const { d } = decide(dirs, target, caller)
       assert.equal(d?.permissionDecision, 'deny', `${target} / ${caller}`)
       assert.ok(d.permissionDecisionReason.includes('处理完再派 at-qa'), d.permissionDecisionReason)
     }
   })
   withRun({ stage: 'S5', artifacts: S6_READY, contract: 'drift' }, (dirs) => {
-    const { d } = decide(dirs, 'agent-team:at-qa')
+    const { d } = decide(dirs, 'poundlock:at-qa')
     assert.equal(d?.permissionDecision, 'deny', 'S5 提前派')
     assert.ok(d.permissionDecisionReason.includes('处理完再派'), d.permissionDecisionReason)
   })
@@ -228,13 +228,13 @@ test('H2（复核 docs/60 §8）：主线程（没有 agent_type）派、裸名�
 
 test('H2（复核 docs/60 §8）：调用者写不了 state.json——给转给 PM 的那一版，不许诺「处理完再派」；派项目经理（没人派得到它）不在这里说契约的账', () => {
   withRun({ stage: 'S6', artifacts: S6_READY, contract: 'drift' }, (dirs) => {
-    const { d } = decide(dirs, 'agent-team:at-qa', 'agent-team:at-architect')
+    const { d } = decide(dirs, 'poundlock:at-qa', 'poundlock:at-architect')
     assert.equal(d?.permissionDecision, 'deny')
     assert.ok(d.permissionDecisionReason.includes('【契约】') && d.permissionDecisionReason.includes('这一条你改不了'), d.permissionDecisionReason)
     assert.ok(!d.permissionDecisionReason.includes('处理完再派'), d.permissionDecisionReason)
   })
   withRun({ stage: 'S4', artifacts: ['00-contract.md', '01-prd.md', '03-arch.md'], contract: 'drift' }, (dirs) => {
-    const { d } = decide(dirs, 'agent-team:at-pm')
+    const { d } = decide(dirs, 'poundlock:at-pm')
     assert.ok(d === null || !d.permissionDecisionReason.includes('【契约】'), JSON.stringify(d))
   })
 })

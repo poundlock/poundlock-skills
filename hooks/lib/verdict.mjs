@@ -1,6 +1,6 @@
 // M4k（docs/46，docs/35 §5 与 docs/39 §3「收口不读验收结论」）：验收结论的固定首行与「照现状交付」的规范标签——单一真源。纯函数。
 //
-// 正文（/agent-team:at 第 3、6 节，agents/at-pm.md 红线）一直写着验收没过不推进、不收口，门禁却只核验收结论在不在、空不空、是不是这一轮的——
+// 正文（/poundlock:at 第 3、6 节，agents/at-pm.md 红线）一直写着验收没过不推进、不收口，门禁却只核验收结论在不在、空不空、是不是这一轮的——
 // M5f 里 haiku 版 PM 带着一份「不通过」推进、收口。现在：
 //   - 验收结论（插件自带的链上是 07-acceptance.md）的第一个非空行固定是「结论：通过」「结论：不通过」「结论：判不了」之一（agents/at-acceptance.md）；
 //   - 推进出验收那一段与收口时 H6 读它：不是「通过」、又没有门禁记下的「照现状交付」批准，拒；
@@ -110,7 +110,7 @@ export function deliverRoute({ act, verdict, here = false }) {
   if (when === null) return ''
   return (
     when +
-    `照 /agent-team:at 第 4 节先往 escalations 记一条（answer 写空串），再用 AskUserQuestion 问：一道单选题（multiSelect 设 false），` +
+    `照 /poundlock:at 第 4 节先往 escalations 记一条（answer 写空串），再用 AskUserQuestion 问：一道单选题（multiSelect 设 false），` +
     `交付那一项的标签逐字写「${DELIVER_LABEL}」（推荐写在问题正文或选项说明里，不写进标签）。用户选了它，门禁记下这条批准（只对现在这份验收结论有效），` +
     `再${act}。问不了用户的（工具面里没有 AskUserQuestion），请用户在对话里单独发一条只写「${DELIVER_LABEL}」的消息。`
   )
@@ -120,7 +120,7 @@ const VERDICT_SAID = { fail: '「结论：不通过」', unknown: '「结论：�
 
 /**
  * 验收没过时怎么办（不含照现状交付那一条）：按首行分。判不了的按原因分五条（评审 F6：契约或完成定义没写清楚的问用户，重测补不了它；docs/86 §8：
- * 契约里用户说了那部分不要测试、照产出判不了的不回退，与 /agent-team:at「回退」那一段同一个口径）；读不出的
+ * 契约里用户说了那部分不要测试、照产出判不了的不回退，与 /poundlock:at「回退」那一段同一个口径）；读不出的
  * 按当前在不在验收那一段分同段重派与回退，回退写明哪几段各记一轮返工（评审 F8）。段 id、角色名来自阶段链，原样。
  */
 export function verdictFix({ stages, verdict, current }) {
@@ -130,7 +130,7 @@ export function verdictFix({ stages, verdict, current }) {
   const earlier = ids.slice(0, ids.indexOf(acc.stageId)).reverse()
   const testStage = earlier.find((id) => isVerifyStage(stages[id]))
   const implStage = earlier.find((id) => isRolePatternStage(stages[id]))
-  if (verdict === 'fail') return '照 /agent-team:at 第 3 节的「回退」回到要重做的那一段，重新走到这里'
+  if (verdict === 'fail') return '照 /poundlock:at 第 3 节的「回退」回到要重做的那一段，重新走到这里'
   if (verdict === 'unknown') {
     return (
       `判不了是因为要人补跑测试的，照第 3 节的「回退」回到 ${testStage ?? '测试那一段'}；因为新行为缺自动化测试的，回到 ${implStage ?? '实现那一段'}；` +

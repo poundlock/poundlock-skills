@@ -89,7 +89,7 @@ function dispatchLog(roles, running = []) {
 function scene({ state = BASE, files = {} } = {}) {
   const dirs = makeRun({ runId: 'r1', stage: 'S5', artifacts: ['00-contract.md', '01-prd.md', '03-arch.md', '03-alignment.md', '04-dispatch.md', '05-impl/at-backend.md'], roster: state.roster })
   try {
-    const runDir = join(dirs.projectDir, '.agent-team', 'runs', 'r1')
+    const runDir = join(dirs.projectDir, '.poundlock', 'runs', 'r1')
     const statePath = join(runDir, 'state.json')
     for (const [n, c] of Object.entries(files)) {
       mkdirSync(join(runDir, n, '..'), { recursive: true })
@@ -98,11 +98,11 @@ function scene({ state = BASE, files = {} } = {}) {
     const now = JSON.parse(readFileSync(statePath, 'utf8'))
     const cur = { ...now, ...state }
     writeFileSync(statePath, JSON.stringify(cur))
-    const posted = { hook_event_name: 'PostToolUse', tool_name: 'Write', agent_type: 'agent-team:at-pm', tool_input: { file_path: statePath } }
+    const posted = { hook_event_name: 'PostToolUse', tool_name: 'Write', agent_type: 'poundlock:at-pm', tool_input: { file_path: statePath } }
     const out = run('ledger', posted, GATE, dirs.projectDir).stdout
     const ledger = out.trim() ? JSON.parse(out).hookSpecificOutput?.additionalContext ?? '' : ''
     const next = { ...cur, stage: 'S6', history: [...cur.history, { stage: 'S6', at: '2026-10-11T11:00:00.000Z' }] }
-    const pre = { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'agent-team:at-pm', tool_input: { file_path: statePath, content: JSON.stringify(next, null, 2) } }
+    const pre = { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'poundlock:at-pm', tool_input: { file_path: statePath, content: JSON.stringify(next, null, 2) } }
     const r = run('rework', pre, GATE, dirs.projectDir)
     const h6 = r.stdout.trim() ? JSON.parse(r.stdout).hookSpecificOutput ?? {} : {}
     return { ledger, denied: h6.permissionDecision === 'deny', reason: h6.permissionDecisionReason ?? '' }
@@ -200,7 +200,7 @@ function progress({ frontendStops, frontendFile = null, extraState = {}, stages 
     trimmed: { 'at-frontend': 'S5' },
   })
   // 自造的阶段链：门禁从它自己所在的插件根读 stages.json，所以拷一份插件、把链换掉（tests/gate-acceptance.test.mjs 同一个做法）。
-  const plugin = stages ? realpathSync(mkdtempSync(join(tmpdir(), 'agent-team-r35-plug-'))) : null
+  const plugin = stages ? realpathSync(mkdtempSync(join(tmpdir(), 'poundlock-r35-plug-'))) : null
   let gate = GATE
   try {
     if (plugin) {
@@ -210,22 +210,22 @@ function progress({ frontendStops, frontendFile = null, extraState = {}, stages 
       writeFileSync(join(plugin, 'stages.json'), JSON.stringify(stages))
       gate = join(plugin, 'hooks', 'boot.mjs')
     }
-    const runDir = join(dirs.projectDir, '.agent-team', 'runs', 'r1')
+    const runDir = join(dirs.projectDir, '.poundlock', 'runs', 'r1')
     if (frontendFile !== null) {
       mkdirSync(join(runDir, '05-impl'), { recursive: true })
       writeFileSync(join(runDir, '05-impl', 'at-frontend.md'), frontendFile)
     }
     const statePath = join(runDir, 'state.json')
     writeFileSync(statePath, JSON.stringify({ ...JSON.parse(readFileSync(statePath, 'utf8')), ...extraState }))
-    const ARCH = 'agent-team:at-architect'
+    const ARCH = 'poundlock:at-architect'
     run('deliverable', post(ARCH, 'a00000000000000a5', { toolUseId: 'toolu_01A5' }), gate, dirs.projectDir)
-    if (earlierFrontend) run('deliverable', post('agent-team:at-frontend', 'a00000000000000f4', { caller: ARCH, callerId: 'a00000000000000a5', toolUseId: 'toolu_01F4' }), gate, dirs.projectDir)
-    run('deliverable', post('agent-team:at-frontend', 'a00000000000000f5', { caller: ARCH, callerId: 'a00000000000000a5', toolUseId: 'toolu_01F5' }), gate, dirs.projectDir)
-    run('deliverable', post('agent-team:at-backend', 'a00000000000000b5', { caller: ARCH, callerId: 'a00000000000000a5', toolUseId: 'toolu_01B5' }), gate, dirs.projectDir)
+    if (earlierFrontend) run('deliverable', post('poundlock:at-frontend', 'a00000000000000f4', { caller: ARCH, callerId: 'a00000000000000a5', toolUseId: 'toolu_01F4' }), gate, dirs.projectDir)
+    run('deliverable', post('poundlock:at-frontend', 'a00000000000000f5', { caller: ARCH, callerId: 'a00000000000000a5', toolUseId: 'toolu_01F5' }), gate, dirs.projectDir)
+    run('deliverable', post('poundlock:at-backend', 'a00000000000000b5', { caller: ARCH, callerId: 'a00000000000000a5', toolUseId: 'toolu_01B5' }), gate, dirs.projectDir)
     // 真实顺序：它没交、被 H5b 拦一回，再以冒泡停下（项目经理随后决定这一趟不要它、写进 trimmed——夹具里 trimmed 先写好，门禁那几步不看它）。
     if (frontendStops) {
-      run('stop-gate', stopped('agent-team:at-frontend', 'a00000000000000f5', false, '写不了。'), gate, dirs.projectDir)
-      run('stop-gate', stopped('agent-team:at-frontend', 'a00000000000000f5', true, `${BUBBLE_MARK}缺组件库。`), gate, dirs.projectDir)
+      run('stop-gate', stopped('poundlock:at-frontend', 'a00000000000000f5', false, '写不了。'), gate, dirs.projectDir)
+      run('stop-gate', stopped('poundlock:at-frontend', 'a00000000000000f5', true, `${BUBBLE_MARK}缺组件库。`), gate, dirs.projectDir)
     }
     const r = run('completion', { hook_event_name: 'UserPromptSubmit', prompt: note('a00000000000000a5', 'toolu_01A5') }, gate, dirs.projectDir)
     return r.stdout ? JSON.parse(r.stdout).hookSpecificOutput?.additionalContext ?? '' : ''
@@ -283,14 +283,14 @@ test('进度（docs/77 §8）：这个协调者派的那一次还在跑（或者
       trimmed: { 'at-frontend': 'S5' },
     })
     try {
-      const ARCH = 'agent-team:at-architect'
+      const ARCH = 'poundlock:at-architect'
       run('deliverable', post(ARCH, 'a00000000000000a1', { toolUseId: 'toolu_01A1' }), GATE, dirs.projectDir)
       run('deliverable', post(ARCH, 'a00000000000000a2', { toolUseId: 'toolu_01A2' }), GATE, dirs.projectDir)
-      run('deliverable', post('agent-team:at-frontend', 'a00000000000000f2', { caller: ARCH, callerId: 'a00000000000000a2', toolUseId: 'toolu_01F2' }), GATE, dirs.projectDir)
-      if (f2Blocked) run('stop-gate', stopped('agent-team:at-frontend', 'a00000000000000f2', false, '写不了。'), GATE, dirs.projectDir)
-      run('deliverable', post('agent-team:at-frontend', 'a00000000000000f1', { caller: ARCH, callerId: 'a00000000000000a1', toolUseId: 'toolu_01F1' }), GATE, dirs.projectDir)
-      run('stop-gate', stopped('agent-team:at-frontend', 'a00000000000000f1', false, '写不了。'), GATE, dirs.projectDir)
-      run('stop-gate', stopped('agent-team:at-frontend', 'a00000000000000f1', true, `${BUBBLE_MARK}缺组件库。`), GATE, dirs.projectDir)
+      run('deliverable', post('poundlock:at-frontend', 'a00000000000000f2', { caller: ARCH, callerId: 'a00000000000000a2', toolUseId: 'toolu_01F2' }), GATE, dirs.projectDir)
+      if (f2Blocked) run('stop-gate', stopped('poundlock:at-frontend', 'a00000000000000f2', false, '写不了。'), GATE, dirs.projectDir)
+      run('deliverable', post('poundlock:at-frontend', 'a00000000000000f1', { caller: ARCH, callerId: 'a00000000000000a1', toolUseId: 'toolu_01F1' }), GATE, dirs.projectDir)
+      run('stop-gate', stopped('poundlock:at-frontend', 'a00000000000000f1', false, '写不了。'), GATE, dirs.projectDir)
+      run('stop-gate', stopped('poundlock:at-frontend', 'a00000000000000f1', true, `${BUBBLE_MARK}缺组件库。`), GATE, dirs.projectDir)
       const r = run('completion', { hook_event_name: 'UserPromptSubmit', prompt: note('a00000000000000a2', 'toolu_01A2') }, GATE, dirs.projectDir)
       const c = r.stdout ? JSON.parse(r.stdout).hookSpecificOutput?.additionalContext ?? '' : ''
       assert.match(c, f2Blocked ? /at-frontend（后台派发）：05-impl\/at-frontend\.md 还没有——门禁最后一回拦了它/ : /at-frontend（后台派发）：05-impl\/at-frontend\.md 还没有——门禁还没见它停下：可能还在跑/)
@@ -306,13 +306,13 @@ test('进度（docs/77 §8）：这个协调者派的那一次还在跑（或者
 test('进度（docs/77 §8）：S2 里 at-ui 写了 02-ui-spec.md 又冒泡、裁掉之后 02-wireframe.html 免了——照旧说它停下时冒泡了、不说都交了', () => {
   const dirs = makeRun({ runId: 'r1', stage: 'S2', artifacts: ['00-contract.md', '01-prd.md'], roster: ['at-product', 'at-ui'], stage_roles: {}, trimmed: { 'at-ui': 'S2' } })
   try {
-    const runDir = join(dirs.projectDir, '.agent-team', 'runs', 'r1')
-    const PRODUCT = 'agent-team:at-product'
+    const runDir = join(dirs.projectDir, '.poundlock', 'runs', 'r1')
+    const PRODUCT = 'poundlock:at-product'
     run('deliverable', post(PRODUCT, 'a00000000000000c2', { toolUseId: 'toolu_01C2' }), GATE, dirs.projectDir)
-    run('deliverable', post('agent-team:at-ui', 'a00000000000000d2', { caller: PRODUCT, callerId: 'a00000000000000c2', toolUseId: 'toolu_01D2' }), GATE, dirs.projectDir)
+    run('deliverable', post('poundlock:at-ui', 'a00000000000000d2', { caller: PRODUCT, callerId: 'a00000000000000c2', toolUseId: 'toolu_01D2' }), GATE, dirs.projectDir)
     writeFileSync(join(runDir, '02-ui-spec.md'), '卡住了：没有设计稿。\n')
-    run('stop-gate', stopped('agent-team:at-ui', 'a00000000000000d2', false, '写不了。'), GATE, dirs.projectDir)
-    run('stop-gate', stopped('agent-team:at-ui', 'a00000000000000d2', true, `${BUBBLE_MARK}没有设计稿。`), GATE, dirs.projectDir)
+    run('stop-gate', stopped('poundlock:at-ui', 'a00000000000000d2', false, '写不了。'), GATE, dirs.projectDir)
+    run('stop-gate', stopped('poundlock:at-ui', 'a00000000000000d2', true, `${BUBBLE_MARK}没有设计稿。`), GATE, dirs.projectDir)
     const r = run('completion', { hook_event_name: 'UserPromptSubmit', prompt: note('a00000000000000c2', 'toolu_01C2') }, GATE, dirs.projectDir)
     const c = r.stdout ? JSON.parse(r.stdout).hookSpecificOutput?.additionalContext ?? '' : ''
     assert.match(c, /at-ui（后台派发）：02-ui-spec\.md 在磁盘上，02-wireframe\.html 没交，trimmed 里记着它在 S2 裁掉了，这一份免了——但它停下时冒泡了/)
@@ -326,7 +326,7 @@ test('进度（docs/77 §8）：S2 里 at-ui 写了 02-ui-spec.md 又冒泡、�
 // 复核（docs/77 §8，中 2）：交付物核验（前台派发的协调者跑完）与完成核验那两处调用的行为——S5 记了 [at-architect, at-backend]，架构师派出的 at-frontend
 // 没记账、还在跑，at-backend 交了：两处都报进度，不说「停在旧阶段」、不沉默。
 test('交付物核验与完成核验（docs/77 §8）：派了没记、还在跑的人让这一段不齐——协调者返回时报进度，不说停在旧阶段', () => {
-  const ARCH = 'agent-team:at-architect'
+  const ARCH = 'poundlock:at-architect'
   const each = (body) => {
     const dirs = makeRun({
       runId: 'r1',
@@ -336,7 +336,7 @@ test('交付物核验与完成核验（docs/77 §8）：派了没记、还在跑
       stage_roles: { S3: ['at-architect'], S5: ['at-architect', 'at-backend'] },
     })
     try {
-      return body(dirs, join(dirs.projectDir, '.agent-team', 'runs', 'r1'))
+      return body(dirs, join(dirs.projectDir, '.poundlock', 'runs', 'r1'))
     } finally {
       rmSync(dirs.projectDir, { recursive: true, force: true })
       rmSync(dirs.pluginDir, { recursive: true, force: true })
@@ -345,11 +345,11 @@ test('交付物核验与完成核验（docs/77 §8）：派了没记、还在跑
   const ctxOf = (r) => (r.stdout ? JSON.parse(r.stdout).hookSpecificOutput?.additionalContext ?? '' : '')
   // 架构师派出两个人：at-backend 写完、停下；at-frontend 还在跑。
   const work = (dirs, runDir, archId) => {
-    run('deliverable', post('agent-team:at-backend', 'a00000000000000b7', { caller: ARCH, callerId: archId, toolUseId: 'toolu_01B7' }), GATE, dirs.projectDir)
-    run('deliverable', post('agent-team:at-frontend', 'a00000000000000f7', { caller: ARCH, callerId: archId, toolUseId: 'toolu_01F7' }), GATE, dirs.projectDir)
+    run('deliverable', post('poundlock:at-backend', 'a00000000000000b7', { caller: ARCH, callerId: archId, toolUseId: 'toolu_01B7' }), GATE, dirs.projectDir)
+    run('deliverable', post('poundlock:at-frontend', 'a00000000000000f7', { caller: ARCH, callerId: archId, toolUseId: 'toolu_01F7' }), GATE, dirs.projectDir)
     mkdirSync(join(runDir, '05-impl'), { recursive: true })
     writeFileSync(join(runDir, '05-impl', 'at-backend.md'), '# 实现记录\n')
-    run('stop-gate', stopped('agent-team:at-backend', 'a00000000000000b7', false, '写好了。'), GATE, dirs.projectDir)
+    run('stop-gate', stopped('poundlock:at-backend', 'a00000000000000b7', false, '写好了。'), GATE, dirs.projectDir)
   }
   const bg = each((dirs, runDir) => {
     run('deliverable', post(ARCH, 'a00000000000000a7', { toolUseId: 'toolu_01A7' }), GATE, dirs.projectDir)

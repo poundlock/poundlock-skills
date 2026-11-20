@@ -79,8 +79,8 @@ import { dispatchedIn } from './advance.mjs'
  * 角色。**它红不是要你改那条断言，是 §5.25 记的那条边界刚从「零可观测」变成「真的在漏」。**
  *
  * **宇宙**（收窄裁定）：`stageRoles(S) ∩ availableRoles`。
- * availableRoles 就是 .agent-team/project.json 的 `available_roles`——「**这个项目用得上
- * 哪些执行角色**」，由 /agent-team:at-init 写。它把**项目配置**与**运行时决定**分开：
+ * availableRoles 就是 .poundlock/project.json 的 `available_roles`——「**这个项目用得上
+ * 哪些执行角色**」，由 /poundlock:at-init 写。它把**项目配置**与**运行时决定**分开：
  *
  *   - 一个不在 available_roles 里的角色（真实那一趟的 at-ios / at-android）**从来没上过队**，
  *     不存在一个关于它的「裁剪」决定。要求 PM 为它写一条 trimmed，等于要求把一个不存在
@@ -147,7 +147,7 @@ import { dispatchedIn } from './advance.mjs'
 // 早就并上了它，这里原来只看 stage_roles（旧 run 是 roster）与 trimmed：PM 把「叫到」读窄（只记自己亲手派的）时，被下级派出去、真交了
 // 产物的角色报出来的话与真漏派逐字相同（docs/11 §5.24）。派发记录里有它在那一段被派出去过的，gap 标 dispatched: true——它被叫到过，
 // 只是没记账，调用方单列成「漏记」，出路只有补记；别的段派过不算。不并进 invoked 一声不吭：那样 stage_roles 永远记窄，
-// /agent-team:at-status 与 at-qa 按它展开产物时就漏了这个人。
+// /poundlock:at-status 与 at-qa 按它展开产物时就漏了这个人。
 export function decideCoverage({ stages, state, availableRoles, dispatched = null } = {}) {
   const gaps = []
   const perStage = isPlainObject(state) && isPlainObject(state.stage_roles)
