@@ -1,6 +1,6 @@
 // 根级共享文件与测试目录的认领（M4b，docs/36，全量审查第 21 条修法 1 的改形）。
 //
-// 不加 shared 键（理由与 docs/16 §3 的三样在 docs/36）。路径归属在 S0 由 /agent-team:at-init 写、布局在 S3 才定，两者之间
+// 不加 shared 键（理由与 docs/16 §3 的三样在 docs/36）。路径归属在 S0 由 /poundlock:at-init 写、布局在 S3 才定，两者之间
 // 原来没有一步回头对齐：S5 的执行角色写 tsconfig.json、顶层 tests/ 被 H3 拒，冒泡、PM 中途改 project.json、再重派——真实 run
 // 里撞上过（docs/14：PM 为躲开它把后端从 TS 改成了 JS）。改成四处正文：
 //   S0  at-init 把磁盘上已有的根级清单、构建配置、测试目录列给每个会改它们的 S5 产者；
@@ -98,12 +98,12 @@ test('M4b /at S4：推进出 S4 之前逐行补——自己的前缀盖不住的
     '盖不住',
     '已经归别人的也补',
     '`S5` 产者名下',
-    '`/agent-team:at-init` 第 2 节',
+    '`/poundlock:at-init` 第 2 节',
     '只往 `paths` 里加',
     '`available_roles`',
-    '`.agent-team/` 下的一律不补',
+    '`.poundlock/` 下的一律不补',
     '`sensitive`',
-    '`/agent-team:at-init` 第 3 节',
+    '`/poundlock:at-init` 第 3 节',
     '只看这次新加的前缀',
     '这一趟不加',
     `\`04-dispatch.md\` 的「${SECTION5}」`,
@@ -172,7 +172,7 @@ test('M4b /at S5：有没解决的被拒条目就不推进；逐条看理由；�
   const crew = clauseWith(S5, '认领者不在')
   has(crew, '二选一', '叫进来', '共列', '`04-dispatch.md` 第 3 节')
   const rest = clauseWith(S5, '其余拒绝照拒绝理由给的出路办')
-  has(rest, '没有它的键', '条目作废', '不该有 `paths` 键', '`/agent-team:at-init` 第 2、3 节', '别人的阶段产物')
+  has(rest, '没有它的键', '条目作废', '不该有 `paths` 键', '`/poundlock:at-init` 第 2、3 节', '别人的阶段产物')
   // 文档核对：别人的阶段产物按产者在 S5 有没有活分（01-prd.md 的产者在 S5 被 H3 当成不记回退的重做拦下）。
   has(rest, '产者在 `S5` 有活的', '产者在 `S5` 没活的', '照「回退」走')
   // 收尾核对：例子钉在各自那一支上（对调之后 01-prd.md 变成交给它改，正是文档核对修掉的那条路）；at-ui 的 02-* 经架构师派
@@ -214,7 +214,7 @@ test('M4b /at 回退：at-qa 冒泡说因为 S5 没交齐而没开跑的（核�
 
 test('M4b /at 第 6 节：交付文档与汇报里写这一趟给 paths 补了哪些前缀（照 04-dispatch.md 那一节）；技术栈与 stack 不符提示重跑 at-init', () => {
   const s6 = flat(between(AT, '\n## 6. 收尾'))
-  has(s6, '这一趟对 `paths` 的改动（照 `04-dispatch.md` 那一节', '补了哪些前缀、删改了哪些条目', '`stack`', '`/agent-team:at-init`')
+  has(s6, '这一趟对 `paths` 的改动（照 `04-dispatch.md` 那一节', '补了哪些前缀、删改了哪些条目', '`stack`', '`/poundlock:at-init`')
   // 第二轮复核：S5 里被拒之后不做或改写到别处的，交付文档与汇报都写。
   assert.equal(s6.split('被拒之后不做或改写到别处的').length - 1, 2, s6)
 })
@@ -243,7 +243,7 @@ test('M4b 架构师：03-arch.md 单列「落盘清单」一节——前缀粒�
   const p = paragraphs(read('agents/at-architect.md')).find((x) => x.includes(LIST) && x.includes('粒度'))
   assert.ok(p, 'at-architect.md 里没有写落盘清单的那一段')
   const f = flat(p)
-  has(f, '粒度', '`S5` 的哪个产者', '都写上', '放在哪', '用什么命令跑', '改动小也要有', '与 X 共列', '`.agent-team/` 下的不列')
+  has(f, '粒度', '`S5` 的哪个产者', '都写上', '放在哪', '用什么命令跑', '改动小也要有', '与 X 共列', '`.poundlock/` 下的不列')
   // 第二轮复核：「都已认领」按 S4 的新口径——在要改它的那个产者名下才算，归别人名下的照常列一行。
   const claimed = clauseWith(f, '写「都已认领」')
   has(claimed, '要改它的那个产者名下')
@@ -403,8 +403,8 @@ test('M4b S5 的产者与 at-qa：加依赖先改清单、装的时候不带包�
 })
 
 // 第二轮复核（P12）：协调者派发写全名——真实会话里架构师先发了不带前缀的 at-backend，被报找不到，多走一轮。
-test('M4b 协调者正文：派发时 subagent_type 写全名 agent-team:<role>', () => {
-  for (const c of COORDINATORS) has(flat(read(`agents/${c}.md`)), '`subagent_type` 写全名 `agent-team:')
+test('M4b 协调者正文：派发时 subagent_type 写全名 poundlock:<role>', () => {
+  for (const c of COORDINATORS) has(flat(read(`agents/${c}.md`)), '`subagent_type` 写全名 `poundlock:')
 })
 
 // 第二轮复核（P9）：S2 里 at-ui 被拒时，门禁给叶子角色的出路（「由 PM 列到你名下」）是给实现那一段的——at-ui 与派它的 at-product

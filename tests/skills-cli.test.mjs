@@ -63,7 +63,7 @@ test('cli 拒 --roles at-outsider，什么都不写', () => {
   assert.throws(() => readFileSync(join(agentTeamDir, 'skills.json')))
 })
 
-test('cli 在没有 .agent-team 的目录里退出码 2', () => {
+test('cli 在没有 .poundlock 的目录里退出码 2', () => {
   const { home } = world()
   const empty = realpathSync(mkdtempSync(join(tmpdir(), 'at-skills-empty-')))
   const r = cliIn(empty)('list', ['--home', home])

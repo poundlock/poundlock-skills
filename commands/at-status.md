@@ -5,15 +5,15 @@ description: 显示当前 run 的阶段、产物、返工计数、主动裁掉�
 你是 AT-PM。这条命令**只读不写**，不要在这里推进任何阶段、不要改任何文件。
 也因为这样，它不做门禁自检（那一步要写一次文件）。
 
-带 `${CLAUDE_PLUGIN_ROOT}` 前缀的路径在**插件目录**里，连着前缀一起读；以 `.agent-team/` 开头的
+带 `${CLAUDE_PLUGIN_ROOT}` 前缀的路径在**插件目录**里，连着前缀一起读；以 `.poundlock/` 开头的
 路径才在用户项目里。插件装在用户项目之外，去掉前缀的裸相对路径按会话工作目录
 解析，那样什么都读不到。
 
 ## 1. 读
 
-- `.agent-team/current-run` → run id。没有就告诉用户当前没有进行中的 run。
-- `.agent-team/runs/<run_id>/state.json`
-- `.agent-team/project.json`、`.agent-team/reach.json`
+- `.poundlock/current-run` → run id。没有就告诉用户当前没有进行中的 run。
+- `.poundlock/runs/<run_id>/state.json`
+- `.poundlock/project.json`、`.poundlock/reach.json`
 - 插件的 `${CLAUDE_PLUGIN_ROOT}/stages.json`（阶段链）
 
 ## 2. 产物那一栏必须去磁盘上看
@@ -60,7 +60,7 @@ run:        <run_id>
 产物:        逐阶段列，每个后面标 ✓ / ✗（按磁盘）；当前段之后、还没走到的段整段写「未到」，不标 ✗
 返工:        <rework 逐阶段；全 0 就写「无」>
 返工基线:    <rework_base 逐条「<产物>：<sha256: 之后的前 12 位> 或 accepted」；没有这个字段或为空就写「无」>
-返工批准:    <.agent-team/runs/<run_id>/approvals.jsonl 逐行：返工批准写「回到 <rework_to>，覆盖 <covers>（<at>）」，照现状交付写「照现状交付：<product>（<at>）」；文件不在或为空就写「无」>
+返工批准:    <.poundlock/runs/<run_id>/approvals.jsonl 逐行：返工批准写「回到 <rework_to>，覆盖 <covers>（<at>）」，照现状交付写「照现状交付：<product>（<at>）」；文件不在或为空就写「无」>
 主动裁掉:    <trimmed 逐条「<角色> @ <它被裁掉的那一段>」；空就写「无」>
 没被叫过:    <never_invoked；在「主动裁掉」里出现过的，后面标「（已声明裁剪）」；空就写「暂无，本趟还没走完」，已收口的 run 写「无」>
 待办升级:    <escalations 里 answer 是空串的（问了、用户还没答）；没有就写「无」>
@@ -69,10 +69,10 @@ run:        <run_id>
 `state.json` 的 `mode` 是 `"tweak"` 的，在 `run:` 那一行后面标「（微调）」，产物按 `${CLAUDE_PLUGIN_ROOT}/stages.tweak.json` 的五段列（S1、S4、S5、S6、S8）。
 
 命令展开时的回传里有【会话】一段的，在 `run:` 那一行后面标「（归另一个会话）」，并把回传里起的时间与原话开头照抄一句：这个会话只能看，
-不能接着跑它；要接手照 `/agent-team:at-resume` 第 1 节办。
+不能接着跑它；要接手照 `/poundlock:at-resume` 第 1 节办。
 
 微调不写 `current-run`：命令展开时的回传里有【微调】一段的，在上面那块之后列出没收口的各趟——`current-run` 指着的完整一趟（若有），与回传里列的每一趟
-微调（读各自的 `.agent-team/runs/<id>/state.json`）。每一趟一行：run id、种类（完整 / 微调）、停在哪一段、归哪个会话（回传标了「这个会话的」就写这个会话，
+微调（读各自的 `.poundlock/runs/<id>/state.json`）。每一趟一行：run id、种类（完整 / 微调）、停在哪一段、归哪个会话（回传标了「这个会话的」就写这个会话，
 别的写「另一个会话」）、最后一次动静的时间（`history` 最后一条的时间）。`closed_at` 是时间、带 `"abandoned": true` 的一趟，在 `run:` 那一行后面标「（放弃）」。
 
 ⚠️ **「主动裁掉」与「没被叫过」不是一回事，别合成一行报。** `state.json` 的 `trimmed`
@@ -93,10 +93,10 @@ run:        <run_id>
 
 ## 4. 触达表
 
-读 `.agent-team/reach.json`，按角色列出：**它自己认领的路径**，以及**它实际能写到的
+读 `.poundlock/reach.json`，按角色列出：**它自己认领的路径**，以及**它实际能写到的
 地方**。凡是后者超出前者的，标出来，并写明是经哪条派发链扩大的（`reach.json` 的
 `widenedBy` 里有）。标了 `unrestricted: true` 的（项目经理）单列一行：它在 run 目录之外不受 `paths` 管、写哪都放行，不按前缀报。
-`reach.json` 里一个角色都没有这个字段的，是旧快照：照前缀报，并提示用户重跑 `/agent-team:at-init` 刷新。
+`reach.json` 里一个角色都没有这个字段的，是旧快照：照前缀报，并提示用户重跑 `/poundlock:at-init` 刷新。
 
 措辞用「当前配置下，`at-product` 实际还能写到 `docs/ui/`（经 at-product → at-ui）」，
 **不要**说成「限制」或者「越权」。**这不是一道闸，它不拦任何东西：写路径隔离只挡**
@@ -107,4 +107,4 @@ run:        <run_id>
 （`${CLAUDE_PLUGIN_ROOT}/roster.json`）与 `${CLAUDE_PLUGIN_ROOT}/templates/project.json`
 真算出来的，不是编的。命令运行时读 `reach.json` 取真值。）
 
-`reach.json` 不存在时说明 `/agent-team:at-init` 之后没有落盘过触达表，提示用户重跑 `/agent-team:at-init`。
+`reach.json` 不存在时说明 `/poundlock:at-init` 之后没有落盘过触达表，提示用户重跑 `/poundlock:at-init`。

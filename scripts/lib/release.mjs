@@ -111,7 +111,7 @@ export async function ensureRelease({ fetch, repo, token, version, expectedSha, 
     Accept: 'application/vnd.github+json',
     Authorization: `Bearer ${token}`,
     'X-GitHub-Api-Version': '2022-11-28',
-    'User-Agent': 'agent-team-release',
+    'User-Agent': 'poundlock-release',
   }
   const call = async (method, path, payload) => {
     const res = await fetch(`${API}/repos/${repo}${path}`, { method, headers, ...(payload === undefined ? {} : { body: JSON.stringify(payload) }) })

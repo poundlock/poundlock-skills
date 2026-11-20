@@ -25,7 +25,7 @@ test('at-tweak.md：建 run 不写 current-run；第 1 节有「先收尾那一�
   assert.ok(s1.includes('「先收尾那一趟」') && s1.includes('「当成那一趟的下一轮」'))
   assert.ok(s1.includes('「放弃这一趟」'))
   const s6 = section(TWEAK, 6)
-  assert.ok(s6.includes('`/agent-team:at` 第 1 节「放弃这一趟」'))
+  assert.ok(s6.includes('`/poundlock:at` 第 1 节「放弃这一趟」'))
 })
 
 test('at-tweak.md：第 3 节讲认领冲突（不叫它绕开）与共用页面服务；第 4 节先看失败碰到的是不是这一趟改的；第 5 节停服务时说明别的微调可能还在用', () => {

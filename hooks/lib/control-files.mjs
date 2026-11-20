@@ -5,7 +5,7 @@
 //
 // 这条约束现在由两条测试对账，两条都从这里 import CONTROL_FILES，不在 templates/
 // 或 commands/ 里另写一份字面量清单：
-// - tests/commands.test.mjs 的「命令正文里出现的每个 .agent-team 路径都是控制文件或
+// - tests/commands.test.mjs 的「命令正文里出现的每个 .poundlock 路径都是控制文件或
 //   run 目录下的产物」（Task 9）——这条会真感知 CONTROL_FILES 的改动：改名、增删都会
 //   让命令正文里对应的路径引用重新落到「合法/不合法」的判定上。
 // - tests/templates.test.mjs 的「模板里不得再抄一份控制文件清单」（Task 8）——这条
@@ -15,7 +15,7 @@
 // 为什么控制文件不走「角色认领产物」那套判据（完整论证见 docs/09 账一，这里只记
 // 要点）：被 settings.json 钉成主线程的 at-pm 不是 callerOf 判定的 MAIN，稳态下它
 // 是一个受完整 per-role 隔离约束的普通角色，写不了 state.json——而 §4.2 ③ 的计数、
-// /at-resume、/at-init 都要它写。反过来把整个 .agent-team/ 放给 PM 又太宽：PM 会
+// /at-resume、/at-init 都要它写。反过来把整个 .poundlock/ 放给 PM 又太宽：PM 会
 // 因此能在 run 目录下凭空造出 01-prd.md，而 artifactExists 在 runDir 下解析、H2 拿
 // 它当前置产物的判据，H2 的判据就此可伪造。分两类之后，PM 的运维动作不走角色认领，
 // H2 的判据对所有角色（含 PM）继续不可伪造。
@@ -24,7 +24,7 @@
 // 概念，不是一条没有判据来源的例外。
 import { norm } from './path-norm.mjs'
 
-// 相对 .agent-team/ 的路径模式。`*` 恰好匹配**一个**路径段，不跨分隔符——
+// 相对 .poundlock/ 的路径模式。`*` 恰好匹配**一个**路径段，不跨分隔符——
 // runs/*/state.json 要匹配任意 run 的状态文件（不只是当前那个：一个角色去写别的
 // run 的 state.json 同样是在动编排层的账本），但不能匹配 runs/r1/x/state.json
 // 那种更深的路径。
@@ -89,7 +89,7 @@ export function mayBeStateFile(filePath) {
 //     docs/82：同一条通知再来、结论没变时只说一句）。改得了它，完成核验就会核错人、说错成因、该整段报的只说一句（只是说错，不放行任何东西）。
 //   - runs/*/contract-base.json（M4j，docs/45，审查第 20 条）：契约基线——推进出第一段时契约第 1 节的原文、每一次改需求的修订那一刻
 //     验证段各份结论的 sha（hooks/lib/contract-base.mjs）。改得了它，第 1 节就能悄悄改写、对着上一版契约的结论就能收口。
-//   - runs/*/user-words.json 与项目一级的 user-words.json（M4o，docs/50，审查第 20 条修法 A）：用户在 /agent-team:at 后面写的原话——
+//   - runs/*/user-words.json 与项目一级的 user-words.json（M4o，docs/50，审查第 20 条修法 A）：用户在 /poundlock:at 后面写的原话——
 //     记录器在命令展开时记进项目一级那份，这一趟的 run 建起来之后绑进 run 目录（hooks/lib/user-words.mjs）。改得了它，第 1 节就能照着
 //     改过的「原话」写。项目一级那份是唯一一份不在 runs/<id>/ 下的门禁专属文件：命令展开那一刻这一趟的 run 还没建。
 //   - runs/*/owner.json（一趟只归一个会话，hooks/lib/owner.mjs）：这一趟归哪个会话——账本在建 run 的那一次记，用户在别的会话里经规范标签接手时由
@@ -116,18 +116,18 @@ export function mayBeGateFile(filePath) {
   return GATE_FILES.some((p) => p.split('/').pop() === leaf) || PROJECT_GATE_FILES.includes(leaf)
 }
 
-/** 任何项目的 .agent-team/runs/<id>/ 下的门禁专属文件——按路径形状认，不只认门禁这一刻认的项目根：写别的项目的批准记录
- * 同样是伪造。路径先过 norm()（解析 ..、软链接，Windows 上折小写），末段再过 leafName。M4o 起也认 .agent-team/ 下那一份项目一级的
+/** 任何项目的 .poundlock/runs/<id>/ 下的门禁专属文件——按路径形状认，不只认门禁这一刻认的项目根：写别的项目的批准记录
+ * 同样是伪造。路径先过 norm()（解析 ..、软链接，Windows 上折小写），末段再过 leafName。M4o 起也认 .poundlock/ 下那一份项目一级的
  * （PROJECT_GATE_FILES）。 */
 export function isGateFile(filePath) {
   if (typeof filePath !== 'string' || !filePath) return false
   const segs = norm(filePath).split('/')
   if (segs.length >= 2) {
     const [dot, leaf] = segs.slice(-2)
-    if (dot.toLowerCase() === '.agent-team' && PROJECT_GATE_FILES.includes(leafName(leaf))) return true
+    if (dot.toLowerCase() === '.poundlock' && PROJECT_GATE_FILES.includes(leafName(leaf))) return true
   }
   if (segs.length < 4) return false
   const [dot, runs, id, leaf] = segs.slice(-4)
-  if (dot.toLowerCase() !== '.agent-team' || runs.toLowerCase() !== 'runs' || !id) return false
+  if (dot.toLowerCase() !== '.poundlock' || runs.toLowerCase() !== 'runs' || !id) return false
   return GATE_FILES.some((p) => matchesPattern(['runs', id, leafName(leaf)], p))
 }

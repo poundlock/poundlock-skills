@@ -1,6 +1,6 @@
 // M4d（docs/38，全量审查第 17、19 条）：正文与两道新判据对上。
 //
-// 第 17 条：推进那一次 H6 核离开的那一段交齐了没有、一次只推进一段（hooks/lib/advance.mjs）。PM 照 /agent-team:at 第 3 节记账，
+// 第 17 条：推进那一次 H6 核离开的那一段交齐了没有、一次只推进一段（hooks/lib/advance.mjs）。PM 照 /poundlock:at 第 3 节记账，
 // 正文不说，PM 就只能从拒绝理由里倒推规则；正文说错了（例：把 01-prd.md 列成能靠 trimmed 免掉的），PM 照做就撞 H6。
 // 第 19 条：后台派发启动那一刻门禁不判产物，完成时由完成核验回传；协调者返回时的「进度」不是报缺；架构师用前台派。
 import { test } from 'node:test'
@@ -67,7 +67,7 @@ test('M4d /at 第 3 节：只推一段；推进那一次 H6 核离开的这一�
   }
 })
 
-test('M4d /agent-team:at-resume：推进被 H6 拒时照理由补，不为了过门禁从 stage_roles 删人', () => {
+test('M4d /poundlock:at-resume：推进被 H6 拒时照理由补，不为了过门禁从 stage_roles 删人', () => {
   const r = flat(read('commands/at-resume.md'))
   assert.ok(r.includes('推进被 H6 拒'), r.slice(0, 80))
   assert.ok(r.includes('不要为了过门禁从 `stage_roles` 里删人'), r.slice(0, 80))

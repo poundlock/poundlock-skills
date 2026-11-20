@@ -1,6 +1,6 @@
 // docs/66（docs/46 §4「测试报告的结论不读」）：测试报告的固定首行与推进出测试那一段时读它——单一真源。纯函数。
 //
-// /agent-team:at 第 3 节一直写着「推进之前读结论：06-test.md 判不通过的照回退处理，不要推进」，门禁只核测试报告在不在、空不空、是不是这一轮的。现在：
+// /poundlock:at 第 3 节一直写着「推进之前读结论：06-test.md 判不通过的照回退处理，不要推进」，门禁只核测试报告在不在、空不空、是不是这一轮的。现在：
 //   - 测试报告（插件自带的链上是 06-test.md）的第一个非空行固定是「结论：通过」「结论：不通过」「结论：跑不起来」之一（agents/at-qa.md）；不通过、跑不起来
 //     后面可以接冒号写原因（「结论：不通过：缺测试」）；
 //   - 推进出测试那一段的那一次 H6 读它：不通过的拒（回退到实现那一段），除非用户经「照现状交付」批准过这一份（门禁记下、按 sha 绑在测试报告上——
@@ -80,9 +80,9 @@ export function testBlock({ stages, state, prior, bytesOf, dispatched = null, ap
 export function testBlockText(block) {
   if (block.verdict === 'fail') {
     return (
-      `${block.name} 第一行是「结论：不通过」，测试没过不能推进出 ${block.stageId}：照 /agent-team:at 第 3 节的「回退」记回到 ${block.implStage ?? '实现那一段'}` +
+      `${block.name} 第一行是「结论：不通过」，测试没过不能推进出 ${block.stageId}：照 /poundlock:at 第 3 节的「回退」记回到 ${block.implStage ?? '实现那一段'}` +
       '（测试没过、缺测试都回那里；根因在更早一段的，回到那一段），修好之后重新走到这里。没过的那几条不修、要带着它们往下走的（项目里本来就挂着的用例、' +
-      '不稳定的用例、返工预算耗尽），那是用户的决定：照 /agent-team:at 第 4 节先往 escalations 记一条（answer 写空串；kind 照问的那一类记——返工预算耗尽是' +
+      '不稳定的用例、返工预算耗尽），那是用户的决定：照 /poundlock:at 第 4 节先往 escalations 记一条（answer 写空串；kind 照问的那一类记——返工预算耗尽是' +
       ' budget-exhausted，要用户在没过的用例与契约之间取舍的是 contract-conflict），再用 AskUserQuestion 问——一道单选题' +
       `（multiSelect 设 false），那一项的标签逐字写「${DELIVER_LABEL}」；用户选了它，门禁记下这条批准（只对现在这份 ${block.name} 有效），再推进。` +
       `问不了用户的（工具面里没有 AskUserQuestion），请用户在对话里单独发一条只写「${DELIVER_LABEL}」的消息`
@@ -110,7 +110,7 @@ export function decideTestVerdict({ before, after, stages, bytesOf, dispatched =
   if (before.stage !== ts.stageId || ids.indexOf(after.stage) <= ids.indexOf(ts.stageId)) return { ok: true }
   const block = testBlock({ stages, state: after, prior: before, bytesOf, dispatched, approvedShas })
   if (!block) return { ok: true }
-  return { ok: false, reason: `agent-team H6 返工预算：${testBlockText(block)}。` }
+  return { ok: false, reason: `poundlock H6 返工预算：${testBlockText(block)}。` }
 }
 
 /**
@@ -154,7 +154,7 @@ export function trimmedCloseText(block) {
         : `不是${LINES}之一，门禁读不出测试结论`
   return (
     (noAcc ? '这一趟没有验收段' : `验收那一段（${block.accStageId}）整段裁掉了`) +
-    `，收口读测试报告 ${block.name} 的第一行：${said}。要验证的，照 /agent-team:at 第 3 节的「回退」` +
+    `，收口读测试报告 ${block.name} 的第一行：${said}。要验证的，照 /poundlock:at 第 3 节的「回退」` +
     (block.verdict === 'fail'
       ? `记回到 ${block.implStage ?? '实现那一段'} 修好、重测`
       : block.verdict === 'env'
@@ -163,7 +163,7 @@ export function trimmedCloseText(block) {
           ? `记回到 ${block.stageId}，照格式重写第一行`
           : `记回到 ${block.stageId}，让 ${TEST_ROLE} 照格式重写第一行`) +
     (noAcc ? '' : `，或者回到 ${block.accStageId} 把验收派出去`) +
-    '；要带着它交付的，那是用户的决定：照 /agent-team:at 第 4 节' +
+    '；要带着它交付的，那是用户的决定：照 /poundlock:at 第 4 节' +
     '先往 escalations 记一条（answer 写空串），再用 AskUserQuestion 问——一道单选题（multiSelect 设 false），那一项的标签逐字写' +
     `「${DELIVER_LABEL}」；用户选了它，门禁记下这条批准（只对现在这份 ${block.name} 有效），再收口。问不了用户的（工具面里没有 AskUserQuestion），` +
     `请用户在对话里单独发一条只写「${DELIVER_LABEL}」的消息`
@@ -186,7 +186,7 @@ export function decideTrimmedClose({ before, after, stages, bytesOf, dispatched 
   const first = already
     ? ''
     : `这一次写入才把 ${block.accStageId} 记成整段裁掉：先单独一次 Write 把 trimmed 记上（不写 closed_at），再问用户——门禁按磁盘上的 state.json 认批准绑在哪一份。`
-  return { ok: false, reason: `agent-team H6 收口：${trimmedCloseText(block)}。${first}` }
+  return { ok: false, reason: `poundlock H6 收口：${trimmedCloseText(block)}。${first}` }
 }
 
 /**

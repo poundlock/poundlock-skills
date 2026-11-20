@@ -10,11 +10,11 @@ const SEPARATORS = [LS, PS, NEL]
 const EMOJI = String.fromCodePoint(0x1f600)
 
 test('前缀与 gate.mjs 里原有的字面量一致——抽真源不改字面量', () => {
-  assert.equal(TRUSTED_PREFIX, 'agent-team 账本回传')
+  assert.equal(TRUSTED_PREFIX, 'poundlock 账本回传')
 })
 
 test('trustedBlock 把正文接在前缀之后', () => {
-  assert.equal(trustedBlock('正文'), 'agent-team 账本回传：\n正文')
+  assert.equal(trustedBlock('正文'), 'poundlock 账本回传：\n正文')
 })
 
 test('trustedBlock 对空正文也产出带前缀的串——不能退化成空', () => {
@@ -176,7 +176,7 @@ test('quote：截断按码点算，不把一个表情劈成两半', () => {
 })
 
 test('quote（docs/57，docs/27 §4）：截断留头留尾——异常消息末尾的文件名、长路径的最后一段看得见；头多尾少，一共不超过上限再加一个「…」', () => {
-  const path = 'C:\\Users\\someone\\Desktop\\a-rather-long-project-name\\.agent-team\\runs\\20261010-1200-something\\state.json'
+  const path = 'C:\\Users\\someone\\Desktop\\a-rather-long-project-name\\.poundlock\\runs\\20261010-1200-something\\state.json'
   const msg = `ENOENT: no such file or directory, open '${path}'`
   const q = JSON.parse(quote(msg, { max: 120 }))
   assert.ok(msg.length > 120, String(msg.length))

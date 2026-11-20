@@ -3,7 +3,7 @@
 // project.json 的形状问题只有 PM 改得了，所以要在 PM 看得见的地方说出来：
 //   - PM 写 project.json 时（有 run、没有 run 两条路）：三档全报——阻断、要改、请确认；
 //   - project.json 写坏（解析不出、不是对象）时：一句固定的话，不回显文件内容（docs/27）；
-//   - project.json 在别处被弄坏（用户手改加了注释、尾逗号）而 run 在：写 .agent-team 下任何文件都回传那句固定的话
+//   - project.json 在别处被弄坏（用户手改加了注释、尾逗号）而 run 在：写 .poundlock 下任何文件都回传那句固定的话
 //     的变体——此前这一格整趟 run 一声不吭，PM 拿不到契约哈希，只能按「门禁没在跑」停下；
 //   - 每趟 run 开头 PM 写 current-run 时：整份报一次（已装用户的旧配置在 S1 就露面，不等到 S5 撞上拒绝）；
 //   - PM 写 state.json 时：只报阻断（覆盖升级前开始、升级后续跑的 run；不报警告，免得每次记账都刷一遍）；
@@ -23,19 +23,19 @@ import { computeReach } from '../hooks/lib/reach.mjs'
 import { safeJson } from '../hooks/lib/trusted.mjs'
 
 const TEMPLATE = JSON.parse(readFileSync(new URL('../templates/project.json', import.meta.url), 'utf8'))
-const posted = (file_path, agent_type = 'agent-team:at-pm') => ({ hook_event_name: 'PostToolUse', tool_name: 'Write', agent_type, tool_input: { file_path } })
+const posted = (file_path, agent_type = 'poundlock:at-pm') => ({ hook_event_name: 'PostToolUse', tool_name: 'Write', agent_type, tool_input: { file_path } })
 const ctxOf = (r) => decisionOf(r.stdout)?.additionalContext ?? ''
 
 // 读 project.json 的方式由预加载脚本化（tests/helpers/project-reads.cjs）：占用、写了一半、按时间的占用窗口、数停顿。
 const PROJECT_READS = fileURLToPath(new URL('./helpers/project-reads.cjs', import.meta.url))
 const runReads = (input, cwd, vars) =>
   run('ledger', input, undefined, cwd, { ...hermeticEnv(), ...vars }, { nodeArgs: ['-r', PROJECT_READS] })
-const reads = (script) => ({ AGENT_TEAM_TEST_PROJECT_READS: script })
+const reads = (script) => ({ POUNDLOCK_TEST_PROJECT_READS: script })
 
 function withRun(project, body) {
   const dirs = makeRun({ runId: 'r1', stage: 'S1', project })
   try {
-    return body(dirs.projectDir, join(dirs.projectDir, '.agent-team', 'runs', 'r1'))
+    return body(dirs.projectDir, join(dirs.projectDir, '.poundlock', 'runs', 'r1'))
   } finally {
     rmSync(dirs.projectDir, { recursive: true, force: true })
     rmSync(dirs.pluginDir, { recursive: true, force: true })
@@ -43,9 +43,9 @@ function withRun(project, body) {
 }
 
 function withoutRun(body) {
-  const p = realpathSync(mkdtempSync(join(tmpdir(), 'agent-team-lp-')))
+  const p = realpathSync(mkdtempSync(join(tmpdir(), 'poundlock-lp-')))
   try {
-    mkdirSync(join(p, '.agent-team'), { recursive: true })
+    mkdirSync(join(p, '.poundlock'), { recursive: true })
     return body(p)
   } finally {
     rmSync(p, { recursive: true, force: true })
@@ -112,36 +112,36 @@ test('projectNotice：不说「你是唯一改得了它的人」——没有 run
 
 // ---- 写 project.json ----
 
-test('写 project.json（没有 run，/agent-team:at-init 的正路）：有问题就报【project.json】，在【触达表】之前', () => {
+test('写 project.json（没有 run，/poundlock:at-init 的正路）：有问题就报【project.json】，在【触达表】之前', () => {
   withoutRun((p) => {
-    writeFileSync(join(p, '.agent-team', 'project.json'), JSON.stringify(TYPO))
-    const ctx = ctxOf(run('ledger', posted(join(p, '.agent-team', 'project.json')), undefined, p))
+    writeFileSync(join(p, '.poundlock', 'project.json'), JSON.stringify(TYPO))
+    const ctx = ctxOf(run('ledger', posted(join(p, '.poundlock', 'project.json')), undefined, p))
     assert.ok(ctx.includes('【project.json】') && ctx.includes('【触达表】'), ctx)
     assert.ok(ctx.indexOf('【project.json】') < ctx.indexOf('【触达表】'), ctx)
     assert.ok(ctx.includes('"at-fronted"'), ctx)
     assert.ok(sectionOf(ctx, '要改（')?.includes('"at-fronted"'), ctx)
     // 只有要改、没有阻断：照发触达表的 JSON，不扣下。
-    assert.ok(ctx.includes('原样写进 .agent-team/reach.json') && !ctx.includes('这次不发'), ctx)
+    assert.ok(ctx.includes('原样写进 .poundlock/reach.json') && !ctx.includes('这次不发'), ctx)
   })
 })
 
 test('写 project.json：只有前缀级的问题（通配符、以 / 开头）时也报——它们经 validateProject 汇进报告', () => {
   withoutRun((p) => {
     const project = { ...TEMPLATE, paths: { ...TEMPLATE.paths, 'at-backend': ['src/*'] } }
-    writeFileSync(join(p, '.agent-team', 'project.json'), JSON.stringify(project))
-    const ctx = ctxOf(run('ledger', posted(join(p, '.agent-team', 'project.json')), undefined, p))
+    writeFileSync(join(p, '.poundlock', 'project.json'), JSON.stringify(project))
+    const ctx = ctxOf(run('ledger', posted(join(p, '.poundlock', 'project.json')), undefined, p))
     assert.ok(sectionOf(ctx, '要改（')?.includes('"src/*"'), ctx)
   })
   withRun({ ...TEMPLATE, paths: { ...TEMPLATE.paths, 'at-backend': ['/src/server/', 'src/shared/'] } }, (p) => {
-    const ctx = ctxOf(run('ledger', posted(join(p, '.agent-team', 'current-run')), undefined, p))
+    const ctx = ctxOf(run('ledger', posted(join(p, '.poundlock', 'current-run')), undefined, p))
     assert.ok(sectionOf(ctx, '请确认（')?.includes('"/src/server/"'), ctx)
   })
 })
 
 test('写 project.json（没有 run）的不是 PM：回传不说「你是唯一改得了它的人」，叫它回报上级', () => {
   withoutRun((p) => {
-    writeFileSync(join(p, '.agent-team', 'project.json'), JSON.stringify(TYPO))
-    const ctx = ctxOf(run('ledger', posted(join(p, '.agent-team', 'project.json'), 'agent-team:at-backend'), undefined, p))
+    writeFileSync(join(p, '.poundlock', 'project.json'), JSON.stringify(TYPO))
+    const ctx = ctxOf(run('ledger', posted(join(p, '.poundlock', 'project.json'), 'poundlock:at-backend'), undefined, p))
     assert.ok(ctx.includes('【project.json】'), ctx)
     assert.ok(!ctx.includes('唯一改得了') && ctx.includes('回报给上级'), ctx)
   })
@@ -150,8 +150,8 @@ test('写 project.json（没有 run）的不是 PM：回传不说「你是唯一
 test('写 project.json（run 进行中）：阻断、要改、请确认三档各有标题', () => {
   withRun(TEMPLATE, (p) => {
     const project = { ...BLOCKED, paths: { ...BLOCKED.paths, 'at-fronted': ['x/'], 'at-product': ['docs/'] } }
-    writeFileSync(join(p, '.agent-team', 'project.json'), JSON.stringify(project))
-    const ctx = ctxOf(run('ledger', posted(join(p, '.agent-team', 'project.json')), undefined, p))
+    writeFileSync(join(p, '.poundlock', 'project.json'), JSON.stringify(project))
+    const ctx = ctxOf(run('ledger', posted(join(p, '.poundlock', 'project.json')), undefined, p))
     assert.ok(ctx.includes('【project.json】'), ctx)
     // 按段断言：每条挂在自己那一档底下（run 进行中这一支把 validateProject 的三档原样交给 ledger）。
     for (const [title, item] of [['阻断（', '"../"'], ['要改（', '"at-fronted"'], ['请确认（', '"docs/"']]) {
@@ -163,8 +163,8 @@ test('写 project.json（run 进行中）：阻断、要改、请确认三档各
 
 test('写 project.json：模板原样（问题一条都没有）时不报【project.json】，照发【触达表】', () => {
   withoutRun((p) => {
-    writeFileSync(join(p, '.agent-team', 'project.json'), JSON.stringify(TEMPLATE))
-    const ctx = ctxOf(run('ledger', posted(join(p, '.agent-team', 'project.json')), undefined, p))
+    writeFileSync(join(p, '.poundlock', 'project.json'), JSON.stringify(TEMPLATE))
+    const ctx = ctxOf(run('ledger', posted(join(p, '.poundlock', 'project.json')), undefined, p))
     assert.ok(!ctx.includes('【project.json】'), ctx)
     assert.ok(ctx.includes('【触达表】'), ctx)
   })
@@ -181,8 +181,8 @@ for (const [label, text] of [
 ]) {
   test(`写坏的 project.json（${label}）：没有 run、有 run 两种状态下都报一句固定的话，不回显文件内容、不发触达表`, () => {
     const check = (p) => {
-      writeFileSync(join(p, '.agent-team', 'project.json'), text)
-      const ctx = ctxOf(run('ledger', posted(join(p, '.agent-team', 'project.json')), undefined, p))
+      writeFileSync(join(p, '.poundlock', 'project.json'), text)
+      const ctx = ctxOf(run('ledger', posted(join(p, '.poundlock', 'project.json')), undefined, p))
       assert.ok(ctx.includes('【project.json】') && ctx.includes('不是一个合法的 JSON 对象'), ctx)
       assert.ok(!ctx.includes('【触达表】'), ctx)
       assert.ok(!ctx.includes(text.trim()) || text.trim().length < 3, `回显了文件内容：${ctx}`)
@@ -234,14 +234,14 @@ test('brokenProjectNotice：写的正是它、run 里在别处被弄坏、没有
 test('写坏的 project.json：run 进行中补一句后果、往 stderr 留痕；没有 run 时两样都没有', () => {
   const bad = '{ "paths": { '
   withRun(TEMPLATE, (p) => {
-    writeFileSync(join(p, '.agent-team', 'project.json'), bad)
-    const r = run('ledger', posted(join(p, '.agent-team', 'project.json')), undefined, p)
+    writeFileSync(join(p, '.poundlock', 'project.json'), bad)
+    const r = run('ledger', posted(join(p, '.poundlock', 'project.json')), undefined, p)
     assert.ok(ctxOf(r).includes('run 进行中'), ctxOf(r))
     assert.match(r.stderr, /ledger 回传：读不到运行上下文（/)
   })
   withoutRun((p) => {
-    writeFileSync(join(p, '.agent-team', 'project.json'), bad)
-    const r = run('ledger', posted(join(p, '.agent-team', 'project.json')), undefined, p)
+    writeFileSync(join(p, '.poundlock', 'project.json'), bad)
+    const r = run('ledger', posted(join(p, '.poundlock', 'project.json')), undefined, p)
     assert.ok(ctxOf(r).includes('不是一个合法的 JSON 对象'), ctxOf(r))
     assert.ok(!ctxOf(r).includes('run 进行中'), ctxOf(r))
     assert.equal(r.stderr.trim(), '')
@@ -250,7 +250,7 @@ test('写坏的 project.json：run 进行中补一句后果、往 stderr 留痕�
 
 test('project.json 不在（写完又被删、或者被占用读不到）：不报【project.json】，只往 stderr 留痕', () => {
   withoutRun((p) => {
-    const r = run('ledger', posted(join(p, '.agent-team', 'project.json')), undefined, p)
+    const r = run('ledger', posted(join(p, '.poundlock', 'project.json')), undefined, p)
     assert.ok(!ctxOf(r).includes('【project.json】'), ctxOf(r))
     assert.match(r.stderr, /ledger 回传/)
   })
@@ -261,8 +261,8 @@ test('project.json 读的时候撞上占用、再读是合法的：照常发报�
   // 没有 run：缝里 readProjectConfig 读一次，重读最多三次——前三次撞上占用，第四次读到。带 BOM 的合法文件同样认得。
   for (const [n, text] of [[1, JSON.stringify(TYPO)], [3, JSON.stringify(TYPO)], [1, BOM + JSON.stringify(TYPO)]]) {
     withoutRun((p) => {
-      writeFileSync(join(p, '.agent-team', 'project.json'), text)
-      const ctx = ctxOf(runReads(posted(join(p, '.agent-team', 'project.json')), p, reads(`busy*${n}`)))
+      writeFileSync(join(p, '.poundlock', 'project.json'), text)
+      const ctx = ctxOf(runReads(posted(join(p, '.poundlock', 'project.json')), p, reads(`busy*${n}`)))
       assert.ok(ctx.includes('【触达表】') && ctx.includes('"at-fronted"'), `${n}：${ctx}`)
       assert.ok(!ctx.includes('不是一个合法的 JSON 对象'), ctx)
     })
@@ -270,23 +270,23 @@ test('project.json 读的时候撞上占用、再读是合法的：照常发报�
   // run 在：读运行上下文还要多读一次。
   for (const n of [2, 4]) {
     withRun(TEMPLATE, (p) => {
-      writeFileSync(join(p, '.agent-team', 'project.json'), JSON.stringify(TYPO))
-      const ctx = ctxOf(runReads(posted(join(p, '.agent-team', 'project.json')), p, reads(`busy*${n}`)))
+      writeFileSync(join(p, '.poundlock', 'project.json'), JSON.stringify(TYPO))
+      const ctx = ctxOf(runReads(posted(join(p, '.poundlock', 'project.json')), p, reads(`busy*${n}`)))
       assert.ok(ctx.includes('【触达表】') && ctx.includes('"at-fronted"'), `${n}：${ctx}`)
       assert.ok(!ctx.includes('不是一个合法的 JSON 对象'), ctx)
     })
   }
   // 别的短暂失败（EPERM：删除待决、杀毒软件）同样重读——只有文件不在（ENOENT）不重读。
   withoutRun((p) => {
-    writeFileSync(join(p, '.agent-team', 'project.json'), JSON.stringify(TYPO))
-    const ctx = ctxOf(runReads(posted(join(p, '.agent-team', 'project.json')), p, reads('eperm*3')))
+    writeFileSync(join(p, '.poundlock', 'project.json'), JSON.stringify(TYPO))
+    const ctx = ctxOf(runReads(posted(join(p, '.poundlock', 'project.json')), p, reads('eperm*3')))
     assert.ok(ctx.includes('【触达表】') && ctx.includes('"at-fronted"'), ctx)
     assert.ok(!ctx.includes('不是一个合法的 JSON 对象'), ctx)
   })
   // 一直读不到：只留痕，不说「写坏了」。
   withoutRun((p) => {
-    writeFileSync(join(p, '.agent-team', 'project.json'), JSON.stringify(TYPO))
-    const r = runReads(posted(join(p, '.agent-team', 'project.json')), p, reads('busy*10'))
+    writeFileSync(join(p, '.poundlock', 'project.json'), JSON.stringify(TYPO))
+    const r = runReads(posted(join(p, '.poundlock', 'project.json')), p, reads('busy*10'))
     assert.equal(ctxOf(r), '')
     assert.match(r.stderr, /ledger 回传/)
   })
@@ -295,8 +295,8 @@ test('project.json 读的时候撞上占用、再读是合法的：照常发报�
 test('重读之间真的停一下：按时间的占用窗口（第一次读之后 40ms 内都占用）也等得过去——单向判据，慢机器上最多假绿', () => {
   // 原版第三次读离第一次至少两次停顿（每次至少 25ms），一定落在 40ms 的窗口之外；三次读连着不停就全落在窗口里。
   withoutRun((p) => {
-    writeFileSync(join(p, '.agent-team', 'project.json'), JSON.stringify(TYPO))
-    const ctx = ctxOf(runReads(posted(join(p, '.agent-team', 'project.json')), p, { AGENT_TEAM_TEST_PROJECT_BUSY_MS: '40' }))
+    writeFileSync(join(p, '.poundlock', 'project.json'), JSON.stringify(TYPO))
+    const ctx = ctxOf(runReads(posted(join(p, '.poundlock', 'project.json')), p, { POUNDLOCK_TEST_PROJECT_BUSY_MS: '40' }))
     assert.ok(ctx.includes('【触达表】'), ctx)
   })
 })
@@ -304,8 +304,8 @@ test('重读之间真的停一下：按时间的占用窗口（第一次读之�
 test('重读记着读到过的原文：先读到坏内容、之后又撞上占用，照样报「写坏了」，不退成只留痕', () => {
   // 杀毒软件在刚写完时扫描就是这一格：readProjectConfig 与第一次重读读到 []，后两次撞上占用。
   withoutRun((p) => {
-    writeFileSync(join(p, '.agent-team', 'project.json'), '[]')
-    const ctx = ctxOf(runReads(posted(join(p, '.agent-team', 'project.json')), p, reads('ok,ok,busy*2')))
+    writeFileSync(join(p, '.poundlock', 'project.json'), '[]')
+    const ctx = ctxOf(runReads(posted(join(p, '.poundlock', 'project.json')), p, reads('ok,ok,busy*2')))
     assert.ok(ctx.includes('不是一个合法的 JSON 对象') && ctx.includes('刚写进去的'), ctx)
   })
 })
@@ -321,22 +321,22 @@ test('重读也挡读到写了一半的内容：run 在、写 state.json 时 pro
 test('写的正是 project.json 而缝里一直读不到、之后才读到坏内容：报不报都行，但不用「在别处被弄坏」的口径叫它原样重写它自己', () => {
   // 读的次数：读运行上下文 1 次、readProjectConfig 1 次、缝里重读 3 次，共 5 次——以后增减读取次数要跟着改。
   withRun(TEMPLATE, (p) => {
-    writeFileSync(join(p, '.agent-team', 'project.json'), '[]')
-    const ctx = ctxOf(runReads(posted(join(p, '.agent-team', 'project.json')), p, reads('busy*5')))
+    writeFileSync(join(p, '.poundlock', 'project.json'), '[]')
+    const ctx = ctxOf(runReads(posted(join(p, '.poundlock', 'project.json')), p, reads('busy*5')))
     assert.ok(!ctx.includes('原样重写') && !ctx.includes('哈希这时也回传不了'), ctx)
   })
 })
 
 test('project.json 不在（ENOENT）时不重读、不停顿；坏文件照旧重读，两次停顿', () => {
-  const waits = (r) => Number((/agent-team-test waits=(\d+)/.exec(r.stderr) ?? [])[1])
-  const count = { AGENT_TEAM_TEST_COUNT_WAITS: '1' }
+  const waits = (r) => Number((/poundlock-test waits=(\d+)/.exec(r.stderr) ?? [])[1])
+  const count = { POUNDLOCK_TEST_COUNT_WAITS: '1' }
   withoutRun((p) => {
-    const r = runReads(posted(join(p, '.agent-team', 'reach.json')), p, count)
+    const r = runReads(posted(join(p, '.poundlock', 'reach.json')), p, count)
     assert.equal(waits(r), 0, r.stderr)
   })
   withoutRun((p) => {
-    writeFileSync(join(p, '.agent-team', 'project.json'), '[]')
-    const r = runReads(posted(join(p, '.agent-team', 'reach.json')), p, count)
+    writeFileSync(join(p, '.poundlock', 'project.json'), '[]')
+    const r = runReads(posted(join(p, '.poundlock', 'reach.json')), p, count)
     assert.equal(waits(r), 2, r.stderr)
   })
 })
@@ -346,12 +346,12 @@ test('project.json 是 UTF-16 编码（Windows PowerShell 5.1 的默认）：回
   const be = Buffer.from(body).swap16()
   for (const bytes of [Buffer.concat([Buffer.from([0xff, 0xfe]), body]), body, Buffer.concat([Buffer.from([0xfe, 0xff]), be]), be]) {
     withoutRun((p) => {
-      writeFileSync(join(p, '.agent-team', 'project.json'), bytes)
-      const ctx = ctxOf(run('ledger', posted(join(p, '.agent-team', 'project.json')), undefined, p))
+      writeFileSync(join(p, '.poundlock', 'project.json'), bytes)
+      const ctx = ctxOf(run('ledger', posted(join(p, '.poundlock', 'project.json')), undefined, p))
       assert.ok(ctx.includes('UTF-16') && ctx.includes('门禁只读 UTF-8'), ctx)
     })
     withRun(TEMPLATE, (p, runDir) => {
-      writeFileSync(join(p, '.agent-team', 'project.json'), bytes)
+      writeFileSync(join(p, '.poundlock', 'project.json'), bytes)
       const ctx = ctxOf(run('ledger', posted(join(runDir, 'state.json')), undefined, p))
       assert.ok(ctx.includes('UTF-16') && ctx.includes('门禁只读 UTF-8') && ctx.includes('再 Write 一次'), ctx)
     })
@@ -359,14 +359,14 @@ test('project.json 是 UTF-16 编码（Windows PowerShell 5.1 的默认）：回
   // run 进行中、写的正是 project.json：修好之前的最后一条回传提醒把读不出期间写过的文件原样重写一次；没有 run 时不提。
   const le = Buffer.concat([Buffer.from([0xff, 0xfe]), body])
   withRun(TEMPLATE, (p) => {
-    writeFileSync(join(p, '.agent-team', 'project.json'), le)
-    const ctx = ctxOf(run('ledger', posted(join(p, '.agent-team', 'project.json')), undefined, p))
+    writeFileSync(join(p, '.poundlock', 'project.json'), le)
+    const ctx = ctxOf(run('ledger', posted(join(p, '.poundlock', 'project.json')), undefined, p))
     for (const k of ['刚写进去的', 'UTF-16', '收到触达表之后', 'state.json', '原样重写']) assert.ok(ctx.includes(k), `${k}：${ctx}`)
     assert.ok(!ctx.includes('刚才那个文件'), ctx)
   })
   withoutRun((p) => {
-    writeFileSync(join(p, '.agent-team', 'project.json'), le)
-    const ctx = ctxOf(run('ledger', posted(join(p, '.agent-team', 'project.json')), undefined, p))
+    writeFileSync(join(p, '.poundlock', 'project.json'), le)
+    const ctx = ctxOf(run('ledger', posted(join(p, '.poundlock', 'project.json')), undefined, p))
     assert.ok(ctx.includes('UTF-16') && !ctx.includes('原样重写'), ctx)
   })
 })
@@ -377,8 +377,8 @@ test('带 NUL 却不是 UTF-16 的坏文件（尾部补 NUL、整份清零、UTF
   const bareNul = Buffer.from('{ "paths": {} /* x' + String.fromCharCode(0) + ' */, }')
   for (const bytes of [Buffer.concat([Buffer.from(json), Buffer.alloc(512)]), Buffer.alloc(1024), utf32, bareNul]) {
     withoutRun((p) => {
-      writeFileSync(join(p, '.agent-team', 'project.json'), bytes)
-      const ctx = ctxOf(run('ledger', posted(join(p, '.agent-team', 'project.json')), undefined, p))
+      writeFileSync(join(p, '.poundlock', 'project.json'), bytes)
+      const ctx = ctxOf(run('ledger', posted(join(p, '.poundlock', 'project.json')), undefined, p))
       assert.ok(ctx.includes('不是一个合法的 JSON 对象') && !ctx.includes('UTF-16') && ctx.includes('常见原因'), ctx)
     })
   }
@@ -397,9 +397,9 @@ for (const [label, text] of [
 ]) {
   test(`project.json 在别处被弄坏（${label}）、run 在：写 state.json、current-run、契约都回传【project.json】，不回显原文`, () => {
     withRun(TEMPLATE, (p, runDir) => {
-      writeFileSync(join(p, '.agent-team', 'project.json'), text)
+      writeFileSync(join(p, '.poundlock', 'project.json'), text)
       writeFileSync(join(runDir, '00-contract.md'), '# 契约\n')
-      for (const f of [join(runDir, 'state.json'), join(p, '.agent-team', 'current-run'), join(runDir, '00-contract.md')]) {
+      for (const f of [join(runDir, 'state.json'), join(p, '.poundlock', 'current-run'), join(runDir, '00-contract.md')]) {
         const r = run('ledger', posted(f), undefined, p)
         const ctx = ctxOf(r)
         assert.ok(ctx.includes('【project.json】') && ctx.includes('不是一个合法的 JSON 对象'), `${f}：${ctx}`)
@@ -417,8 +417,8 @@ for (const [label, text] of [
 
 test('从零建 run、指针还没写：写第一份 state.json 时 project.json 坏了也回传', () => {
   withoutRun((p) => {
-    writeFileSync(join(p, '.agent-team', 'project.json'), '[]')
-    const runDir = join(p, '.agent-team', 'runs', 'r1')
+    writeFileSync(join(p, '.poundlock', 'project.json'), '[]')
+    const runDir = join(p, '.poundlock', 'runs', 'r1')
     mkdirSync(runDir, { recursive: true })
     writeFileSync(join(runDir, 'state.json'), JSON.stringify({ run_id: 'r1', stage: 'S1', contract_sha: 'PENDING', roster: [], artifacts: {}, rework: {}, never_invoked: [], escalations: [], history: [{ stage: 'S1', at: 't' }] }))
     const ctx = ctxOf(run('ledger', posted(join(runDir, 'state.json')), undefined, p))
@@ -426,10 +426,10 @@ test('从零建 run、指针还没写：写第一份 state.json 时 project.json
   })
 })
 
-test('没有 run、project.json 坏着：写 .agent-team 下别的文件（at-init 的 reach.json）也回传，不说 run 进行中、不提哈希，不留痕', () => {
+test('没有 run、project.json 坏着：写 .poundlock 下别的文件（at-init 的 reach.json）也回传，不说 run 进行中、不提哈希，不留痕', () => {
   withoutRun((p) => {
-    writeFileSync(join(p, '.agent-team', 'project.json'), '{ "paths": {}, }')
-    const r = run('ledger', posted(join(p, '.agent-team', 'reach.json')), undefined, p)
+    writeFileSync(join(p, '.poundlock', 'project.json'), '{ "paths": {}, }')
+    const r = run('ledger', posted(join(p, '.poundlock', 'reach.json')), undefined, p)
     const ctx = ctxOf(r)
     assert.ok(ctx.includes('【project.json】') && ctx.includes('不是一个合法的 JSON 对象'), ctx)
     for (const k of ['run 进行中', '哈希']) assert.ok(!ctx.includes(k), `${k}：${ctx}`)
@@ -438,13 +438,13 @@ test('没有 run、project.json 坏着：写 .agent-team 下别的文件（at-in
   })
 })
 
-test('project.json 坏着时，.agent-team 之外的写入照旧一声不吭——执行角色与主会话写业务文件不被刷屏', () => {
+test('project.json 坏着时，.poundlock 之外的写入照旧一声不吭——执行角色与主会话写业务文件不被刷屏', () => {
   const outside = (p) => [
-    [join(p, 'src', 'x.ts'), 'agent-team:at-backend'],
+    [join(p, 'src', 'x.ts'), 'poundlock:at-backend'],
     [join(p, 'README.md'), undefined],
   ]
   withoutRun((p) => {
-    writeFileSync(join(p, '.agent-team', 'project.json'), '[]')
+    writeFileSync(join(p, '.poundlock', 'project.json'), '[]')
     for (const [f, who] of outside(p)) {
       const input = posted(f)
       if (who) input.agent_type = who
@@ -454,15 +454,15 @@ test('project.json 坏着时，.agent-team 之外的写入照旧一声不吭—�
     }
   })
   withRun(TEMPLATE, (p) => {
-    writeFileSync(join(p, '.agent-team', 'project.json'), '[]')
+    writeFileSync(join(p, '.poundlock', 'project.json'), '[]')
     assert.equal(run('ledger', posted(join(p, 'README.md')), undefined, p).stdout, '')
   })
 })
 
 test('带 BOM 的合法 project.json 不被当成写坏：run 读不出来（指针还没写）的那一格里写 state.json 不报', () => {
   withoutRun((p) => {
-    writeFileSync(join(p, '.agent-team', 'project.json'), String.fromCharCode(0xfeff) + JSON.stringify(TEMPLATE))
-    const runDir = join(p, '.agent-team', 'runs', 'r1')
+    writeFileSync(join(p, '.poundlock', 'project.json'), String.fromCharCode(0xfeff) + JSON.stringify(TEMPLATE))
+    const runDir = join(p, '.poundlock', 'runs', 'r1')
     mkdirSync(runDir, { recursive: true })
     writeFileSync(join(runDir, 'state.json'), JSON.stringify({ run_id: 'r1', stage: 'S1', contract_sha: 'PENDING', roster: [], artifacts: {}, rework: {}, never_invoked: [], escalations: [], history: [{ stage: 'S1', at: 't' }] }))
     const ctx = ctxOf(run('ledger', posted(join(runDir, 'state.json')), undefined, p))
@@ -496,15 +496,15 @@ test('pluginNotice：没有插件问题时不发；有就单成一段【插件�
 
 test('门禁子进程：插件副本的 roster.json 读坏时，写 project.json、写 state.json 都收到【插件】，不叫 PM 改 project.json', () => {
   const REPO = new URL('..', import.meta.url)
-  const plugin = realpathSync(mkdtempSync(join(tmpdir(), 'agent-team-lp-plug-')))
+  const plugin = realpathSync(mkdtempSync(join(tmpdir(), 'poundlock-lp-plug-')))
   try {
     cpSync(new URL('hooks', REPO), join(plugin, 'hooks'), { recursive: true })
     cpSync(new URL('stages.json', REPO), join(plugin, 'stages.json'))
     writeFileSync(join(plugin, 'roster.json'), '{')
     const gate = join(plugin, 'hooks', 'boot.mjs')
     withoutRun((p) => {
-      writeFileSync(join(p, '.agent-team', 'project.json'), JSON.stringify(TEMPLATE))
-      const ctx = ctxOf(run('ledger', posted(join(p, '.agent-team', 'project.json')), gate, p))
+      writeFileSync(join(p, '.poundlock', 'project.json'), JSON.stringify(TEMPLATE))
+      const ctx = ctxOf(run('ledger', posted(join(p, '.poundlock', 'project.json')), gate, p))
       assert.ok(ctx.includes('【插件】') && ctx.includes('roster.json'), ctx)
       assert.ok(!ctx.includes('【project.json】'), ctx)
     })
@@ -518,11 +518,11 @@ test('门禁子进程：插件副本的 roster.json 读坏时，写 project.json
     for (const bad of ['{', '{}', '[]']) {
       writeFileSync(join(plugin, 'roster.json'), bad)
       const check = (p) => {
-        writeFileSync(join(p, '.agent-team', 'project.json'), JSON.stringify(TEMPLATE))
-        const ctx = ctxOf(run('ledger', posted(join(p, '.agent-team', 'project.json')), gate, p))
-        assert.ok(ctx.includes('【插件】') && ctx.includes('不要写 .agent-team/reach.json'), `${bad}：${ctx}`)
+        writeFileSync(join(p, '.poundlock', 'project.json'), JSON.stringify(TEMPLATE))
+        const ctx = ctxOf(run('ledger', posted(join(p, '.poundlock', 'project.json')), gate, p))
+        assert.ok(ctx.includes('【插件】') && ctx.includes('不要写 .poundlock/reach.json'), `${bad}：${ctx}`)
         assert.ok(ctx.includes('【触达表】这次算不出来') && !ctx.includes('上面有阻断') && ctx.includes('新开一个会话'), `${bad}：${ctx}`)
-        for (const k of ['原样写进 .agent-team/reach.json', '没有角色的触达超出']) assert.ok(!ctx.includes(k), `${k}：${ctx}`)
+        for (const k of ['原样写进 .poundlock/reach.json', '没有角色的触达超出']) assert.ok(!ctx.includes(k), `${k}：${ctx}`)
       }
       withoutRun(check)
       withRun(TEMPLATE, check)
@@ -531,8 +531,8 @@ test('门禁子进程：插件副本的 roster.json 读坏时，写 project.json
     writeFileSync(join(plugin, 'roster.json'), '{')
     withoutRun((p) => {
       const blocked = { ...TEMPLATE, paths: { ...TEMPLATE.paths, 'at-backend': ['src/server/', '../shared/'] } }
-      writeFileSync(join(p, '.agent-team', 'project.json'), JSON.stringify(blocked))
-      const ctx = ctxOf(run('ledger', posted(join(p, '.agent-team', 'project.json')), gate, p))
+      writeFileSync(join(p, '.poundlock', 'project.json'), JSON.stringify(blocked))
+      const ctx = ctxOf(run('ledger', posted(join(p, '.poundlock', 'project.json')), gate, p))
       assert.ok(ctx.includes('【project.json】') && ctx.includes('"../shared/"'), ctx)
       assert.ok(ctx.includes('【触达表】这次算不出来') && !ctx.includes('上面有阻断'), ctx)
     })
@@ -544,11 +544,11 @@ test('门禁子进程：插件副本的 roster.json 读坏时，写 project.json
 test('写 project.json 有阻断时不发触达表 JSON：照整条作废的条目算出来的「还能写到」与门禁自相矛盾', () => {
   const project = { ...TEMPLATE, paths: { ...TEMPLATE.paths, 'at-backend': ['src/server/', '../shared/'] } }
   const check = (p) => {
-    writeFileSync(join(p, '.agent-team', 'project.json'), JSON.stringify(project))
-    const ctx = ctxOf(run('ledger', posted(join(p, '.agent-team', 'project.json')), undefined, p))
+    writeFileSync(join(p, '.poundlock', 'project.json'), JSON.stringify(project))
+    const ctx = ctxOf(run('ledger', posted(join(p, '.poundlock', 'project.json')), undefined, p))
     assert.ok(ctx.includes('【project.json】') && ctx.includes('"../shared/"'), ctx)
-    assert.ok(ctx.includes('【触达表】这次不发') && ctx.includes('不要写 .agent-team/reach.json'), ctx)
-    for (const k of ['还能写到 "../shared/"', '原样写进 .agent-team/reach.json']) assert.ok(!ctx.includes(k), `${k}：${ctx}`)
+    assert.ok(ctx.includes('【触达表】这次不发') && ctx.includes('不要写 .poundlock/reach.json'), ctx)
+    for (const k of ['还能写到 "../shared/"', '原样写进 .poundlock/reach.json']) assert.ok(!ctx.includes(k), `${k}：${ctx}`)
   }
   withoutRun(check)
   withRun(TEMPLATE, check)
@@ -556,8 +556,8 @@ test('写 project.json 有阻断时不发触达表 JSON：照整条作废的条�
   withoutRun((p) => {
     const noPaths = { ...TEMPLATE }
     delete noPaths.paths
-    writeFileSync(join(p, '.agent-team', 'project.json'), JSON.stringify(noPaths))
-    const ctx = ctxOf(run('ledger', posted(join(p, '.agent-team', 'project.json')), undefined, p))
+    writeFileSync(join(p, '.poundlock', 'project.json'), JSON.stringify(noPaths))
+    const ctx = ctxOf(run('ledger', posted(join(p, '.poundlock', 'project.json')), undefined, p))
     assert.ok(ctx.includes('【触达表】这次不发') && ctx.includes('之后才会收到') && !ctx.includes('不对'), ctx)
   })
 })
@@ -566,29 +566,29 @@ test('写 project.json 有阻断时不发触达表 JSON：照整条作废的条�
 
 test('写 current-run：project.json 有问题就整份报一次；没有问题时不报', () => {
   withRun(TYPO, (p) => {
-    const ctx = ctxOf(run('ledger', posted(join(p, '.agent-team', 'current-run')), undefined, p))
+    const ctx = ctxOf(run('ledger', posted(join(p, '.poundlock', 'current-run')), undefined, p))
     assert.ok(ctx.includes('【project.json】') && ctx.includes('"at-fronted"'), ctx)
   })
   withRun(TEMPLATE, (p) => {
-    const ctx = ctxOf(run('ledger', posted(join(p, '.agent-team', 'current-run')), undefined, p))
+    const ctx = ctxOf(run('ledger', posted(join(p, '.poundlock', 'current-run')), undefined, p))
     assert.ok(!ctx.includes('【project.json】'), ctx)
   })
 })
 
-test('写 current-run：run 已经建起来而 project.json 不在——报出来，指向 /agent-team:at-init；不再把 NO_PATHS_ROLES 说成例外（M4f）', () => {
+test('写 current-run：run 已经建起来而 project.json 不在——报出来，指向 /poundlock:at-init；不再把 NO_PATHS_ROLES 说成例外（M4f）', () => {
   withRun(null, (p) => {
-    const ctx = ctxOf(run('ledger', posted(join(p, '.agent-team', 'current-run')), undefined, p))
-    assert.ok(ctx.includes('【project.json】') && ctx.includes('不在') && ctx.includes('/agent-team:at-init'), ctx)
+    const ctx = ctxOf(run('ledger', posted(join(p, '.poundlock', 'current-run')), undefined, p))
+    assert.ok(ctx.includes('【project.json】') && ctx.includes('不在') && ctx.includes('/poundlock:at-init'), ctx)
     assert.ok(ctx.includes('执行角色写 run 目录之外的任何地方都会被拒'), ctx)
     for (const role of NO_PATHS_ROLES) assert.ok(!ctx.includes(role), `${role}：${ctx}`)
   })
 })
 
-// 续跑的 run（/agent-team:at-resume 不写 current-run）里 project.json 被删：写 state.json 是唯一提前说出来的时机。
-test('写 state.json：run 进行中 project.json 不在——照报阻断，指向 /agent-team:at-init', () => {
+// 续跑的 run（/poundlock:at-resume 不写 current-run）里 project.json 被删：写 state.json 是唯一提前说出来的时机。
+test('写 state.json：run 进行中 project.json 不在——照报阻断，指向 /poundlock:at-init', () => {
   withRun(null, (p, runDir) => {
     const ctx = ctxOf(run('ledger', posted(join(runDir, 'state.json')), undefined, p))
-    assert.ok(ctx.includes('【project.json】') && ctx.includes('不在') && ctx.includes('/agent-team:at-init'), ctx)
+    assert.ok(ctx.includes('【project.json】') && ctx.includes('不在') && ctx.includes('/poundlock:at-init'), ctx)
   })
 })
 
@@ -601,7 +601,7 @@ test('写 state.json：只报阻断——只有要改或请确认的问题时不
     assert.ok(!ctx.includes('请确认'), ctx)
     // 【触达表】只在写 project.json 时出：记账与每趟 run 开头都不推它。
     assert.ok(!ctx.includes('【触达表】'), ctx)
-    const ptr = ctxOf(run('ledger', posted(join(p, '.agent-team', 'current-run')), undefined, p))
+    const ptr = ctxOf(run('ledger', posted(join(p, '.poundlock', 'current-run')), undefined, p))
     assert.ok(ptr.includes('【project.json】') && !ptr.includes('【触达表】'), ptr)
   })
   for (const project of [TYPO, CONFIRM_ONLY, TEMPLATE]) {
@@ -612,15 +612,15 @@ test('写 state.json：只报阻断——只有要改或请确认的问题时不
   }
 })
 
-// M4g（docs/42，审查第 28 条）：PM 写完 .agent-team/reach.json，门禁按当前 project.json 与花名册重算一遍——没有 run（/agent-team:at-init
+// M4g（docs/42，审查第 28 条）：PM 写完 .poundlock/reach.json，门禁按当前 project.json 与花名册重算一遍——没有 run（/poundlock:at-init
 // 的正路）与 run 进行中（S4、S5 补了 paths 之后）两条路都核。对得上不吭声；手抄错了、照旧的 project.json 算的、写坏了，给出正确的那一份。
 const REAL_ROSTER = JSON.parse(readFileSync(new URL('../roster.json', import.meta.url), 'utf8'))
 test('M4g 第 28 条：写完 reach.json，门禁重算——对得上（含 BOM、CRLF）不吭声，对不上、不是合法 JSON 都给出正确的那一份；有没有 run 都核', () => {
   const right = computeReach({ roster: REAL_ROSTER, paths: TEMPLATE.paths })
   const wrongPm = { ...right, 'at-pm': { ...right['at-pm'], unrestricted: false } }
   const check = (p, mode) => {
-    const reachFile = join(p, '.agent-team', 'reach.json')
-    writeFileSync(join(p, '.agent-team', 'project.json'), JSON.stringify(TEMPLATE))
+    const reachFile = join(p, '.poundlock', 'reach.json')
+    writeFileSync(join(p, '.poundlock', 'project.json'), JSON.stringify(TEMPLATE))
     for (const ok of [safeJson(right) + '\n', Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from(safeJson(right).split('\n').join('\r\n'))])]) {
       writeFileSync(reachFile, ok)
       const ctx = ctxOf(run('ledger', posted(reachFile), undefined, p))
@@ -629,7 +629,7 @@ test('M4g 第 28 条：写完 reach.json，门禁重算——对得上（含 BOM
     for (const bad of [JSON.stringify(wrongPm), '{', '{}']) {
       writeFileSync(reachFile, bad)
       const ctx = ctxOf(run('ledger', posted(reachFile), undefined, p))
-      assert.ok(ctx.includes('【触达表】刚写进 .agent-team/reach.json 的'), `${mode} ${bad.slice(0, 12)}：${ctx}`)
+      assert.ok(ctx.includes('【触达表】刚写进 .poundlock/reach.json 的'), `${mode} ${bad.slice(0, 12)}：${ctx}`)
       assert.ok(ctx.includes(safeJson(right)), `${mode}：没给出正确的那一份：${ctx}`)
     }
   }
@@ -639,8 +639,8 @@ test('M4g 第 28 条：写完 reach.json，门禁重算——对得上（含 BOM
 
 test('M4g：project.json 有阻断时不核 reach.json——那时【触达表】本来就叫你先别写，核出来的「正确那一份」照整条作废的条目算', () => {
   withoutRun((p) => {
-    writeFileSync(join(p, '.agent-team', 'project.json'), JSON.stringify(BLOCKED))
-    const reachFile = join(p, '.agent-team', 'reach.json')
+    writeFileSync(join(p, '.poundlock', 'project.json'), JSON.stringify(BLOCKED))
+    const reachFile = join(p, '.poundlock', 'reach.json')
     writeFileSync(reachFile, '{}')
     assert.ok(!ctxOf(run('ledger', posted(reachFile), undefined, p)).includes('【触达表】刚写进'))
   })
@@ -650,7 +650,7 @@ test('M4g：project.json 有阻断时不核 reach.json——那时【触达表�
 // run 读不出时核了照样往 stderr 留痕；reach.json 读不出时不核（不说它「不是合法 JSON」）；非 PM 写的（没有 run 时 H3 对谁都放行）原样冒泡。
 test('M4g 复核：花名册读坏时不核 reach.json', () => {
   const REPO = new URL('..', import.meta.url)
-  const plugin = realpathSync(mkdtempSync(join(tmpdir(), 'agent-team-lp-plug-')))
+  const plugin = realpathSync(mkdtempSync(join(tmpdir(), 'poundlock-lp-plug-')))
   try {
     cpSync(new URL('hooks', REPO), join(plugin, 'hooks'), { recursive: true })
     cpSync(new URL('stages.json', REPO), join(plugin, 'stages.json'))
@@ -658,9 +658,9 @@ test('M4g 复核：花名册读坏时不核 reach.json', () => {
     for (const bad of ['{', '[]']) {
       writeFileSync(join(plugin, 'roster.json'), bad)
       withoutRun((p) => {
-        writeFileSync(join(p, '.agent-team', 'project.json'), JSON.stringify(TEMPLATE))
-        writeFileSync(join(p, '.agent-team', 'reach.json'), JSON.stringify({ 'at-pm': { own: [] } }))
-        const ctx = ctxOf(run('ledger', posted(join(p, '.agent-team', 'reach.json')), gate, p))
+        writeFileSync(join(p, '.poundlock', 'project.json'), JSON.stringify(TEMPLATE))
+        writeFileSync(join(p, '.poundlock', 'reach.json'), JSON.stringify({ 'at-pm': { own: [] } }))
+        const ctx = ctxOf(run('ledger', posted(join(p, '.poundlock', 'reach.json')), gate, p))
         assert.ok(!ctx.includes('【触达表】刚写进'), `${bad}：${ctx}`)
       })
     }
@@ -671,32 +671,32 @@ test('M4g 复核：花名册读坏时不核 reach.json', () => {
 
 test('M4g 复核：run 读不出（current-run 指向不存在的 run）时照样核，并往 stderr 留痕', () => {
   withoutRun((p) => {
-    writeFileSync(join(p, '.agent-team', 'project.json'), JSON.stringify(TEMPLATE))
-    writeFileSync(join(p, '.agent-team', 'current-run'), 'nope')
-    writeFileSync(join(p, '.agent-team', 'reach.json'), '{}')
-    const r = run('ledger', posted(join(p, '.agent-team', 'reach.json')), undefined, p)
-    assert.ok(ctxOf(r).includes('【触达表】刚写进 .agent-team/reach.json 的'), ctxOf(r))
+    writeFileSync(join(p, '.poundlock', 'project.json'), JSON.stringify(TEMPLATE))
+    writeFileSync(join(p, '.poundlock', 'current-run'), 'nope')
+    writeFileSync(join(p, '.poundlock', 'reach.json'), '{}')
+    const r = run('ledger', posted(join(p, '.poundlock', 'reach.json')), undefined, p)
+    assert.ok(ctxOf(r).includes('【触达表】刚写进 .poundlock/reach.json 的'), ctxOf(r))
     assert.ok(r.stderr.includes('ledger 回传'), r.stderr)
   })
 })
 
 test('M4g 复核：reach.json 读不出（是个目录）时不核，也不说它不是合法 JSON', () => {
   withoutRun((p) => {
-    writeFileSync(join(p, '.agent-team', 'project.json'), JSON.stringify(TEMPLATE))
-    mkdirSync(join(p, '.agent-team', 'reach.json'))
-    const ctx = ctxOf(run('ledger', posted(join(p, '.agent-team', 'reach.json')), undefined, p))
+    writeFileSync(join(p, '.poundlock', 'project.json'), JSON.stringify(TEMPLATE))
+    mkdirSync(join(p, '.poundlock', 'reach.json'))
+    const ctx = ctxOf(run('ledger', posted(join(p, '.poundlock', 'reach.json')), undefined, p))
     assert.ok(!ctx.includes('【触达表】刚写进'), ctx)
   })
 })
 
 test('M4g 复核：非 PM 写坏 reach.json（没有 run 时 H3 对谁都放行）——收到的那一段叫它原样冒泡，不叫它自己重写', () => {
   withoutRun((p) => {
-    writeFileSync(join(p, '.agent-team', 'project.json'), JSON.stringify(TEMPLATE))
-    writeFileSync(join(p, '.agent-team', 'reach.json'), '{}')
-    const other = ctxOf(run('ledger', posted(join(p, '.agent-team', 'reach.json'), 'agent-team:at-backend'), undefined, p))
+    writeFileSync(join(p, '.poundlock', 'project.json'), JSON.stringify(TEMPLATE))
+    writeFileSync(join(p, '.poundlock', 'reach.json'), '{}')
+    const other = ctxOf(run('ledger', posted(join(p, '.poundlock', 'reach.json'), 'poundlock:at-backend'), undefined, p))
     assert.ok(other.includes('【触达表】刚写进'), other)
     assert.ok(other.includes('reach.json 是编排层的控制文件，只有项目经理该改它：把这一段原样冒泡给派你的人，不要自己重写。'), other)
-    const pm = ctxOf(run('ledger', posted(join(p, '.agent-team', 'reach.json')), undefined, p))
+    const pm = ctxOf(run('ledger', posted(join(p, '.poundlock', 'reach.json')), undefined, p))
     assert.ok(pm.includes('【触达表】刚写进') && !pm.includes('只有项目经理该改它'), pm)
   })
 })
@@ -708,14 +708,14 @@ const DUP_PATHS = JSON.stringify(TEMPLATE).replace('"paths":{', '"paths":{"at-ba
 test('docs/75：PM 写的 project.json 里重复了键——「要改」里报它、句尾说并进最后那一个（没有 run、有 run 两条路）', () => {
   withoutRun((p) => {
     const raw = '{"paths":{"at-backend":["src/"]},' + JSON.stringify(TEMPLATE).slice(1)
-    writeFileSync(join(p, '.agent-team', 'project.json'), raw)
-    const ctx = ctxOf(run('ledger', posted(join(p, '.agent-team', 'project.json')), undefined, p))
+    writeFileSync(join(p, '.poundlock', 'project.json'), raw)
+    const ctx = ctxOf(run('ledger', posted(join(p, '.poundlock', 'project.json')), undefined, p))
     const fix = sectionOf(ctx, '要改（') ?? ''
     assert.ok(fix.includes('键 "paths" 写了不止一次') && fix.includes('并进最后那一个'), ctx)
     assert.ok(!fix.includes('删掉前面几个不改变门禁读到的值'), ctx)
   })
   withRun(TEMPLATE, (p) => {
-    const file = join(p, '.agent-team', 'project.json')
+    const file = join(p, '.poundlock', 'project.json')
     writeFileSync(file, DUP_PATHS)
     const ctx = ctxOf(run('ledger', posted(file), undefined, p))
     assert.ok(sectionOf(ctx, '要改（')?.includes('键 "at-backend" 写了不止一次（在 "paths" 里）'), ctx)
@@ -724,10 +724,10 @@ test('docs/75：PM 写的 project.json 里重复了键——「要改」里报�
 
 test('docs/75 §8：每趟开头写 current-run 时也报（用户手改留下的在 S1 就露面）；写 state.json 时不报', () => {
   withRun(TEMPLATE, (p) => {
-    writeFileSync(join(p, '.agent-team', 'project.json'), DUP_PATHS)
-    const ptr = ctxOf(run('ledger', posted(join(p, '.agent-team', 'current-run')), undefined, p))
+    writeFileSync(join(p, '.poundlock', 'project.json'), DUP_PATHS)
+    const ptr = ctxOf(run('ledger', posted(join(p, '.poundlock', 'current-run')), undefined, p))
     assert.ok(sectionOf(ptr, '要改（')?.includes('键 "at-backend" 写了不止一次（在 "paths" 里）'), ptr)
-    const st = ctxOf(run('ledger', posted(join(p, '.agent-team', 'runs', 'r1', 'state.json')), undefined, p))
+    const st = ctxOf(run('ledger', posted(join(p, '.poundlock', 'runs', 'r1', 'state.json')), undefined, p))
     assert.ok(!st.includes('写了不止一次'), st)
   })
 })
@@ -737,15 +737,15 @@ test('docs/75 §8：重复键与 validateProject 本来就报的「要改」同�
     // 给 at-pm 建了键（at-init 明令不许，validateProject 报「要改」）+ 两处重复。
     const proj = { ...TEMPLATE, paths: { ...TEMPLATE.paths, 'at-pm': ['x/'] } }
     const raw = '{"stack":{},"paths":{"at-backend":["src/"]},' + JSON.stringify(proj).slice(1)
-    writeFileSync(join(p, '.agent-team', 'project.json'), raw)
-    const fix = sectionOf(ctxOf(run('ledger', posted(join(p, '.agent-team', 'project.json')), undefined, p)), '要改（') ?? ''
+    writeFileSync(join(p, '.poundlock', 'project.json'), raw)
+    const fix = sectionOf(ctxOf(run('ledger', posted(join(p, '.poundlock', 'project.json')), undefined, p)), '要改（') ?? ''
     assert.ok(fix.includes('不要给 at-pm 建键') && fix.includes('键 "paths" 写了不止一次') && fix.includes('键 "stack" 写了不止一次'), fix)
   })
   withoutRun((p) => {
     // current-run 指着一趟不在的 run：读不出运行上下文，写 project.json 走没有 run 那一支。
-    writeFileSync(join(p, '.agent-team', 'current-run'), 'ghost')
-    writeFileSync(join(p, '.agent-team', 'project.json'), DUP_PATHS)
-    const ctx = ctxOf(run('ledger', posted(join(p, '.agent-team', 'project.json')), undefined, p))
+    writeFileSync(join(p, '.poundlock', 'current-run'), 'ghost')
+    writeFileSync(join(p, '.poundlock', 'project.json'), DUP_PATHS)
+    const ctx = ctxOf(run('ledger', posted(join(p, '.poundlock', 'project.json')), undefined, p))
     assert.ok(sectionOf(ctx, '要改（')?.includes('键 "at-backend" 写了不止一次'), ctx)
   })
 })
@@ -753,11 +753,11 @@ test('docs/75 §8：重复键与 validateProject 本来就报的「要改」同�
 test('docs/75 §8：reach.json 抄重了键（后一遍对、前一遍错）也算对不上，给出正确的那一份', () => {
   const right = computeReach({ roster: REAL_ROSTER, paths: TEMPLATE.paths })
   withoutRun((p) => {
-    writeFileSync(join(p, '.agent-team', 'project.json'), JSON.stringify(TEMPLATE))
-    const reachFile = join(p, '.agent-team', 'reach.json')
+    writeFileSync(join(p, '.poundlock', 'project.json'), JSON.stringify(TEMPLATE))
+    const reachFile = join(p, '.poundlock', 'reach.json')
     writeFileSync(reachFile, '{"at-pm":{},' + safeJson(right).slice(1))
     const ctx = ctxOf(run('ledger', posted(reachFile), undefined, p))
-    assert.ok(ctx.includes('【触达表】刚写进 .agent-team/reach.json 的里有写了不止一次的键') && ctx.includes(safeJson(right)), ctx)
+    assert.ok(ctx.includes('【触达表】刚写进 .poundlock/reach.json 的里有写了不止一次的键') && ctx.includes(safeJson(right)), ctx)
   })
 })
 

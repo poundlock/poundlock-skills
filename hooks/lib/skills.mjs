@@ -1,4 +1,4 @@
-// 用户本机装的 skill 登记给角色：找出本机装了哪些、整份复制进项目的 .agent-team/skills/、记进 .agent-team/skills.json、
+// 用户本机装的 skill 登记给角色：找出本机装了哪些、整份复制进项目的 .poundlock/skills/、记进 .poundlock/skills.json、
 // 比对本机原件变没变。项目经理经 hooks/skills-cli.mjs 调用这里；角色只读复制进来的副本，不经 Skill 工具。
 //
 // 不是门禁：这里的函数会读写文件。只用 MIN_NODE 有的同步 API（不用 fs.cpSync，自己递归复制）。
@@ -24,7 +24,7 @@ export function skillDirName(name) {
 }
 
 // 不复制、不进指纹的名字（哪一层都认、不分大小写）：会被平台自动加载或执行的位置——CLAUDE.md、CLAUDE.local.md、.claude、
-// .git（目录或文件）、.agent-team。从 GitHub 克隆的 skill 常带开发用的 CLAUDE.md，复制进项目就成了项目里的一份指令。
+// .git（目录或文件）、.poundlock。从 GitHub 克隆的 skill 常带开发用的 CLAUDE.md，复制进项目就成了项目里的一份指令。
 const SKIPPED_NAMES = new Set(AUTOLOADED_NAMES)
 
 // 目录下全部文件的相对路径（`/` 分隔、排好序）；目录不在给空数组。skipped 给了的话，把跳过的位置（上面那几类名字）收进去。
@@ -138,7 +138,7 @@ function skillDirsIn(parent) {
 }
 
 // 一份登记的副本在项目里的目录：一律由名字推出来，不信清单里记的 dir（清单谁都能用 Bash 改）；
-// 推出来不是 .agent-team/skills 下面的一层目录（空名字、`.`、`..`）给 null。
+// 推出来不是 .poundlock/skills 下面的一层目录（空名字、`.`、`..`）给 null。
 function copyPathOf(agentTeamDir, name) {
   const dir = skillDirName(name)
   if (!dir || dir === '.' || dir === '..') return null
@@ -155,11 +155,11 @@ function isLink(p) {
   }
 }
 
-// 上面那一道只按字面核：.agent-team/skills 或某份副本的目录被换成软链接、目录联接的话，写与删会跟着它走到项目外面去。
+// 上面那一道只按字面核：.poundlock/skills 或某份副本的目录被换成软链接、目录联接的话，写与删会跟着它走到项目外面去。
 // 这两处是链接就不动（给错误消息），由人去看是谁换的。
 function linkedCopyReason(agentTeamDir, copyPath) {
-  if (isLink(path.resolve(agentTeamDir, SKILLS_DIR))) return `.agent-team/${SKILLS_DIR} 是一个链接，不往里写也不从里删`
-  if (isLink(copyPath)) return `.agent-team/${SKILLS_DIR}/${path.basename(copyPath)} 是一个链接，不往里写也不从里删`
+  if (isLink(path.resolve(agentTeamDir, SKILLS_DIR))) return `.poundlock/${SKILLS_DIR} 是一个链接，不往里写也不从里删`
+  if (isLink(copyPath)) return `.poundlock/${SKILLS_DIR}/${path.basename(copyPath)} 是一个链接，不往里写也不从里删`
   return null
 }
 
@@ -199,7 +199,7 @@ function enabledPluginsOf(home, projectRoot) {
  * 已装插件带的（installed_plugins.json 每条的 installPath/skills）。selfPlugin 自己的不列。
  * 插件清单读不出来不影响另外两类，进 errors。
  */
-export function discoverSkills({ home, projectRoot, selfPlugin = 'agent-team' }) {
+export function discoverSkills({ home, projectRoot, selfPlugin = 'poundlock' }) {
   const installed = []
   const errors = []
   const add = (dir, base) => installed.push({ ...base, path: dir, ...readSkillMeta(dir) })
@@ -279,7 +279,7 @@ export function discoverSkills({ home, projectRoot, selfPlugin = 'agent-team' })
   return { installed, errors }
 }
 
-/** 读 .agent-team/skills.json。文件不在给空清单；不是 JSON 或形状不对抛错，不改文件。 */
+/** 读 .poundlock/skills.json。文件不在给空清单；不是 JSON 或形状不对抛错，不改文件。 */
 export function readRegistry(agentTeamDir) {
   const file = path.join(agentTeamDir, SKILLS_REGISTRY)
   if (!existsSync(file)) return { skills: {} }
@@ -329,7 +329,7 @@ function resolveSkill(installed, wanted) {
 const PLUGIN_ROOT_PH = '${CLAUDE_PLUGIN_ROOT}'
 const SKILL_DIR_PH = '${CLAUDE_SKILL_DIR}'
 function placeholdersOf(skill, dir) {
-  const copy = `.agent-team/${SKILLS_DIR}/${dir}`
+  const copy = `.poundlock/${SKILLS_DIR}/${dir}`
   const out = { [SKILL_DIR_PH]: copy }
   if (skill.kind === 'plugin') {
     out[[PLUGIN_ROOT_PH, 'skills', path.basename(skill.path)].join('/')] = copy

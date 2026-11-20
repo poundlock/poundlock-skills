@@ -1,6 +1,6 @@
 // M3v（docs/30，全量审查第 12 条）：门禁判不出来时开始回传【门禁】、在自检理由后面追加「另外，……」，正文要跟上——
 // 不然 PM 收到它不知道该不该照做，commands/at.md 的「没收到就停下」会把一次「门禁在跑、只是读不出 run」误诊成
-// 「门禁没在跑」，/agent-team:at-resume 读不到指针就对用户说「没有 run」、让旧 run 变成孤儿。
+// 「门禁没在跑」，/poundlock:at-resume 读不到指针就对用户说「没有 run」、让旧 run 变成孤儿。
 // 按同一行钉（照 tests/project-prose.test.mjs 的写法）：分在两段里的两个词，拼不出那一句话。
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
@@ -28,20 +28,20 @@ test('commands/at.md §2：收到【门禁】（不论原因）是门禁在跑�
   assert.ok(lineWith(at, '【门禁】', '00-contract.md') || lineWith(at, '【门禁】', '原样重写'))
 })
 
-// 第二轮真实会话（docs/30 §3）：自检说旧 run 坏了时，/agent-team:at 里有 PM 先改旧 run、用新需求覆盖旧契约。
+// 第二轮真实会话（docs/30 §3）：自检说旧 run 坏了时，/poundlock:at 里有 PM 先改旧 run、用新需求覆盖旧契约。
 test('commands/at.md §1：自检说原来那趟 run 坏了时，不碰它、另起 run id，这一轮就告诉用户', () => {
   const at = read('commands/at.md')
   assert.ok(lineWith(at, '「另外，」', '不要写原来那趟 run 目录下的任何文件'), '§1 要承接自检的追加句')
   assert.ok(lineWith(at, '不论停在哪一步', 'run id'))
   // 第三轮真实会话：「接回它是 at-resume 的事」不准——指针已经换成新 run，at-resume 接回的会是新的这一趟。
-  assert.ok(lineWith(at, '改回', '.agent-team/current-run', '/agent-team:at-resume'), '要说清怎么把指针切回原来那趟')
+  assert.ok(lineWith(at, '改回', '.poundlock/current-run', '/poundlock:at-resume'), '要说清怎么把指针切回原来那趟')
 })
 
 // 第三轮真实会话：§2 只写了裸文件名 00-contract.md，3/9 写到了项目根，拿不到 sha；排查链里又没有「契约写对地方没有」，
 // 有一次因此把「门禁没在跑」原样发给了用户。
 test('commands/at.md §2：契约写明在 run 目录下；「没收到」时先核它写对地方没有', () => {
   const at = read('commands/at.md')
-  assert.ok(lineWith(at, '`.agent-team/runs/<run_id>/00-contract.md`', 'templates/00-contract.md'), '照模板写的那一句要带全路径')
+  assert.ok(lineWith(at, '`.poundlock/runs/<run_id>/00-contract.md`', 'templates/00-contract.md'), '照模板写的那一句要带全路径')
   assert.ok(lineWith(at, '写到了别处', '不回传'), '排查链要先核契约的位置')
 })
 
@@ -55,7 +55,7 @@ test('commands/at-resume.md §1：读不到 current-run 时先 Glob runs/*/state
 test('commands/at-init.md 收尾：自检时收到的「另外，」那一句，收尾时告诉用户——按原因说下一步', () => {
   const r = read('commands/at-init.md')
   assert.ok(lineWith(r, '「另外，」', '告诉用户'))
-  // 复核（docs/30 §3）：插件文件读不出来、runs 读不出来时 /agent-team:at-resume 修不了，不能一律指向它。
+  // 复核（docs/30 §3）：插件文件读不出来、runs 读不出来时 /poundlock:at-resume 修不了，不能一律指向它。
   assert.ok(lineWith(r, '插件自己的文件读不出来', '重装'), '插件那一种要叫用户重装')
   assert.ok(lineWith(r, '`runs` 目录读不出来', '由用户处理'), 'runs 读不出来那一种由用户处理')
 })
@@ -64,7 +64,7 @@ test('commands/at-init.md 收尾：自检时收到的「另外，」那一句，
 // 「两样都没有就是门禁没在跑」会误诊它。
 test('commands/at.md §2：判「门禁没在跑」之前先核对 current-run 是不是正在写的这一趟', () => {
   const at = read('commands/at.md')
-  assert.ok(lineWith(at, '.agent-team/current-run', '正在写的这一趟'), at)
+  assert.ok(lineWith(at, '.poundlock/current-run', '正在写的这一趟'), at)
 })
 
 test('README 两半：正常放行默认不留记录；项目经理自己发起的调用上判不出来时，告诉项目经理、界面上给你一行', () => {

@@ -49,7 +49,7 @@ const CONTRACT = CONTRACT_FILE
 // 带日期的修订块追加进 00-contract.md"，那也是 PM 转写的动作，同样会被
 // 堵死。这是真的功能断裂，不是更保守的选择。
 // ⚠️ 订正（M4b，docs/36）：上面「本仓库自己的 settings.json 就是 {"agent": "at-pm"}，钉住时……会带裸的
-// agent_type: 'at-pm'」两处事实都要改：settings.json 现在写插件全名 "agent-team:at-pm"（裸名时，项目或用户层
+// agent_type: 'at-pm'」两处事实都要改：settings.json 现在写插件全名 "poundlock:at-pm"（裸名时，项目或用户层
 // 同名的 at-pm.md 会抢先当上主会话，P8）；钉住的 PM 在 hook 输入里的原始 agent_type 一直是全名（docs/22），
 // 裸 'at-pm' 是剥掉前缀之后的值。callerOf 两种都认，结论不变。
 //
@@ -72,7 +72,7 @@ const CONTRACT = CONTRACT_FILE
 //
 // 用 callerOf 而不是自己重写一遍"undefined/null 才算主线程"，是为了跟
 // H1/H3 共用同一个权威定义，不在这里另开一份可能漂移的副本；callerOf
-// 内部已经处理了插件前缀（裸 'at-pm' 与 'agent-team:at-pm' 剥完是同一个
+// 内部已经处理了插件前缀（裸 'at-pm' 与 'poundlock:at-pm' 剥完是同一个
 // 值），这里不需要重复处理。
 //
 // 单独导出成一个谓词（不是写在 decideContractGuard 内联判断里），是因为

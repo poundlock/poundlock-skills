@@ -8,7 +8,7 @@ import { MAIN, PLUGIN_PREFIX, stripPluginPrefix } from '../hooks/lib/decide.mjs'
 // 真实机制：主线程 agent 的 tools: Agent(...) 过滤的是**整个会话**能解析到的
 // agent 集合，并且**被所有子代理、孙代理继承**。实测原文：at-pm 的白名单写
 // (at-product, at-architect) 时，架构师派 at-worker-a 得到
-// "not found. Available agents: agent-team:at-architect, agent-team:at-product"
+// "not found. Available agents: poundlock:at-architect, poundlock:at-product"
 // ——恰好是 at-pm 那两个。
 // 所以白名单是「这个会话里有哪些 agent 存在」的宇宙，不是「PM 能派谁」的边。
 // 层级约束全部由 hook 的花名册承担。
@@ -33,8 +33,8 @@ test('at-pm 的白名单必须覆盖整个派发宇宙', () => {
 // 加上了 Agent(...) 白名单，但 parseAgentAllowlist 全仓只有本文件在消费，而本文件
 // 两条断言都硬编码只读 at-pm.md——另外两份新增的白名单从写下来那天起就没有任何
 // 测试校验过。变异实测：把 at-architect 的白名单改成裸名
-// （Agent(at-backend, at-frontend)）、塞进 agent-team:at-outsider，把 at-product
-// 的改成指向不存在的角色（agent-team:at-nosuchrole），三种同时改上——`node --test`
+// （Agent(at-backend, at-frontend)）、塞进 poundlock:at-outsider，把 at-product
+// 的改成指向不存在的角色（poundlock:at-nosuchrole），三种同时改上——`node --test`
 // 全绿、390/0。裸名那种写法按下面这条测试自己的注释会让平台过滤后一个角色都派不
 // 出去；而 S5 的实现派发正是 at-architect 发起的，这不是一个抽象风险。
 //
@@ -135,9 +135,9 @@ test('每一份带 Agent(...) 白名单的正文，剥前缀后的每一项都�
 // 原文写的是「**那条花名册边是死的**：H1 放行、平台按白名单过滤、报 not found」。
 // 三臂实验把它对**子代理**这一侧证伪了（`docs/15` §3.7，全部记录级）：
 //
-//   · 实验组：把 at-product.md 的白名单改成 `Agent(agent-team:at-backend)`
+//   · 实验组：把 at-product.md 的白名单改成 `Agent(poundlock:at-backend)`
 //     （**恰好去掉 at-ui**），at-product **照样成功派出了 at-ui**（子代理谱系里
-//     `agentType: agent-team:at-ui`、`spawnDepth: 2`），平台一声没吭；
+//     `agentType: poundlock:at-ui`、`spawnDepth: 2`），平台一声没吭；
 //   · 阴性对照：把 at-product.md 的 `Agent(...)` **整段删掉**，它连派发工具都没有了
 //     ——这一臂同时证明副本确实被加载、`tools:` 确实被读，实验没有接错线。
 //

@@ -6,7 +6,7 @@ import { inline, quote } from './trusted.mjs'
 
 export const MAIN = '__main__'
 
-// 插件提供的 agent 在平台上的注册名带插件前缀（agent-team:at-pm），花名册用裸名书写。
+// 插件提供的 agent 在平台上的注册名带插件前缀（poundlock:at-pm），花名册用裸名书写。
 // U3 实测的死结：裸名过得了 hook 但名称解析报 not found；带前缀的过得了名称解析
 // 却被花名册拦下——两边对不上，合法派发会被自己的门禁全部拒掉。
 // 只剥本插件自己的前缀：无差别剥会让别的插件的 otherplugin:at-product
@@ -15,7 +15,7 @@ export const MAIN = '__main__'
 // decide.mjs 必须保持纯函数（不读文件），所以插件名在这里是硬编码，
 // 由那个测试负责在改名时报警——否则改名后归一化静默失效，门禁回退到
 // 「一律拒绝」，而所有测试仍然是绿的。
-export const PLUGIN_PREFIX = 'agent-team:'
+export const PLUGIN_PREFIX = 'poundlock:'
 
 // 项目经理的裸名：主会话（插件 settings.json 的 agent），也是唯一的契约写者（exemptFromPaths）。
 const PM_ROLE = 'at-pm'
@@ -92,7 +92,7 @@ export function decideDelegation(input, roster) {
   // 它会让每一条「查不到条目」的判断都走「未登记调用者放行」，整个门禁静默失效。
   if (!isValidRoster(roster)) {
     return deny(
-      'agent-team 的 roster.json 不是有效的花名册对象' +
+      'poundlock 的 roster.json 不是有效的花名册对象' +
         '（应为至少含一个条目的 JSON 对象），无法判定派发权限，按安全边界拒绝。',
     )
   }
@@ -113,7 +113,7 @@ export function decideDelegation(input, roster) {
   // 被换掉的主会话，门禁在拒绝理由后面接身份那一句给出路（gate.mjs，selfCheckIdentity），别的插件的子代理不归我们指路。
   if (stripPluginPrefix(input?.tool_input?.subagent_type) === PM_ROLE) {
     if (caller === MAIN || caller === PM_ROLE) {
-      return deny(`${PM_ROLE} 就是你：项目经理是主会话，不能被派成子代理。你自己那几段的产物你自己写，不派人（/agent-team:at 第 3 节）。`)
+      return deny(`${PM_ROLE} 就是你：项目经理是主会话，不能被派成子代理。你自己那几段的产物你自己写，不派人（/poundlock:at 第 3 节）。`)
     }
     const head = `项目经理只能是主会话，${PM_ROLE} 不能被派成子代理：`
     return deny(
@@ -128,7 +128,7 @@ export function decideDelegation(input, roster) {
   // 不一致。两个键空间不该出现在同一个判断里。
   if (!Object.hasOwn(roster, caller)) {
     // 真·未登记的调用者：不归本门禁管。本机可能还有别的插件或用户自己的
-    // subagent 在跑，agent-team 无权干涉它们。这条放行之所以安全，靠的是
+    // subagent 在跑，poundlock 无权干涉它们。这条放行之所以安全，靠的是
     // 花名册闭包不变量（见 tests/roster-closure.test.mjs）：can_delegate_to 里
     // 出现的每个名字本身也必须是花名册的键，所以受管辖角色永远派不出一个
     // 不受管辖的 agent。
@@ -163,7 +163,7 @@ export function decideDelegation(input, roster) {
 
   if (allowed.includes(target)) {
     // M3p（docs/24 §2.1）：isolation 把子代理搬进另一份检出（'worktree'）或另一台机器
-    // （'remote'）。团队的全部判据都建立在「所有角色共用一棵工作树、一个 .agent-team」上——
+    // （'remote'）。团队的全部判据都建立在「所有角色共用一棵工作树、一个 .poundlock」上——
     // 隔离出去的子代理那边要么找不到 run、门禁整体 fail open，要么写回的路径被判成无人
     // 认领；它交的产物也落不进 run 目录。排在白名单之后：目标本身不许派时，那条理由更根本。
     const isolation = input?.tool_input?.isolation

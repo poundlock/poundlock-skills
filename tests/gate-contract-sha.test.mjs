@@ -1,7 +1,7 @@
 // 审查第 37 条前半（M4c，docs/37）：契约的账只认 state.json 的 contract_sha 这一份。
 //
 // 原来契约的 sha 记在两处：写契约时门禁只回传 contract_sha，账本比对（compareArtifacts）却只读 artifacts['00-contract.md']。
-// 照 /agent-team:at 只记 contract_sha 的 run，每一次派发返回都报「00-contract.md：磁盘上有、artifacts 里没记」；PM 把 sha 抄进
+// 照 /poundlock:at 只记 contract_sha 的 run，每一次派发返回都报「00-contract.md：磁盘上有、artifacts 里没记」；PM 把 sha 抄进
 // artifacts 之后，每一次合法修订又报「记账之后被改过」。真漂移报出来与这两句噪声逐字相同，还有几种一个字都不报（契约被改回
 // 修订前、PM 照通用收尾把 artifacts 改成与磁盘一致之后、契约被删）。
 //
@@ -37,7 +37,7 @@ const posted = (file) => ({ hook_event_name: 'PostToolUse', tool_name: 'Write', 
 // 一趟 S2 的 run：契约与 01-prd.md 在磁盘上，01-prd.md 记了账（免得账本比对的那一行把契约那一行的有无搅在一起）。
 function withRun({ stage = 'S2', roster = ['at-product'], files = ['00-contract.md', '01-prd.md'], contract = ORIGINAL, state = {} }, body) {
   const dirs = makeRun({ runId: 'r1', stage, roster, artifacts: files })
-  const runDir = join(dirs.projectDir, '.agent-team', 'runs', 'r1')
+  const runDir = join(dirs.projectDir, '.poundlock', 'runs', 'r1')
   try {
     if (files.includes('00-contract.md')) writeFileSync(join(runDir, '00-contract.md'), contract, 'utf8')
     const statePath = join(runDir, 'state.json')
@@ -50,11 +50,11 @@ function withRun({ stage = 'S2', roster = ['at-product'], files = ['00-contract.
     rmSync(dirs.pluginDir, { recursive: true, force: true })
   }
 }
-const h5a = (dirs, input = returned('agent-team:at-product')) => run('deliverable', input, GATE, dirs.projectDir)
+const h5a = (dirs, input = returned('poundlock:at-product')) => run('deliverable', input, GATE, dirs.projectDir)
 
 // ---------------------------------------------------------------------------- 噪声没了
 
-test('M4c G1：照 /agent-team:at 记账（契约在、contract_sha 对得上、artifacts 不记契约）→ 派发返回不提契约', () => {
+test('M4c G1：照 /poundlock:at 记账（契约在、contract_sha 对得上、artifacts 不记契约）→ 派发返回不提契约', () => {
   withRun({ state: { contract_sha: H0 } }, ({ dirs }) => {
     const r = h5a(dirs)
     assert.equal(r.status, 0)
@@ -89,7 +89,7 @@ test('M4c G5：修订块追加了、contract_sha 没跟上 → 报【契约】�
   withRun({ contract: REVISED, state: { contract_sha: H0 } }, ({ dirs }) => {
     const ctx = ctxOf(h5a(dirs).stdout)
     assert.match(ctx, /【契约】/)
-    assert.ok(ctx.includes('/agent-team:at 第 4 节'), ctx)
+    assert.ok(ctx.includes('/poundlock:at 第 4 节'), ctx)
     assert.ok(ctx.includes(H0), '记的那个值照报（经 shaOrNote）')
     assert.ok(!ctx.includes(H1), '磁盘上算出来的那个值不报：照着它改账就把漂移洗成了合法')
     assert.ok(!ctx.includes('把 artifacts 改成与磁盘一致'), ctx)
@@ -123,7 +123,7 @@ test('M4c G7：契约在磁盘上、contract_sha 还是 PENDING → 报【契约
 test('M4c G8：收件人不是 PM（架构师派 at-backend 返回）→ 契约那一段带「原样冒泡」的收尾，stderr 留误投痕；PM 收件时没有那行痕', () => {
   const S5 = { stage: 'S5', roster: ['at-architect', 'at-backend'], files: ['00-contract.md', '05-impl/at-backend.md'], contract: REVISED, state: { contract_sha: H0 } }
   withRun(S5, ({ dirs }) => {
-    const r = h5a(dirs, returned('agent-team:at-backend', 'agent-team:at-architect'))
+    const r = h5a(dirs, returned('poundlock:at-backend', 'poundlock:at-architect'))
     const ctx = ctxOf(r.stdout)
     assert.match(ctx, /【契约】/)
     assert.ok(ctx.includes('原样冒泡给派你的人'), ctx)
@@ -148,7 +148,7 @@ test('M4c G9：契约是 CRLF、contract_sha 按 LF 算的 → 不报（比对�
 
 test('M4c G10：契约还没写（PENDING、磁盘上没有）→ 不报：还没走到那一步', () => {
   withRun({ stage: 'S1', roster: [], files: [], state: { contract_sha: 'PENDING' } }, ({ dirs }) => {
-    assert.ok(!ctxOf(h5a(dirs, returned('agent-team:at-product')).stdout).includes('【契约】'))
+    assert.ok(!ctxOf(h5a(dirs, returned('poundlock:at-product')).stdout).includes('【契约】'))
   })
 })
 
@@ -212,13 +212,13 @@ test('M4c S6：写契约那一刻的【契约】照旧给新值（合法修订�
 // 复核（docs/37 §3）：派发返回时「产物没交」那一支（异步派发启动那一刻、冒泡返回都走它）也带【契约】——原来只删那一行全套照绿。
 test('M4c G11：被派角色的产物没交（例：架构师冒泡返回）、契约漂了 → 同样报【契约】；协调者收件时带冒泡的收尾', () => {
   withRun({ stage: 'S3', roster: ['at-architect'], files: ['00-contract.md', '01-prd.md'], contract: REVISED, state: { contract_sha: H0 } }, ({ dirs }) => {
-    const ctx = ctxOf(h5a(dirs, returned('agent-team:at-architect')).stdout)
+    const ctx = ctxOf(h5a(dirs, returned('poundlock:at-architect')).stdout)
     assert.match(ctx, /交付物校验/)
     assert.match(ctx, /【契约】/)
   })
   const S5 = { stage: 'S5', roster: ['at-architect', 'at-backend'], files: ['00-contract.md'], contract: REVISED, state: { contract_sha: H0 } }
   withRun(S5, ({ dirs }) => {
-    const r = h5a(dirs, returned('agent-team:at-backend', 'agent-team:at-architect'))
+    const r = h5a(dirs, returned('poundlock:at-backend', 'poundlock:at-architect'))
     const ctx = ctxOf(r.stdout)
     assert.match(ctx, /交付物校验/)
     assert.match(ctx, /【契约】/)
@@ -245,7 +245,7 @@ test('M4c G12：contract_sha 不合法 → 【契约】说它不合法、给 PEN
 test('M4c G13：契约在却读不出 → 【契约】说这一次读不出、没核，不说它不在', () => {
   withRun({ state: { contract_sha: H0 } }, ({ dirs }) => {
     const { env, opts } = failRead('00-contract.md')
-    const ctx = ctxOf(run('deliverable', returned('agent-team:at-product'), GATE, dirs.projectDir, env, opts).stdout)
+    const ctx = ctxOf(run('deliverable', returned('poundlock:at-product'), GATE, dirs.projectDir, env, opts).stdout)
     assert.match(ctx, /【契约】/)
     assert.ok(ctx.includes('读不出'), ctx)
     assert.ok(!ctx.includes('磁盘上没有 00-contract.md'), ctx)

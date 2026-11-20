@@ -2,7 +2,7 @@
 //
 // 此前 project.json 只要是个合法对象，H3 就照单全收：paths 缺失、键名拼错、带插件前缀、被删掉，调用者
 // 在 paths 里「没有键」，一律静默放行；前缀 '../' 认领到项目根之外，'' 与 '.' 认领整个项目根。
-// validateProject 把问题分三档：阻断（H3 据此拒持有它的那个角色——只算 H3 会拿键去判的）、要改（/agent-team:at-init
+// validateProject 把问题分三档：阻断（H3 据此拒持有它的那个角色——只算 H3 会拿键去判的）、要改（/poundlock:at-init
 // 明令禁止、或者按字面比较一定落空的写法）、请确认（可能是有意的，PM 读一遍）。roster.json 读坏不进三档，单列 plugin
 // （ledger 的【插件】）。外部值一律过 quote（docs/27）。
 import { test } from 'node:test'
@@ -114,7 +114,7 @@ test('不阻断：留在项目根里的正常写法，包括中间走回来的 .
 // ---- 要改 ----
 
 test('要改：键不是花名册角色（拼错、带插件前缀、别的插件的角色）', () => {
-  for (const key of ['at-fronted', 'agent-team:at-frontend', 'At-Backend', ' at-backend', 'shared', '_comment']) {
+  for (const key of ['at-fronted', 'poundlock:at-frontend', 'At-Backend', ' at-backend', 'shared', '_comment']) {
     const r = v({ ...TEMPLATE, paths: { ...TEMPLATE.paths, [key]: ['x/'] } })
     assert.ok(r.fix.some((s) => s.includes(JSON.stringify(key))), `${key}：${all(r)}`)
     assert.deepEqual(r.block, [], `${key} 不该阻断——它只让持有它的那个「角色」不存在`)
@@ -127,7 +127,7 @@ test('H3 不拿来判人的键（at-pm、__main__、认不出的键）上的坏�
     ['at-pm', ['../'], '出了项目根'],
     ['__main__', [''], '整个项目根'],
     ['at-fronted', ['../'], '出了项目根'],
-    ['agent-team:at-backend', 'src/', '不是数组'],
+    ['poundlock:at-backend', 'src/', '不是数组'],
   ]) {
     const r = v({ ...TEMPLATE, paths: { ...TEMPLATE.paths, [key]: value } })
     assert.deepEqual(r.block, [], `${key}：${all(r)}`)
@@ -151,9 +151,9 @@ test('H3 不拿来判人的键（at-pm、__main__、认不出的键）上的坏�
 })
 
 test('前缀级的要改与请确认经 validateProject 汇进整份报告——ledger 的【project.json】靠这一份', () => {
-  const r = v({ ...TEMPLATE, paths: { ...TEMPLATE.paths, 'at-backend': ['src/server/*', '.agent-team/x/', '/src/server/'] } })
+  const r = v({ ...TEMPLATE, paths: { ...TEMPLATE.paths, 'at-backend': ['src/server/*', '.poundlock/x/', '/src/server/'] } })
   assert.ok(r.fix.some((s) => s.includes('"src/server/*"')), all(r))
-  assert.ok(r.fix.some((s) => s.includes('".agent-team/x/"')), all(r))
+  assert.ok(r.fix.some((s) => s.includes('".poundlock/x/"')), all(r))
   assert.ok(r.confirm.some((s) => s.includes('"/src/server/"')), all(r))
 })
 
@@ -164,11 +164,11 @@ test('要改：给 at-init 明令不许建键的角色建了键——名单是 a
   }
 })
 
-test('要改：前缀落在 .agent-team 下；写法按字面比较会落空（反斜杠、通配符、首尾空白、段尾的点或空格）', () => {
-  const fix = ['.agent-team/', './.agent-team/x/', 'x/../.agent-team/', 'src/*', 'src/?', ' src/', 'src/ ', 'src /x/', 'src./x/', `src${BS}server${BS}`]
-  if (WIN || process.platform === 'darwin') fix.push('.AGENT-TEAM/')
+test('要改：前缀落在 .poundlock 下；写法按字面比较会落空（反斜杠、通配符、首尾空白、段尾的点或空格）', () => {
+  const fix = ['.poundlock/', './.poundlock/x/', 'x/../.poundlock/', 'src/*', 'src/?', ' src/', 'src/ ', 'src /x/', 'src./x/', `src${BS}server${BS}`]
+  if (WIN || process.platform === 'darwin') fix.push('.POUNDLOCK/')
   for (const p of fix) assert.ok(prefixProblems(p).fix.length > 0, JSON.stringify(p))
-  assert.deepEqual(prefixProblems('.agent-teamwork/').fix, [])
+  assert.deepEqual(prefixProblems('.poundlockwork/').fix, [])
   assert.deepEqual(prefixProblems('app/[id]/').fix, [])
 })
 

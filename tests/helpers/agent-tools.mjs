@@ -64,7 +64,7 @@ function splitTopLevel(s) {
   return out.map((x) => x.trim()).filter(Boolean)
 }
 
-// 一项的工具名：去掉引号，取 `(` 之前的部分。`Agent(agent-team:at-product, …)`
+// 一项的工具名：去掉引号，取 `(` 之前的部分。`Agent(poundlock:at-product, …)`
 // 的名字是 `Agent`，括号里的角色名不是工具名。
 function toolNameOf(item) {
   return item

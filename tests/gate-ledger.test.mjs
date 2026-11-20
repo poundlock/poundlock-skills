@@ -31,7 +31,7 @@ function ctxOf(stdout) {
 test('写了契约：回传的哈希与磁盘上算出来的一致', () => {
   const { projectDir, pluginDir } = makeRun({ runId: 'r1', stage: 'S1', artifacts: ['00-contract.md'] })
   try {
-    const p = join(projectDir, '.agent-team', 'runs', 'r1', '00-contract.md')
+    const p = join(projectDir, '.poundlock', 'runs', 'r1', '00-contract.md')
     const { stdout } = run('ledger', {
       tool_name: 'Write', agent_type: 'at-pm', tool_input: { file_path: p },
     }, GATE, projectDir)
@@ -51,7 +51,7 @@ test('写了 project.json：回传触达表，含 reach.json 落盘指示', () =
   try {
     const { stdout } = run('ledger', {
       tool_name: 'Write', agent_type: 'at-pm',
-      tool_input: { file_path: join(projectDir, '.agent-team', 'project.json') },
+      tool_input: { file_path: join(projectDir, '.poundlock', 'project.json') },
     }, GATE, projectDir)
     const ctx = ctxOf(stdout)
     assert.match(ctx, /reach\.json/)
@@ -87,7 +87,7 @@ test('ledger 回传（emitHookJson）的真实输出以受信前缀开头，不�
   try {
     const { stdout } = run('ledger', {
       tool_name: 'Write', agent_type: 'at-pm',
-      tool_input: { file_path: join(projectDir, '.agent-team', 'project.json') },
+      tool_input: { file_path: join(projectDir, '.poundlock', 'project.json') },
     }, GATE, projectDir)
     assert.ok(ctxOf(stdout).startsWith(TRUSTED_PREFIX))
   } finally {
@@ -99,7 +99,7 @@ test('ledger 回传（emitHookJson）的真实输出以受信前缀开头，不�
 test('写了坏的 state.json：problems 逐条回传', () => {
   const { projectDir, pluginDir } = makeRun({ runId: 'r1', stage: 'S1' })
   try {
-    const p = join(projectDir, '.agent-team', 'runs', 'r1', 'state.json')
+    const p = join(projectDir, '.poundlock', 'runs', 'r1', 'state.json')
     const bad = JSON.parse(readFileSync(p, 'utf8'))
     bad.rework = { S1: 2 }   // history 里 S1 只出现一次，应当是 0
     writeFileSync(p, JSON.stringify(bad), 'utf8')
@@ -116,7 +116,7 @@ test('写了坏的 state.json：problems 逐条回传', () => {
 test('写了阶段产物：回传的哈希与磁盘实算一致', () => {
   const { projectDir, pluginDir } = makeRun({ runId: 'r1', stage: 'S1', artifacts: ['00-contract.md'] })
   try {
-    const p = join(projectDir, '.agent-team', 'runs', 'r1', '01-prd.md')
+    const p = join(projectDir, '.poundlock', 'runs', 'r1', '01-prd.md')
     writeFileSync(p, '# PRD\n', 'utf8')
     const { stdout } = run('ledger', {
       tool_name: 'Write', agent_type: 'at-product', tool_input: { file_path: p },
@@ -194,7 +194,7 @@ test('写了阶段产物：回传的哈希与磁盘实算一致', () => {
 test('写了阶段产物：真实输出同样以受信前缀开头', () => {
   const { projectDir, pluginDir } = makeRun({ runId: 'r1', stage: 'S3' })
   try {
-    const p = join(projectDir, '.agent-team', 'runs', 'r1', '01-prd.md')
+    const p = join(projectDir, '.poundlock', 'runs', 'r1', '01-prd.md')
     writeFileSync(p, '# PRD\n', 'utf8')
     const { stdout } = run('ledger', {
       tool_name: 'Write', agent_type: 'at-product', tool_input: { file_path: p },
@@ -225,7 +225,7 @@ test('写了阶段产物：真实输出同样以受信前缀开头', () => {
 test('run 目录下的文件不是任何阶段的 produces：不当成产物回传', () => {
   const { projectDir, pluginDir } = makeRun({ runId: 'r1', stage: 'S2', artifacts: ['00-contract.md'] })
   try {
-    const p = join(projectDir, '.agent-team', 'runs', 'r1', 'scratch.txt')
+    const p = join(projectDir, '.poundlock', 'runs', 'r1', 'scratch.txt')
     writeFileSync(p, '不是任何阶段的产物\n', 'utf8')
     const { stdout } = run('ledger', {
       tool_name: 'Write', agent_type: 'at-product', tool_input: { file_path: p },
@@ -306,7 +306,7 @@ test('M3k：S2 的 at-ui 这一趟没被派（roster 里没有它），只有 01
   try {
     const { stdout } = run('ledger', {
       tool_name: 'Write', agent_type: 'at-product',
-      tool_input: { file_path: join(projectDir, '.agent-team', 'runs', 'r1', '01-prd.md') },
+      tool_input: { file_path: join(projectDir, '.poundlock', 'runs', 'r1', '01-prd.md') },
     }, GATE, projectDir)
     assert.match(
       ctxOf(stdout) ?? '',
@@ -329,7 +329,7 @@ test('M3k：同一份夹具、只把 at-ui 加进 roster——它的两份产物
   try {
     const { stdout } = run('ledger', {
       tool_name: 'Write', agent_type: 'at-product',
-      tool_input: { file_path: join(projectDir, '.agent-team', 'runs', 'r1', '01-prd.md') },
+      tool_input: { file_path: join(projectDir, '.poundlock', 'runs', 'r1', '01-prd.md') },
     }, GATE, projectDir)
     // 仍然有【产物】那一段（写的是真的阶段产物），所以不能断言 stdout 为空——
     // 要断言的是这一段**不在**里面。
@@ -364,7 +364,7 @@ function m3xLedger({ write, agent = 'at-pm', ...runOpts }) {
   try {
     const { stdout } = run('ledger', {
       tool_name: 'Write', agent_type: agent,
-      tool_input: { file_path: join(projectDir, '.agent-team', 'runs', 'r1', write) },
+      tool_input: { file_path: join(projectDir, '.poundlock', 'runs', 'r1', write) },
     }, GATE, projectDir)
     return ctxOf(stdout) ?? ''
   } finally {
@@ -451,7 +451,7 @@ test('ledger 永不拒绝——输出里不会出现 permissionDecision', () => 
   try {
     const { stdout, status } = run('ledger', {
       tool_name: 'Write', agent_type: 'at-backend',
-      tool_input: { file_path: join(projectDir, '.agent-team', 'runs', 'r1', 'state.json') },
+      tool_input: { file_path: join(projectDir, '.poundlock', 'runs', 'r1', 'state.json') },
     }, GATE, projectDir)
     assert.equal(status, 0)
     assert.doesNotMatch(stdout, /permissionDecision/)
@@ -480,8 +480,8 @@ test('ledger 永不拒绝——输出里不会出现 permissionDecision', () => 
 // ——本轮实测到的正是这个形状：同一次改动下两条当场变红，而「没有 run 时写别的
 // 文件」那条**悄悄改测了另一个 kind，照样全绿**。
 const dropPointerAndRuns = (projectDir) => {
-  rmSync(join(projectDir, '.agent-team', 'current-run'), { force: true })
-  rmSync(join(projectDir, '.agent-team', 'runs'), { recursive: true, force: true })
+  rmSync(join(projectDir, '.poundlock', 'current-run'), { force: true })
+  rmSync(join(projectDir, '.poundlock', 'runs'), { recursive: true, force: true })
 }
 test('没有 run 时写 project.json：仍然回传触达表——/at-init 按设计就跑在没有 run 的时候', () => {
   const { projectDir, pluginDir } = makeRun({
@@ -492,7 +492,7 @@ test('没有 run 时写 project.json：仍然回传触达表——/at-init 按�
     dropPointerAndRuns(projectDir)
     const { stdout, status } = run('ledger', {
       tool_name: 'Write', agent_type: 'at-pm',
-      tool_input: { file_path: join(projectDir, '.agent-team', 'project.json') },
+      tool_input: { file_path: join(projectDir, '.poundlock', 'project.json') },
     }, GATE, projectDir)
     assert.equal(status, 0)
     const ctx = ctxOf(stdout)
@@ -500,7 +500,7 @@ test('没有 run 时写 project.json：仍然回传触达表——/at-init 按�
       ctx,
       '没有 run 时写 project.json 必须照常回传触达表——触达表的判据只有 roster.json 与 ' +
         'project.json，两者都与 run 无关，而 /at-init 恰恰跑在没有 run 的时候。' +
-        'stdout 为空意味着 .agent-team/reach.json 在全新项目上永远建不出来。',
+        'stdout 为空意味着 .poundlock/reach.json 在全新项目上永远建不出来。',
     )
     assert.match(ctx, /reach\.json/)
     // 仓库根真实 roster.json：at-architect → at-backend 这条边存在。
@@ -533,13 +533,13 @@ const makeBrokenRun = () => {
   })
   // 空的 current-run 是 kind:'unreadable'（不是 no-run）——pointer 文件在，内容是空的，
   // 判据见 hooks/lib/runctx.mjs 头部。
-  writeFileSync(join(dirs.projectDir, '.agent-team', 'current-run'), '', 'utf8')
+  writeFileSync(join(dirs.projectDir, '.poundlock', 'current-run'), '', 'utf8')
   return dirs
 }
 const writeProjectJson = (projectDir) =>
   run('ledger', {
     tool_name: 'Write', agent_type: 'at-pm',
-    tool_input: { file_path: join(projectDir, '.agent-team', 'project.json') },
+    tool_input: { file_path: join(projectDir, '.poundlock', 'project.json') },
   }, GATE, projectDir)
 
 test('run 坏了（unreadable）时写 project.json：触达表照发', () => {
@@ -587,7 +587,7 @@ const makeMissingPointerRun = () => {
     runId: 'r1', stage: 'S1',
     project: { paths: { 'at-product': ['docs/'], 'at-backend': ['src/server/'] } },
   })
-  rmSync(join(dirs.projectDir, '.agent-team', 'current-run'), { force: true })
+  rmSync(join(dirs.projectDir, '.poundlock', 'current-run'), { force: true })
   return dirs
 }
 
@@ -648,7 +648,7 @@ test('没有 run 时写别的文件：fail open 且留痕，不静默', () => {
     const { stdout, stderr, status } = run('ledger', {
       tool_name: 'Write', agent_type: 'at-pm',
       // run 目录下的阶段产物：上面那条缝只放 project.json 一个文件，别的照旧。
-      tool_input: { file_path: join(projectDir, '.agent-team', 'runs', 'r1', '00-contract.md') },
+      tool_input: { file_path: join(projectDir, '.poundlock', 'runs', 'r1', '00-contract.md') },
     }, GATE, projectDir)
     assert.equal(status, 0)
     assert.equal(stdout.trim(), '')
@@ -701,7 +701,7 @@ const PM_IN_AVAILABLE = {
   project: { available_roles: [...M2B_AVAILABLE, 'at-pm'], paths: {} },
 }
 
-const stateJsonOf = (projectDir) => join(projectDir, '.agent-team', 'runs', 'r1', 'state.json')
+const stateJsonOf = (projectDir) => join(projectDir, '.poundlock', 'runs', 'r1', 'state.json')
 // agentType 是**收件人**：PostToolUse 的 additionalContext 发给刚做完这次写入的那个上下文。
 // 缺省 at-pm 与 M3b 之前逐字相同，既有调用一个都不用改；传 null 表示主线程
 // （逐字是「**没有 agent_type 这个键**」，不是 agent_type: undefined——callerOf 两者都归
@@ -912,7 +912,7 @@ test('at-ui 写进 trimmed 之后：同一份夹具不再报，整条回传为�
 test('写的不是 state.json 时不报产者交代——触发点是推进出去那一刻', () => {
   const { projectDir, pluginDir } = makeRun(WALKED_S2)
   try {
-    const p = join(projectDir, '.agent-team', 'runs', 'r1', '01-prd.md')
+    const p = join(projectDir, '.poundlock', 'runs', 'r1', '01-prd.md')
     writeFileSync(p, '# PRD\n', 'utf8')
     const { stdout } = run('ledger', {
       tool_name: 'Write', agent_type: 'at-product', tool_input: { file_path: p },
@@ -1316,7 +1316,7 @@ const makeDanglingPointerRun = () => {
     project: { paths: { 'at-product': ['docs/'], 'at-backend': ['src/server/'] } },
   })
   // current-run 留着（内容仍然是 r1），删掉它指向的 run 目录。
-  rmSync(join(dirs.projectDir, '.agent-team', 'runs', 'r1'), { recursive: true, force: true })
+  rmSync(join(dirs.projectDir, '.poundlock', 'runs', 'r1'), { recursive: true, force: true })
   return dirs
 }
 
@@ -1362,24 +1362,24 @@ test('M4b【阶段】执行段齐了：末尾提醒先读「被写路径隔离�
   const pm = m3xLedger(M3X_S5_ACCOUNTED)
   assert.match(pm, /【阶段】S5 的产物已经齐了/)
   assert.match(pm, /被写路径隔离拒绝[^。]*已解决[^。]*那一份不算交齐/)
-  assert.ok(pm.includes('/agent-team:at 第 3 节「各段的具体做法」'), pm)
+  assert.ok(pm.includes('/poundlock:at 第 3 节「各段的具体做法」'), pm)
   assert.doesNotMatch(m3xLedger({ ...M3X_S2, stage_roles: { S2: ['at-product'] } }), /被写路径隔离拒绝/)
 })
 
-// M4b 第二轮复核：执行段里最后一个写实现记录的执行角色也会收到【阶段】。给它的不是 PM 那句（「推进之前逐份读」「做法见 /agent-team:at」
+// M4b 第二轮复核：执行段里最后一个写实现记录的执行角色也会收到【阶段】。给它的不是 PM 那句（「推进之前逐份读」「做法见 /poundlock:at」
 // 它都做不了），而是「你自己的实现记录里还有没解决的被拒条目，回报时照实说，不要只报齐了」；回报给上级的也不是「齐了」。
 test('M4b【阶段】执行段齐了、写的是执行角色：给它自己的那句，不叫它去做 PM 的事，也不叫它报「齐了」', () => {
-  const role = m3xLedger({ ...M3X_S5_ACCOUNTED, write: '05-impl/at-backend.md', agent: 'agent-team:at-backend' })
+  const role = m3xLedger({ ...M3X_S5_ACCOUNTED, write: '05-impl/at-backend.md', agent: 'poundlock:at-backend' })
   assert.match(role, /【阶段】S5/)
   assert.ok(role.includes('你自己的实现记录'), role)
-  assert.ok(!role.includes('推进之前逐份读') && !role.includes('/agent-team:at 第 3 节'), role)
+  assert.ok(!role.includes('推进之前逐份读') && !role.includes('/poundlock:at 第 3 节'), role)
   assert.ok(!role.includes('"这一段的产物已经齐了"这件事'), role)
 })
 
 // 文档核对（docs/36 §3.2）：「你自己的实现记录」那句只给当段的产者。S5 里改 03-arch.md 的架构师、提前被派来写 06-test.md 的 at-qa 也是
 // 非 PM 写者，它们没有实现记录——给它们的是不预设「你自己的」那一句。回报口径（都在磁盘上了）对任何非 PM 写者都成立，照旧。
 test('M4b【阶段】执行段齐了、写者是非产者（架构师改 03-arch.md、at-qa 写 06-test.md）：不说「你自己的实现记录」，说这一段的实现记录', () => {
-  for (const [write, agent] of [['03-arch.md', 'agent-team:at-architect'], ['06-test.md', 'agent-team:at-qa']]) {
+  for (const [write, agent] of [['03-arch.md', 'poundlock:at-architect'], ['06-test.md', 'poundlock:at-qa']]) {
     const out = m3xLedger({ ...M3X_S5_ACCOUNTED, artifacts: [...M3X_S5_ACCOUNTED.artifacts, write], write, agent })
     assert.match(out, /【阶段】S5/, agent)
     assert.ok(!out.includes('你自己的实现记录'), `${agent}：${out}`)
@@ -1397,7 +1397,7 @@ const withDispatchLog = (opts, body) => {
   const { projectDir, pluginDir } = makeRun(opts)
   try {
     const line = dispatchLine({ at: '2026-09-20T10:12:00Z', agentId: 'a-ui', toolUseId: 'u-ui', role: 'at-ui', stage: 'S2', caller: 'at-product', callerId: 'a-product', mode: 'background' })
-    writeFileSync(join(projectDir, '.agent-team', 'runs', 'r1', 'dispatches.jsonl'), line + '\n')
+    writeFileSync(join(projectDir, '.poundlock', 'runs', 'r1', 'dispatches.jsonl'), line + '\n')
     return body(projectDir)
   } finally {
     rmSync(projectDir, { recursive: true, force: true })
@@ -1441,7 +1441,7 @@ const AT_S8 = {
 const withBackendLogged = (opts, body, closed = false) => {
   const { projectDir, pluginDir } = makeRun(opts)
   try {
-    const runDir = join(projectDir, '.agent-team', 'runs', 'r1')
+    const runDir = join(projectDir, '.poundlock', 'runs', 'r1')
     const line = dispatchLine({ at: '2026-09-20T10:14:00Z', agentId: 'a-be', toolUseId: 'u-be', role: 'at-backend', stage: 'S5', caller: 'at-architect', callerId: 'a-ar', mode: 'background' })
     writeFileSync(join(runDir, 'dispatches.jsonl'), line + '\n')
     if (closed) {
@@ -1488,7 +1488,7 @@ const INFLIGHT_TAIL = "它们是那一趟派出去的：停下时门禁认得出
 test('M4h 第 24-1 条：写 current-run 时，别的没收口的 run 里门禁没见它停下的派发列出来；停下了的不列、认不出的不回显、收口了的 run 不列', () => {
   const { projectDir, pluginDir } = makeRun({ runId: 'r1', stage: 'S1' })
   try {
-    const at = join(projectDir, '.agent-team')
+    const at = join(projectDir, '.poundlock')
     const old = join(at, 'runs', 'r0')
     mkdirSync(old, { recursive: true })
     const writeOld = (closed) => writeFileSync(join(old, 'state.json'), JSON.stringify({ run_id: 'r0', stage: 'S5', closed_at: closed }))
@@ -1533,7 +1533,7 @@ test('M4h 复核：【派发】——只伪造角色或段的行不回显；停�
   const { projectDir, pluginDir } = makeRun({ runId: 'r1', stage: 'S1' })
   try {
     const NL = String.fromCharCode(10)
-    const at = join(projectDir, '.agent-team')
+    const at = join(projectDir, '.poundlock')
     const runs = join(at, 'runs')
     const d = (agentId, role, stage) => dispatchLine({ at: 't', agentId, toolUseId: null, role, stage, caller: 'at-architect', callerId: null, mode: 'background' })
     const s = (agentId, role, stage, outcome) => stopLine({ at: 't', agentId, role, stage, outcome })

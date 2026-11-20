@@ -91,7 +91,7 @@ test('state.json 模板的 trimmed 删掉不报——向后兼容那条例外，
     withoutKey('trimmed'),
     [],
     'trimmed 缺失被 validateState 报了。它是 M3a 后加的字段，对更早落盘的 state.json ' +
-      '必须缺失即合法（/agent-team:at-resume 要去读那些 run）；同时这条还是上一条的' +
+      '必须缺失即合法（/poundlock:at-resume 要去读那些 run）；同时这条还是上一条的' +
       '正向锚——它一红，就说明「删掉一个键之后仍然是合法 state」这件事本身做不到了，' +
       '上一条那些「删了就报」于是可能是夹具坏掉带来的恒真。',
   )
@@ -111,14 +111,14 @@ test('state.json 模板的 roster 是 []——H2 修复 1 那条推理的前提'
   assert.deepEqual(readJson('templates/state.json').roster, [])
 })
 
-// docs/09 账一驳掉的方向 (b) 就是「在 project.json 模板里把 .agent-team/ 划给
+// docs/09 账一驳掉的方向 (b) 就是「在 project.json 模板里把 .poundlock/ 划给
 // at-pm」。控制文件不走角色认领（规格 §6.2.1），划给谁都是同一个概念两套机制。
-test('project.json 模板的 paths 里不得出现 .agent-team', () => {
+test('project.json 模板的 paths 里不得出现 .poundlock', () => {
   const { paths } = readJson('templates/project.json')
   for (const [role, prefixes] of Object.entries(paths)) {
     for (const p of prefixes) {
       assert.ok(
-        !p.replace(/\\/g, '/').split('/').includes('.agent-team'),
+        !p.replace(/\\/g, '/').split('/').includes('.poundlock'),
         `paths.${role} 里有 ${p}——控制文件不走角色认领（规格 §6.2.1 / docs/09 账一）`,
       )
     }

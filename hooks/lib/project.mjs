@@ -1,11 +1,11 @@
-// .agent-team/project.json 的形状（M3u，docs/29，全量审查第 10 条）。
+// .poundlock/project.json 的形状（M3u，docs/29，全量审查第 10 条）。
 //
 // 此前 project.json 只要是个合法对象，H3 就照单全收：paths 缺失、键名拼错、带插件前缀、被删掉——调用者在
 // paths 里「没有键」——一律静默放行；前缀 '../' 认领到项目根之外，'' 与 '.' 认领整个项目根。这里把问题分三档，另有一档 plugin：
 //   - block（阻断）：H3 据此拒持有这个条目的角色——只算 H3 会拿这个键去判的（建了键的 at-qa、at-acceptance 也算）；
 //     at-pm、__main__ 与认不出的键上的同类问题 H3 不拿来判人，降成要改。paths 本身缺失或不是对象时拒 at-qa、
 //     at-acceptance 以外的执行角色；
-//   - fix（要改）：/agent-team:at-init 明令禁止、或者按字面比较一定落空的写法；
+//   - fix（要改）：/poundlock:at-init 明令禁止、或者按字面比较一定落空的写法；
 //   - confirm（请确认）：可能是有意的，PM 读一遍，是想要的就不动；
 //   - plugin（插件）：roster.json 读不出来。它不是 project.json 的问题，改 project.json 修不好，ledger 把它单列成
 //     【插件】，不混进【project.json】那句「整份重写、改到没有为止」。
@@ -17,7 +17,7 @@ import { isValidRoster } from './decide.mjs'
 
 // 按设计不认领路径的角色：它们只写 run 目录里自己那份产物，没有键时 H3 在 run 目录之外拒它们（M4f，docs/41，审查第 34 条；
 // 此前整段放行）。与 templates/project.json 的 available_roles 减去 paths 的键逐一对账（tests/project.test.mjs）；
-// /agent-team:at-init 明令不给它们建键——建了键，H3 就照键放行它们写那几个前缀，等于在 run 目录之外给它们开了口子。
+// /poundlock:at-init 明令不给它们建键——建了键，H3 就照键放行它们写那几个前缀，等于在 run 目录之外给它们开了口子。
 export const NO_PATHS_ROLES = ['at-qa', 'at-acceptance']
 
 // 花名册里、但不是执行角色的：驱动者 PM、主线程（callerOf 对它的判定值）、测试替身。available_roles 里不该有它们。
@@ -27,7 +27,7 @@ const NOT_EXECUTION = ['at-pm', '__main__', 'at-outsider']
 // 这个角色。门禁层面对所有角色拒写它们归审查第 34 条（docs/24），这里只提醒。按不分大小写比，多提一条无害。
 // 文件只认项目根下启动即加载的那几个：子目录里的 CLAUDE.md 是任何目录前缀都带着的风险（在认领的目录里新建一个
 // 就是），只对写明文件名的那一条报反而是任意的——M4r 起由 H3 拒（writepath.mjs 的 guardedBelow：认领的目录不连带它下面的
-// CLAUDE.md、CLAUDE.local.md、.claude、.git、.agent-team），前缀写明了的照放行，这里照旧只对写明的提醒。
+// CLAUDE.md、CLAUDE.local.md、.claude、.git、.poundlock），前缀写明了的照放行，这里照旧只对写明的提醒。
 const AUTOLOADED_DIRS = ['.claude', '.git']
 const AUTOLOADED_FILES = ['claude.md', 'claude.local.md', '.mcp.json']
 
@@ -98,10 +98,10 @@ export function prefixProblems(prefix, { platform = process.platform, label = '�
     }
   }
   const segs = segmentsOf(prefix, platform).map((s) => s.toLowerCase())
-  if (segs[0] === '.agent-team') {
-    out.fix.push(`${at} 落在 .agent-team 下——那里的控制文件不走角色认领`)
-  } else if (segs.includes('.agent-team')) {
-    out.fix.push(`${at} 落在一个嵌套的 .agent-team 下——门禁不把它划给任何角色，按这条前缀写进去的照样被拒`)
+  if (segs[0] === '.poundlock') {
+    out.fix.push(`${at} 落在 .poundlock 下——那里的控制文件不走角色认领`)
+  } else if (segs.includes('.poundlock')) {
+    out.fix.push(`${at} 落在一个嵌套的 .poundlock 下——门禁不把它划给任何角色，按这条前缀写进去的照样被拒`)
   }
   if (AUTOLOADED_DIRS.includes(segs[0]) || (segs.length === 1 && AUTOLOADED_FILES.includes(segs[0]))) {
     out.confirm.push(
@@ -167,10 +167,10 @@ export function validateProject(project, { roster, platform = process.platform }
   const rosterOk = isValidRoster(roster)
   if (!rosterOk) {
     // H1 拒一切派发、H3 拒 PM 以外的角色写 run 目录之外：不可能是有意的。改
-    // project.json 修不好它，单列一档（ledger 的【插件】），这一条自己说清出路（/agent-team:at-init 第 3 节照此写）。
+    // project.json 修不好它，单列一档（ledger 的【插件】），这一条自己说清出路（/poundlock:at-init 第 3 节照此写）。
     out.plugin.push(
       'roster.json 读不出来（插件安装不完整）——这不是 project.json 的问题，改它修不好：派发一律被拒，' +
-        '除 PM 外写 run 目录之外也一律被拒。停下，告诉用户重装或更新 agent-team 插件',
+        '除 PM 外写 run 目录之外也一律被拒。停下，告诉用户重装或更新 poundlock 插件',
     )
   }
   const known = (name) => rosterOk && Object.hasOwn(roster, name)
@@ -190,10 +190,10 @@ export function validateProject(project, { roster, platform = process.platform }
       // 还只报这一档，挂在这种键上就是每次记账都重报一遍的假话。at-outsider 不在此列：H3 照常按它的键判它（挡住
       // 它的是工具面只有 Read，tests/tool-surface.test.mjs 钉着）。
       // 花名册读坏时判不出哪些键是真角色（拼错的键也在内）：除 at-pm、__main__ 外一律不降档，阻断照报——那些前缀
-      // 重装前后都该改掉；嵌套提醒不出（见下），它对拼错的键是假话，重装后重跑 /agent-team:at-init 会补上。
+      // 重装前后都该改掉；嵌套提醒不出（见下），它对拼错的键是假话，重装后重跑 /poundlock:at-init 会补上。
       let inert = true
       if (rosterOk && !known(key)) {
-        out.fix.push(`${label}：${quote(key)} 不是花名册里的角色名——拼错了？带了 agent-team: 前缀？门禁不会拿它判任何人`)
+        out.fix.push(`${label}：${quote(key)} 不是花名册里的角色名——拼错了？带了 poundlock: 前缀？门禁不会拿它判任何人`)
       } else if (key === 'at-pm') {
         out.fix.push(`${label}：不要给 at-pm 建键——PM 不参与路径认领，这个键不起作用`)
       } else if (key === '__main__') {

@@ -35,14 +35,14 @@ test('SubagentStop：stderr 上的理由，exitCode 2', () => {
   assert.match(out.text, /测试理由/)
 })
 
-test('其它事件：stderr 打一行 agent-team BUG 提示，exitCode 0，不静默吞掉', () => {
+test('其它事件：stderr 打一行 poundlock BUG 提示，exitCode 0，不静默吞掉', () => {
   // PostToolUse 是当前唯一真实存在、但从不会调用 denyOutput 的事件
   // （H5a/deliverable 按规格 §6 只记 warning，从不拒绝）——用它代表
   // 「万一将来误调用」的场景，验证不可达分支也是有声的，不是静默吞掉。
   const out = denyOutput('测试理由', 'PostToolUse')
   assert.equal(out.stream, 'stderr')
   assert.equal(out.exitCode, 0)
-  assert.match(out.text, /^agent-team BUG:/)
+  assert.match(out.text, /^poundlock BUG:/)
 })
 
 // crashNotice：fail open 检查项在 main() 内部崩溃时，gate.mjs 最外层 catch

@@ -25,7 +25,7 @@ const PASS = '结论：通过' + NL
 const TRIMMED = { stage: 'S8', history: H(...CHAIN), roster: ['at-qa'], stage_roles: { S6: ['at-qa'], S7: [] }, trimmed: { 'at-acceptance': 'S7' } }
 function withRun(opts, files, body) {
   const dirs = makeRun({ runId: 'r1', ...opts })
-  const runDir = join(dirs.projectDir, '.agent-team', 'runs', 'r1')
+  const runDir = join(dirs.projectDir, '.poundlock', 'runs', 'r1')
   for (const [name, text] of Object.entries({ '00-contract.md': CONTRACT, '08-delivery.md': 'delivery' + NL, ...files })) writeFileSync(join(runDir, name), text)
   try {
     return body({ ...dirs, runDir })
@@ -37,18 +37,18 @@ function withRun(opts, files, body) {
 const stateWrite = (runDir, change) => {
   const statePath = join(runDir, 'state.json')
   const now = JSON.parse(readFileSync(statePath, 'utf8'))
-  return { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'agent-team:at-pm', tool_input: { file_path: statePath, content: JSON.stringify(change(now), null, 2) } }
+  return { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'poundlock:at-pm', tool_input: { file_path: statePath, content: JSON.stringify(change(now), null, 2) } }
 }
 const closeWrite = (runDir) => stateWrite(runDir, (s) => ({ ...s, never_invoked: [], closed_at: '2026-10-11T12:00:00Z' }))
 const close = (fx) => decisionOf(run('rework', closeWrite(fx.runDir), GATE, fx.projectDir).stdout)
 const asked = (answer) => ({
   hook_event_name: 'PostToolUse',
   tool_name: 'AskUserQuestion',
-  agent_type: 'agent-team:at-pm',
+  agent_type: 'poundlock:at-pm',
   tool_input: { questions: [{ question: '测试跑不起来、验收裁掉了，怎么办？', header: '交付', multiSelect: false, options: [] }] },
   tool_response: { questions: [{ question: '测试跑不起来、验收裁掉了，怎么办？', header: '交付', multiSelect: false, options: [] }], answers: { '测试跑不起来、验收裁掉了，怎么办？': answer } },
 })
-const posted = (file) => ({ hook_event_name: 'PostToolUse', tool_name: 'Write', agent_type: 'agent-team:at-pm', tool_input: { file_path: file } })
+const posted = (file) => ({ hook_event_name: 'PostToolUse', tool_name: 'Write', agent_type: 'poundlock:at-pm', tool_input: { file_path: file } })
 const approvalsOf = (runDir) => {
   const f = join(runDir, 'approvals.jsonl')
   return existsSync(f) ? readFileSync(f, 'utf8').split(NL).filter(Boolean).map((l) => JSON.parse(l)) : []
@@ -134,7 +134,7 @@ test('契约基线（docs/71）：验收整段裁掉、停在 S8 批了照现状
   })
 })
 
-test('正文（docs/71）：/agent-team:at 第 6 节——验收整段裁掉的，门禁收口时改读测试报告的第一行、不是通过的要用户批过照现状交付', () => {
+test('正文（docs/71）：/poundlock:at 第 6 节——验收整段裁掉的，门禁收口时改读测试报告的第一行、不是通过的要用户批过照现状交付', () => {
   const at = readFileSync(new URL('../commands/at.md', import.meta.url), 'utf8').split(String.fromCharCode(13)).join('')
   const s6 = at.slice(at.indexOf('## 6. 收尾'))
   const flat = (s) => s.replace(/\s+/g, '')
@@ -221,7 +221,7 @@ test('出路（复核低 6）：不通过回实现那一段、跑不起来回测
 
 test('H6（复核低 7）：收口因为测试报告被拒、而门禁找不到进行中的 run 时——拒绝理由补一句用户的批准会记不下', () => {
   withRun(TRIMMED, { '06-test.md': ENV }, (fx) => {
-    rmSync(join(fx.projectDir, '.agent-team', 'current-run'))
+    rmSync(join(fx.projectDir, '.poundlock', 'current-run'))
     const why = close(fx)?.permissionDecisionReason ?? ''
     assert.ok(why.includes('收口读测试报告') && why.includes('用户的回答会记不下'), why)
   })

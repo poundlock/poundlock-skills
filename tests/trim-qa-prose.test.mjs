@@ -1,5 +1,5 @@
 // docs/72：整段裁掉测试那一段不算项目经理自决的班底裁剪。不叫 at-qa（验收跟着整段裁掉），这一趟一样都不验证、门禁收口时没有一份结论可读——它跟
-// 「不写自动化测试」同一个口径（只有两种情形算数，docs/41），别的要问用户。门禁不读内容，这一层在正文里：/agent-team:at 第 4 节紧跟在「明确不用问的」后面
+// 「不写自动化测试」同一个口径（只有两种情形算数，docs/41），别的要问用户。门禁不读内容，这一层在正文里：/poundlock:at 第 4 节紧跟在「明确不用问的」后面
 // 那一段整段钉，at-pm「什么时候打断用户」那一节的「其余一律自决」点到它。
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
@@ -28,7 +28,7 @@ const AT_WARN =
   '写了，这条决定就是可机器读的，判据读得到、不会再问；不写，判据分不出「你裁的」和' +
   '「你漏的」，只能按漏的报——**而那条报文点的是你已经想清楚过的那个人。**'
 
-test('docs/72：/agent-team:at 第 4 节——整段裁掉测试那一段不算自决的班底裁剪，紧跟在「明确不用问的」后面，整段钉', () => {
+test('docs/72：/poundlock:at 第 4 节——整段裁掉测试那一段不算自决的班底裁剪，紧跟在「明确不用问的」后面，整段钉', () => {
   const at = read('commands/at.md')
   const s4 = at.slice(at.indexOf('## 4.'), at.indexOf('## 5.'))
   // 复核（docs/72 §8）：三段连着钉——「明确不用问的」、这一段、⚠️ 那一段（整段）；中间另起一段放宽、⚠️ 那一段末尾补一句放宽都红。
@@ -46,7 +46,7 @@ test('docs/72：at-pm「什么时候打断用户」——其余一律自决里�
   const end = sec.indexOf('\n## ', 1)
   assert.ok(
     flat(end < 0 ? sec : sec.slice(0, end)).includes(
-      flat('其余一律自决：技术选型、班底裁剪（整段裁掉测试那一段除外，见 `/agent-team:at` 第 4 节）、驳回路由、代码风格与目录命名、同一段里重派一个角色（不计返工）。'),
+      flat('其余一律自决：技术选型、班底裁剪（整段裁掉测试那一段除外，见 `/poundlock:at` 第 4 节）、驳回路由、代码风格与目录命名、同一段里重派一个角色（不计返工）。'),
     ),
     'at-pm 那一句',
   )
@@ -59,7 +59,7 @@ const STAGES = JSON.parse(read('stages.json'))
 test('门禁（复核高 1）：给出「写进 trimmed」出路的三句在测试那一段补那半句——推进出一段、一次只推一段、收口；别的段不补', () => {
   assert.equal(isTestStage(STAGES, 'S6'), true)
   assert.equal(isTestStage(STAGES, 'S7'), false)
-  assert.ok(TRIM_TEST_ASK.includes('/agent-team:at 第 4 节') && TRIM_TEST_ASK.includes('问不了就照常派 ' + TEST_ROLE), TRIM_TEST_ASK)
+  assert.ok(TRIM_TEST_ASK.includes('/poundlock:at 第 4 节') && TRIM_TEST_ASK.includes('问不了就照常派 ' + TEST_ROLE), TRIM_TEST_ASK)
   const s6 = departureLines(STAGES, [{ name: '06-test.md', sid: 'S6', role: 'at-qa', called: false }], []).join('\n')
   const s2 = departureLines(STAGES, [{ name: '02-ui-spec.md', sid: 'S2', role: 'at-ui', called: false }], []).join('\n')
   assert.ok(s6.includes(TRIM_TEST_ASK), s6)
@@ -88,7 +88,7 @@ test('正文（复核中 1、低 1、低 3）：第 3 节第 4 步的例子、�
 test('正文（复核中 1、中 3、低 2）：at-resume 两处、04-dispatch 模板、at-init 的 available_roles、at-status 的整段裁掉', () => {
   const resume = read('commands/at-resume.md')
   assert.equal(flat(resume).split(flat('（整段裁掉测试那一段要用户的话，照')).length - 1, 2, 'at-resume 两处')
-  assert.ok(flat(read('templates/04-dispatch.md')).includes(flat('班底裁剪（整段裁掉测试那一段除外：要用户的话，见 /agent-team:at 第 4 节）')), '04-dispatch 模板')
+  assert.ok(flat(read('templates/04-dispatch.md')).includes(flat('班底裁剪（整段裁掉测试那一段除外：要用户的话，见 /poundlock:at 第 4 节）')), '04-dispatch 模板')
   assert.ok(
     flat(read('commands/at-init.md')).includes(flat('**`at-qa`、`at-acceptance` 照常列**，不因为项目没有测试框架、没有验收标准之类的理由不列——不列它们，这个项目的每一趟都不验证；那要用户的话')),
     'at-init',

@@ -37,7 +37,7 @@ const RUN_ID_RE = /^\d{8}-\d{4}-[a-z0-9][a-z0-9-]*$/
 // 不读：拼成 trimed，整段裁掉不算数；拼成 stage_role，按段的判据退回整趟 roster——原来一声不吭，现在 validateState 报它。
 export const STATE_KEYS = [
   'run_id',
-  // 单个微调：一趟是哪种——full（完整的一趟，模板写它；没有这个键的旧 run 也是）或 tweak（/agent-team:at-tweak 起的微调，门禁按 stages.tweak.json 判）。
+  // 单个微调：一趟是哪种——full（完整的一趟，模板写它；没有这个键的旧 run 也是）或 tweak（/poundlock:at-tweak 起的微调，门禁按 stages.tweak.json 判）。
   'mode',
   'stage',
   'contract_sha',
@@ -213,7 +213,7 @@ export function isNonNegativeInteger(v) {
 // 与规格 §5.1 的必须升级条件一一对应，顺序也照它：
 // 敏感与不可逆 / 契约冲突 / 取舍 / 契约有洞 / 预算耗尽 / 环境阻塞。
 // M4c（docs/37，全量审查第 37 条后半）：加 env-blocked——缺工具、服务或权限，构建或测试跑不起来，这一段交不出来或验证不了。收口门禁
-// 自己就把「测试跑不起来」指向 /agent-team:at 第 4 节，原来照做如实记它会被报成状态不合法。user-change（用户主动改需求）没加：
+// 自己就把「测试跑不起来」指向 /poundlock:at 第 4 节，原来照做如实记它会被报成状态不合法。user-change（用户主动改需求）没加：
 // 记不记回退、吃不吃返工额度还没定（docs/37 §5）。正文与判据不写总数，从这里派生（tests/commands.test.mjs、tests/readme-sync.test.mjs）。
 export const ESCALATION_KINDS = [
   'sensitive',
@@ -414,21 +414,21 @@ export function validateState(state, { stages, grants } = {}) {
     const last = lastStageId(stages)
     if (closedAt(state) === null) {
       const got = typeof state.closed_at === 'string' ? `是 ${quote(state.closed_at)}` : '是别的类型'
-      p(`closed_at ${got}：它要么是 null（还没收口），要么是收口那一刻的 ISO 时间（照门禁给的写，门禁此刻是 "${gateClock()}"）——收口照 /agent-team:at 第 6 节`)
+      p(`closed_at ${got}：它要么是 null（还没收口），要么是收口那一刻的 ISO 时间（照门禁给的写，门禁此刻是 "${gateClock()}"）——收口照 /poundlock:at 第 6 节`)
     } else if (last && state.stage !== last) {
       p(`closed_at 在，但 stage 不是阶段链最后一段（${last}）——收口只在最后一段`)
     }
   }
   if (!isStringArray(state.roster)) p('roster 不是字符串数组')
   if (!isStringArray(state.never_invoked)) p('never_invoked 不是字符串数组')
-  // M4i（docs/44，审查第 36 条）：交集——同一个角色不能既算叫到了、又算没被叫过（/agent-team:at 第 6 节叫 PM 写完自查，此前门禁不核）。
+  // M4i（docs/44，审查第 36 条）：交集——同一个角色不能既算叫到了、又算没被叫过（/poundlock:at 第 6 节叫 PM 写完自查，此前门禁不核）。
   if (isStringArray(state.roster) && isStringArray(state.never_invoked)) {
     const both = [...new Set(state.never_invoked.filter((r) => state.roster.includes(r)))]
     if (both.length) {
-      p(`roster 与 never_invoked 都有 ${both.map((r) => quote(r)).join('、')}：同一个角色不能既算叫到了、又算没被叫过——never_invoked 收口时才算（/agent-team:at 第 6 节）`)
+      p(`roster 与 never_invoked 都有 ${both.map((r) => quote(r)).join('、')}：同一个角色不能既算叫到了、又算没被叫过——never_invoked 收口时才算（/poundlock:at 第 6 节）`)
     }
   }
-  // M4i（docs/44，审查第 36 条）：state.json 里的角色名写裸名。带插件前缀的（agent-team:at-backend）对不上 stages.json 的产者名——按段的
+  // M4i（docs/44，审查第 36 条）：state.json 里的角色名写裸名。带插件前缀的（poundlock:at-backend）对不上 stages.json 的产者名——按段的
   // 判据认不出它，没有派发记录时缺产物的推进会被放过、【阶段】哑掉。roster、stage_roles、trimmed 的键、never_invoked 都看，同一个名字只报一次。
   {
     const prefixed = new Set()
@@ -464,7 +464,7 @@ export function validateState(state, { stages, grants } = {}) {
   // trimmed 只回答「谁、在哪一段」。
   //
   // ⚠️ 缺失不报错，这是**向后兼容**：M3a 之前落盘的 state.json 没有这个字段，而
-  // /agent-team:at-resume 会去读它们。模板里有，此后每一趟新 run 都带着。
+  // /poundlock:at-resume 会去读它们。模板里有，此后每一趟新 run 都带着。
   //
   // ⚠️ 这里只校验形状，**没有写时强制**（H6 rework-guard 那一档）。M3a 设计明写排除：
   // 先让这个字段存在、被判据读到，写时强制要等下一次真实 run 的误报率数据。

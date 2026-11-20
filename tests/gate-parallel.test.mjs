@@ -13,7 +13,7 @@ import { dispatchLine } from '../hooks/lib/completion.mjs'
 import { sha256OfContract } from '../hooks/lib/contract-hash.mjs'
 
 const NL = String.fromCharCode(10)
-const PM = 'agent-team:at-pm'
+const PM = 'poundlock:at-pm'
 const AT = '2026-11-06T10:00:00Z'
 const H = (...ids) => ids.map((stage) => ({ stage, at: AT }))
 const DOC = (title) => '# ' + title + NL + NL + '内容' + NL
@@ -48,8 +48,8 @@ const wordsOf = (id, sid, command) =>
  * pointer：current-run 的内容（null 不写）。默认每一趟都带契约与派发（S5 的前置齐）。
  */
 function makeProject({ pointer = null, runs = [] } = {}) {
-  const projectDir = realpathSync(mkdtempSync(join(tmpdir(), 'agent-team-par-')))
-  const base = join(projectDir, '.agent-team')
+  const projectDir = realpathSync(mkdtempSync(join(tmpdir(), 'poundlock-par-')))
+  const base = join(projectDir, '.poundlock')
   mkdirSync(join(base, 'runs'), { recursive: true })
   writeFileSync(join(base, 'project.json'), JSON.stringify(PROJECT))
   if (pointer !== null) writeFileSync(join(base, 'current-run'), pointer)
@@ -91,7 +91,7 @@ const ctxText = (out) => (out.stdout.trim() ? JSON.parse(out.stdout).hookSpecifi
 const dispatch = (projectDir, target, sid, check = 'readiness') =>
   run(
     check,
-    { hook_event_name: 'PreToolUse', tool_name: 'Agent', agent_type: PM, session_id: sid, tool_input: { subagent_type: 'agent-team:' + target, description: 'x', prompt: 'x' } },
+    { hook_event_name: 'PreToolUse', tool_name: 'Agent', agent_type: PM, session_id: sid, tool_input: { subagent_type: 'poundlock:' + target, description: 'x', prompt: 'x' } },
     GATE,
     projectDir,
   )
@@ -99,7 +99,7 @@ const dispatch = (projectDir, target, sid, check = 'readiness') =>
 /** 写一个文件：who 是 { sid } 的项目经理（主线程）或 { role, agentId, sid } 的子代理；sid 为 null 时不带 session_id。 */
 const write = (projectDir, file, who, { check = 'writepath', event = 'PreToolUse', content = 'x' } = {}) => {
   const input = { hook_event_name: event, tool_name: 'Write', tool_input: { file_path: file, content } }
-  input.agent_type = who.agentType ?? (who.role ? 'agent-team:' + who.role : PM)
+  input.agent_type = who.agentType ?? (who.role ? 'poundlock:' + who.role : PM)
   if (who.agentId) input.agent_id = who.agentId
   if (who.sid !== null && who.sid !== undefined) input.session_id = who.sid
   return run(check, input, GATE, projectDir)
@@ -149,18 +149,18 @@ test('认不出是哪一趟派的团队角色（派发记录里没有、会话�
   })
 })
 
-// 安全审查：只有微调、判 no-run 时，花名册外的调用者（别家插件的子代理）不许写 .agent-team/ 下的文件——微调的 state.json、契约都在那里；项目文件照旧能写。
+// 安全审查：只有微调、判 no-run 时，花名册外的调用者（别家插件的子代理）不许写 .poundlock/ 下的文件——微调的 state.json、契约都在那里；项目文件照旧能写。
 test('只有微调、没有 current-run：花名册外的子代理写微调的 state.json、契约，H3 拒（契约 H4 也拒）；写项目文件照旧放行', () => {
   withProject(TWO(), (p) => {
     const other = { agentType: 'helper:writer', agentId: 'o1', sid: 's-1' }
-    assert.equal(denied(write(p, join(p, '.agent-team', 'runs', 't1', 'state.json'), other)), true)
-    assert.equal(denied(write(p, join(p, '.agent-team', 'runs', 't1', '00-contract.md'), other)), true)
-    assert.equal(denied(write(p, join(p, '.agent-team', 'runs', 't1', '00-contract.md'), other, { check: 'contract' })), true, 'H4 同样拒')
+    assert.equal(denied(write(p, join(p, '.poundlock', 'runs', 't1', 'state.json'), other)), true)
+    assert.equal(denied(write(p, join(p, '.poundlock', 'runs', 't1', '00-contract.md'), other)), true)
+    assert.equal(denied(write(p, join(p, '.poundlock', 'runs', 't1', '00-contract.md'), other, { check: 'contract' })), true, 'H4 同样拒')
     assert.equal(denied(write(p, join(p, 'web', 'x.ts'), other)), false)
   })
 })
 
-// 安全审查（第二轮）：运行上下文读得出时也一样——非项目经理写 .agent-team/runs/ 下不是这一趟的 run 目录（别的微调的契约、产物），H3 拒、契约 H4 也拒。
+// 安全审查（第二轮）：运行上下文读得出时也一样——非项目经理写 .poundlock/runs/ 下不是这一趟的 run 目录（别的微调的契约、产物），H3 拒、契约 H4 也拒。
 test('运行上下文读得出时：花名册外的子代理写别的一趟 run 目录里的契约与产物，H3 拒（契约 H4 也拒）；a1 写别的一趟的实现记录也拒', () => {
   const opts = TWO()
   opts.pointer = 'f1'
@@ -168,11 +168,11 @@ test('运行上下文读得出时：花名册外的子代理写别的一趟 run 
   withProject(opts, (p) => {
     const other = { agentType: 'helper:writer', agentId: 'o1', sid: 's-9' }
     for (const name of ['00-contract.md', '04-dispatch.md']) {
-      assert.equal(denied(write(p, join(p, '.agent-team', 'runs', 't1', name), other)), true, name)
+      assert.equal(denied(write(p, join(p, '.poundlock', 'runs', 't1', name), other)), true, name)
     }
-    assert.equal(denied(write(p, join(p, '.agent-team', 'runs', 't1', '00-contract.md'), other, { check: 'contract' })), true, 'H4')
-    assert.equal(denied(write(p, join(p, '.agent-team', 'runs', 't2', '05-impl', 'at-frontend.md'), { role: 'at-frontend', agentId: 'a1', sid: 's-1' })), true)
-    assert.equal(denied(write(p, join(p, '.agent-team', 'runs', 't1', '05-impl', 'at-frontend.md'), { role: 'at-frontend', agentId: 'a1', sid: 's-1' })), false, '自己那一趟的实现记录照写')
+    assert.equal(denied(write(p, join(p, '.poundlock', 'runs', 't1', '00-contract.md'), other, { check: 'contract' })), true, 'H4')
+    assert.equal(denied(write(p, join(p, '.poundlock', 'runs', 't2', '05-impl', 'at-frontend.md'), { role: 'at-frontend', agentId: 'a1', sid: 's-1' })), true)
+    assert.equal(denied(write(p, join(p, '.poundlock', 'runs', 't1', '05-impl', 'at-frontend.md'), { role: 'at-frontend', agentId: 'a1', sid: 's-1' })), false, '自己那一趟的实现记录照写')
   })
 })
 
@@ -199,7 +199,7 @@ test('t1 收口之后，它派出去的 a1 照样认回 t1：写 api/ 照 t1 判
 
 test('主线程读不到会话 id：挑不出这一趟，照 current-run 判，stderr 留一行', () => {
   withProject(TWO(), (p) => {
-    const out = write(p, join(p, '.agent-team', 'runs', 't1', '04-dispatch.md'), { sid: null })
+    const out = write(p, join(p, '.poundlock', 'runs', 't1', '04-dispatch.md'), { sid: null })
     assert.equal(denied(out), false)
     assert.match(out.stderr, /挑这一趟：hook 输入里读不到会话 id[^\n]*按 current-run 判/)
   })
@@ -207,7 +207,7 @@ test('主线程读不到会话 id：挑不出这一趟，照 current-run 判，s
 
 test('s-1 的项目经理写 s-2 那一趟微调的契约：会话归属那一道拒', () => {
   withProject(TWO(), (p) => {
-    const out = write(p, join(p, '.agent-team', 'runs', 't2', '00-contract.md'), { sid: 's-1' })
+    const out = write(p, join(p, '.poundlock', 'runs', 't2', '00-contract.md'), { sid: 's-1' })
     assert.equal(denied(out), true)
     assert.match(reasonOf(out), /会话归属/)
   })
@@ -226,8 +226,8 @@ test('「可以了，收尾」记进这个会话名下的那一趟微调（不�
       p,
     )
     assert.equal(out.status, 0, out.stderr)
-    assert.match(readFileSync(join(p, '.agent-team', 'runs', 't1', 'approvals.jsonl'), 'utf8'), /tweak-done/)
-    assert.equal(existsSync(join(p, '.agent-team', 'runs', 'f1', 'approvals.jsonl')), false)
+    assert.match(readFileSync(join(p, '.poundlock', 'runs', 't1', 'approvals.jsonl'), 'utf8'), /tweak-done/)
+    assert.equal(existsSync(join(p, '.poundlock', 'runs', 'f1', 'approvals.jsonl')), false)
   })
 })
 
@@ -243,13 +243,13 @@ test('门禁源码里读运行上下文只有一处（runCtxFor）：每一次�
 // 互斥（hooks/lib/parallel.mjs 的 decideExclusion）：H6 在建 run 的那一次判。夹具照真实顺序：命令展开时记下的原话还挂着，项目经理直接 Write 新一趟的 state.json。
 const pendingWords = (p, sid, command = 'at-tweak') =>
   writeFileSync(
-    join(p, '.agent-team', 'user-words.json'),
+    join(p, '.poundlock', 'user-words.json'),
     JSON.stringify({ version: 2, sessions: { [sid]: { at: AT, session_id: sid, args: '标题改大', source: 'command', command, runs_before: [], binding: null, bound: null, dropped: null } } }),
   )
 const create = (p, id, mode, sid) =>
   run(
     'rework',
-    { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: PM, session_id: sid, tool_input: { file_path: join(p, '.agent-team', 'runs', id, 'state.json'), content: JSON.stringify(stateOf(id, { mode, stage: 'S1' }), null, 2) } },
+    { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: PM, session_id: sid, tool_input: { file_path: join(p, '.poundlock', 'runs', id, 'state.json'), content: JSON.stringify(stateOf(id, { mode, stage: 'S1' }), null, 2) } },
     GATE,
     p,
   )
@@ -305,7 +305,7 @@ const land = (p, file, who) => {
 }
 const claimsOf = (p, id) => {
   try {
-    return readFileSync(join(p, '.agent-team', 'runs', id, 'claims.jsonl'), 'utf8')
+    return readFileSync(join(p, '.poundlock', 'runs', id, 'claims.jsonl'), 'utf8')
   } catch {
     return ''
   }
@@ -357,9 +357,9 @@ test('认领：t1 收口之后 a2 写 web/a.ts 放行；项目经理（主线程
   withProject(TWO_S5(), (p) => {
     land(p, join(p, 'web', 'a.ts'), A1)
     assert.equal(denied(write(p, join(p, 'web', 'a.ts'), { sid: 's-2' })), false, '项目经理')
-    assert.equal(denied(write(p, join(p, '.agent-team', 'runs', 't1', 'claims.jsonl'), { sid: 's-1' })), true, '门禁专属')
-    const st = JSON.parse(readFileSync(join(p, '.agent-team', 'runs', 't1', 'state.json'), 'utf8'))
-    writeFileSync(join(p, '.agent-team', 'runs', 't1', 'state.json'), JSON.stringify({ ...st, closed_at: AT }))
+    assert.equal(denied(write(p, join(p, '.poundlock', 'runs', 't1', 'claims.jsonl'), { sid: 's-1' })), true, '门禁专属')
+    const st = JSON.parse(readFileSync(join(p, '.poundlock', 'runs', 't1', 'state.json'), 'utf8'))
+    writeFileSync(join(p, '.poundlock', 'runs', 't1', 'state.json'), JSON.stringify({ ...st, closed_at: AT }))
     assert.equal(denied(write(p, join(p, 'web', 'a.ts'), A2)), false)
   })
 })
@@ -369,7 +369,7 @@ test('认领：t1 收口之后 a2 写 web/a.ts 放行；项目经理（主线程
 const writeState = (p, id, sid, state) =>
   run(
     'rework',
-    { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: PM, session_id: sid, tool_input: { file_path: join(p, '.agent-team', 'runs', id, 'state.json'), content: JSON.stringify(state, null, 2) } },
+    { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: PM, session_id: sid, tool_input: { file_path: join(p, '.poundlock', 'runs', id, 'state.json'), content: JSON.stringify(state, null, 2) } },
     GATE,
     p,
   )
@@ -384,7 +384,7 @@ const askAbandon = (p, runId, sid, answer = '放弃这一趟') => {
 }
 const approvalsOf = (p, id) => {
   try {
-    return readFileSync(join(p, '.agent-team', 'runs', id, 'approvals.jsonl'), 'utf8')
+    return readFileSync(join(p, '.poundlock', 'runs', id, 'approvals.jsonl'), 'utf8')
   } catch {
     return ''
   }
@@ -402,7 +402,7 @@ test('放弃一趟微调：没批准写 abandoned 拒；s-1 选「放弃这一�
     assert.match(ctxText(rec), /【放弃】/)
     assert.match(approvalsOf(p, 't1'), /"kind":"abandon"/)
     assert.equal(denied(writeState(p, 't1', 's-1', abandoned)), false, ctxText(rec))
-    writeFileSync(join(p, '.agent-team', 'runs', 't1', 'state.json'), JSON.stringify(abandoned))
+    writeFileSync(join(p, '.poundlock', 'runs', 't1', 'state.json'), JSON.stringify(abandoned))
     assert.equal(denied(create(p, 'f9', 'full', 's-3')), false, '放弃了的微调不再挡完整的一趟')
   })
 })
@@ -413,7 +413,7 @@ test('放弃一趟完整的需求：current-run 指着 s-1 的 f1（停在 S3）
     assert.match(approvalsOf(p, 'f1'), /"kind":"abandon"/)
     const abandoned = { ...stateOf('f1', { mode: 'full', stage: 'S3', history: H('S1', 'S2', 'S3') }), closed_at: AT, abandoned: true }
     assert.equal(denied(writeState(p, 'f1', 's-1', abandoned)), false)
-    writeFileSync(join(p, '.agent-team', 'runs', 'f1', 'state.json'), JSON.stringify(abandoned))
+    writeFileSync(join(p, '.poundlock', 'runs', 'f1', 'state.json'), JSON.stringify(abandoned))
     pendingWords(p, 's-1')
     assert.equal(denied(create(p, 't3', 'tweak', 's-1')), false)
   })
@@ -424,7 +424,7 @@ test('放弃一趟完整的需求：current-run 指着 s-1 的 f1（停在 S3）
 const expand = (p, command, sid) =>
   run(
     'session-notice',
-    { hook_event_name: 'UserPromptExpansion', expansion_type: 'slash_command', command_name: 'agent-team:' + command, command_args: '改个字', command_source: 'plugin', prompt: '/agent-team:' + command + ' 改个字', session_id: sid },
+    { hook_event_name: 'UserPromptExpansion', expansion_type: 'slash_command', command_name: 'poundlock:' + command, command_args: '改个字', command_source: 'plugin', prompt: '/poundlock:' + command + ' 改个字', session_id: sid },
     GATE,
     p,
   )
@@ -437,9 +437,9 @@ const askTakeover = (p, runId, sid) => {
     p,
   )
 }
-const ownerOf = (p, id) => JSON.parse(readFileSync(join(p, '.agent-team', 'runs', id, 'owner.json'), 'utf8')).session_id
+const ownerOf = (p, id) => JSON.parse(readFileSync(join(p, '.poundlock', 'runs', id, 'owner.json'), 'utf8')).session_id
 
-test('命令展开：t1（s-1）开着——s-2 的 /agent-team:at 收到【微调】与「有微调开着」；s-1 的 /agent-team:at-tweak 收到「先收尾」；s-3 的 /agent-team:at-resume 收到接手那条出路', () => {
+test('命令展开：t1（s-1）开着——s-2 的 /poundlock:at 收到【微调】与「有微调开着」；s-1 的 /poundlock:at-tweak 收到「先收尾」；s-3 的 /poundlock:at-resume 收到接手那条出路', () => {
   withProject({ runs: [{ id: 't1', owner: 's-1' }] }, (p) => {
     const at = ctxText(expand(p, 'at', 's-2'))
     assert.match(at, /【微调】/)
@@ -460,7 +460,7 @@ test('接手别的会话的微调：s-3 选「在这个会话接手」、题面�
     assert.match(ctxText(yes), /已记下/)
     assert.equal(ownerOf(p, 't1'), 's-3')
     assert.equal(denied(dispatch(p, 'at-frontend', 's-3')), false)
-    assert.equal(denied(write(p, join(p, '.agent-team', 'runs', 't1', '04-dispatch.md'), { sid: 's-1' })), true, '原来的会话再写，拒')
+    assert.equal(denied(write(p, join(p, '.poundlock', 'runs', 't1', '04-dispatch.md'), { sid: 's-1' })), true, '原来的会话再写，拒')
   })
 })
 
@@ -484,12 +484,12 @@ test('一整趟并行：s-1 的 t1 与 s-2 的 t2 同时走到 S5，a2 撞上 t1
       steps.push(label)
       assert.equal(r.denied, false, `${label}：${r.check} 拒了——${r.reason}`)
     }
-    const dirOf = (id) => join(p, '.agent-team', 'runs', id)
+    const dirOf = (id) => join(p, '.poundlock', 'runs', id)
     const ids = ['S1', 'S4', 'S5', 'S6', 'S8']
     const state = (id, stage, extra = {}) => JSON.stringify(stateOf(id, { stage, history: H(...ids.slice(0, ids.indexOf(stage) + 1)), extra }), null, 2)
     const contractOf = (words) => ['# 00 契约', '', '## 1. 用户原话', '', words, '', '## 2. PM 的理解（可改）', '', '- 网页版。', '', '## 4. 修订记录', ''].join(NL)
     const startTweak = (id, sid, words, agentId) => {
-      run('user-words', { hook_event_name: 'UserPromptExpansion', expansion_type: 'slash_command', command_name: 'agent-team:at-tweak', command_args: words, command_source: 'plugin', prompt: '/agent-team:at-tweak ' + words, session_id: sid }, GATE, p)
+      run('user-words', { hook_event_name: 'UserPromptExpansion', expansion_type: 'slash_command', command_name: 'poundlock:at-tweak', command_args: words, command_source: 'plugin', prompt: '/poundlock:at-tweak ' + words, session_id: sid }, GATE, p)
       const pm = { sid }
       must(`${id} 建 run`, doWrite(join(dirOf(id), 'state.json'), state(id, 'S1'), pm))
       const contract = contractOf(words)
@@ -501,7 +501,7 @@ test('一整趟并行：s-1 的 t1 与 s-2 的 t2 同时走到 S5，a2 撞上 t1
       for (const check of ['delegation', 'readiness']) assert.equal(denied(dispatch(p, 'at-frontend', sid, check)), false, `${id} 派 at-frontend（${check}）`)
       run(
         'deliverable',
-        { hook_event_name: 'PostToolUse', tool_name: 'Agent', agent_type: PM, session_id: sid, tool_input: { subagent_type: 'agent-team:at-frontend', description: 'x', prompt: 'x' }, tool_response: { isAsync: true, status: 'async_launched', agentId, description: 'x', prompt: 'x' } },
+        { hook_event_name: 'PostToolUse', tool_name: 'Agent', agent_type: PM, session_id: sid, tool_input: { subagent_type: 'poundlock:at-frontend', description: 'x', prompt: 'x' }, tool_response: { isAsync: true, status: 'async_launched', agentId, description: 'x', prompt: 'x' } },
         GATE,
         p,
       )
@@ -532,7 +532,7 @@ test('一整趟并行：s-1 的 t1 与 s-2 的 t2 同时走到 S5，a2 撞上 t1
     askAbandon(p, 't2', 's-2')
     const t2now = JSON.parse(readFileSync(join(dirOf('t2'), 'state.json'), 'utf8'))
     must('t2 放弃', doWrite(join(dirOf('t2'), 'state.json'), JSON.stringify({ ...t2now, closed_at: new Date().toISOString(), abandoned: true }, null, 2), { sid: 's-2' }))
-    assert.equal(existsSync(join(p, '.agent-team', 'current-run')), false, '微调不写 current-run')
+    assert.equal(existsSync(join(p, '.poundlock', 'current-run')), false, '微调不写 current-run')
     // 之后 s-3 起完整的一趟
     must('s-3 建完整的一趟', doWrite(join(dirOf('f9'), 'state.json'), JSON.stringify(stateOf('f9', { mode: 'full', stage: 'S1' }), null, 2), { sid: 's-3' }))
     assert.equal(ownerOf(p, 't1'), 's-1')
@@ -546,7 +546,7 @@ const ledgerOf = (p, file, sid) => write(p, file, sid === null ? { sid: null } :
 
 test('读不到会话 id：项目经理写微调 t1 的派发，current-run 指着 f1——账本说是微调、不要去改 current-run，不叫它把指针指过去', () => {
   withProject({ pointer: 'f1', runs: [{ id: 'f1', mode: 'full', stage: 'S3', owner: 's-9', history: H('S1', 'S2', 'S3') }, { id: 't1', owner: 's-1' }] }, (p) => {
-    const ctx = ctxText(ledgerOf(p, join(p, '.agent-team', 'runs', 't1', '04-dispatch.md'), null))
+    const ctx = ctxText(ledgerOf(p, join(p, '.poundlock', 'runs', 't1', '04-dispatch.md'), null))
     assert.match(ctx, /微调/)
     assert.match(ctx, /不要去改/)
     assert.doesNotMatch(ctx, /current-run 指到它/)
@@ -555,8 +555,8 @@ test('读不到会话 id：项目经理写微调 t1 的派发，current-run 指�
 
 test('读不到会话 id、current-run 指着的那一趟 state.json 坏了：写微调 t1 的契约，同样说是微调、不叫它改指针', () => {
   withProject({ pointer: 'f1', runs: [{ id: 'f1', mode: 'full', stage: 'S3', owner: 's-9' }, { id: 't1', owner: 's-1' }] }, (p) => {
-    writeFileSync(join(p, '.agent-team', 'runs', 'f1', 'state.json'), '{ 坏')
-    const ctx = ctxText(ledgerOf(p, join(p, '.agent-team', 'runs', 't1', '00-contract.md'), null))
+    writeFileSync(join(p, '.poundlock', 'runs', 'f1', 'state.json'), '{ 坏')
+    const ctx = ctxText(ledgerOf(p, join(p, '.poundlock', 'runs', 't1', '00-contract.md'), null))
     assert.match(ctx, /微调/)
     assert.doesNotMatch(ctx, /current-run 指到它/)
   })
@@ -566,7 +566,7 @@ test('读不到会话 id：微调 t1 推进被拒时，诊断说是微调、不�
   const files = { '00-contract.md': DOC('契约'), '04-dispatch.md': DOC('派发'), '05-impl/at-frontend.md': DOC('实现'), '06-test.md': '结论：不通过\n' }
   withProject({ runs: [{ id: 't1', owner: 's-1', stage: 'S6', files, extra: { stage_roles: { S5: ['at-frontend'] }, roster: ['at-frontend'] } }] }, (p) => {
     const next = { ...stateOf('t1', { stage: 'S8', extra: { stage_roles: { S5: ['at-frontend'] }, roster: ['at-frontend'] } }) }
-    const noSid = run('rework', { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: PM, tool_input: { file_path: join(p, '.agent-team', 'runs', 't1', 'state.json'), content: JSON.stringify(next, null, 2) } }, GATE, p)
+    const noSid = run('rework', { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: PM, tool_input: { file_path: join(p, '.poundlock', 'runs', 't1', 'state.json'), content: JSON.stringify(next, null, 2) } }, GATE, p)
     assert.equal(denied(noSid), true)
     assert.match(reasonOf(noSid), /微调/)
     assert.doesNotMatch(reasonOf(noSid), /指回/)

@@ -22,7 +22,7 @@ function section(text, head) {
 
 const QA = [
   '照 `04-dispatch.md`「代码基线」那一节记的，在项目根只用只读的 git 命令',
-  "`git --no-optional-locks -c core.quotepath=off diff <基线> -- . ':(exclude).agent-team'`",
+  "`git --no-optional-locks -c core.quotepath=off diff <基线> -- . ':(exclude).poundlock'`",
   '整份 `Read`',
   '基线写着「还没有提交」的，没有可比的提交',
   '基线写着「不是 git 仓库」或「没记」的，照各份实现记录列出的文件读，并写明这一次没有 diff',
@@ -66,7 +66,7 @@ test('at-acceptance 不再把代码好不好推给没接这个活的人，指向
   assert.ok(has(acc, '代码对不对、好不好，是 `at-qa` 的事：它在 `06-test.md` 的「审查」一节里报'), acc.slice(0, 200))
 })
 
-test('/agent-team:at 的 S6 有一条读「审查」：排在测试报告第一行那一条之后、「回退」之前；必须修的先核实再回退', () => {
+test('/poundlock:at 的 S6 有一条读「审查」：排在测试报告第一行那一条之后、「回退」之前；必须修的先核实再回退', () => {
   const at = read('commands/at.md')
   const pos = at.indexOf('- **S6 测试报告的审查**')
   assert.ok(pos > at.indexOf('- **S6 测试报告的第一行**') && pos < at.indexOf('### 回退'), '位置不对')

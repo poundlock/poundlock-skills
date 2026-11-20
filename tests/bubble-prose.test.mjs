@@ -1,5 +1,5 @@
 // 审查第 18 条（M4c，docs/37）：冒泡的正文这一半——收件的协调者怎么读下级的冒泡。门禁那一半（H5b 认标记）在 tests/gate-bubble.test.mjs，
-// PM 那一侧（/agent-team:at 第 3 节「核实」、S5 那一条、回退表）与 at-qa 的没开跑在 tests/shared-paths-prose.test.mjs。
+// PM 那一侧（/poundlock:at 第 3 节「核实」、S5 那一条、回退表）与 at-qa 的没开跑在 tests/shared-paths-prose.test.mjs。
 // 标记取自 hooks/lib/deliverable.mjs 的 BUBBLE_MARK：改名时门禁、拒绝文案、正文一起红。
 import { test } from 'node:test'
 import assert from 'node:assert/strict'

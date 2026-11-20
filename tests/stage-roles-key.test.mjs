@@ -24,7 +24,7 @@ test('decideStageRolesKey（docs/78）：建 run 的那一次不带 stage_roles 
   const created = decideStageRolesKey({ before: null, after: without(NEW, 'stage_roles'), creating: true })
   assert.equal(created.ok, false)
   assert.match(created.reason, /stage_roles/)
-  assert.match(created.reason, /\/agent-team:at 第 1 节/)
+  assert.match(created.reason, /\/poundlock:at 第 1 节/)
   assert.equal(decideStageRolesKey({ before: null, after: NEW, creating: true }).ok, true)
   const dropped = decideStageRolesKey({ before: NEW, after: without(NEW, 'stage_roles'), creating: false })
   assert.equal(dropped.ok, false)
@@ -50,7 +50,7 @@ test('decideStageRolesKey（docs/78）：建 run 的那一次不带 stage_roles 
 const write = (statePath, state) => ({
   hook_event_name: 'PreToolUse',
   tool_name: 'Write',
-  agent_type: 'agent-team:at-pm',
+  agent_type: 'poundlock:at-pm',
   session_id: 's-1',
   tool_input: { file_path: statePath, content: JSON.stringify(state, null, 2) },
 })
@@ -59,8 +59,8 @@ const decisionOf = (r) => (r.stdout.trim() ? JSON.parse(r.stdout).hookSpecificOu
 test('H6（docs/78）：照真实顺序建 run——项目经理直接 Write runs/<id>/state.json（目录还不在）：不带 stage_roles 拒，带了放行', () => {
   const dirs = makeRun({ runId: 'r1', stage: 'S1' })
   try {
-    rmSync(join(dirs.projectDir, '.agent-team', 'runs', 'r1'), { recursive: true, force: true })
-    const statePath = join(dirs.projectDir, '.agent-team', 'runs', '20261011-1500-demo', 'state.json')
+    rmSync(join(dirs.projectDir, '.poundlock', 'runs', 'r1'), { recursive: true, force: true })
+    const statePath = join(dirs.projectDir, '.poundlock', 'runs', '20261011-1500-demo', 'state.json')
     const no = decisionOf(run('rework', write(statePath, without(NEW, 'stage_roles')), GATE, dirs.projectDir))
     assert.equal(no.permissionDecision, 'deny', JSON.stringify(no))
     assert.match(no.permissionDecisionReason, /stage_roles/)
@@ -76,7 +76,7 @@ test('H6（docs/78）：有 stage_roles 的一趟，这次写入把它去掉了�
   for (const legacy of [false, true]) {
     const dirs = makeRun({ runId: 'r1', stage: 'S2', roster: [], stage_roles: legacy ? null : {} })
     try {
-      const statePath = join(dirs.projectDir, '.agent-team', 'runs', 'r1', 'state.json')
+      const statePath = join(dirs.projectDir, '.poundlock', 'runs', 'r1', 'state.json')
       const now = JSON.parse(readFileSync(statePath, 'utf8'))
       const next = without({ ...now, escalations: [] }, 'stage_roles')
       const d = decisionOf(run('rework', write(statePath, next), GATE, dirs.projectDir))
@@ -96,9 +96,9 @@ test('H6（docs/78）：有 stage_roles 的一趟，这次写入把它去掉了�
 test('H6（docs/78 §8）：Edit 建 run 不带 stage_roles 拒、带了放行；Edit 把它去掉拒', () => {
   const dirs = makeRun({ runId: 'r1', stage: 'S1' })
   try {
-    rmSync(join(dirs.projectDir, '.agent-team', 'runs', 'r1'), { recursive: true, force: true })
-    const statePath = join(dirs.projectDir, '.agent-team', 'runs', '20261011-1500-demo', 'state.json')
-    const edit = (old_string, new_string) => ({ hook_event_name: 'PreToolUse', tool_name: 'Edit', agent_type: 'agent-team:at-pm', session_id: 's-1', tool_input: { file_path: statePath, old_string, new_string } })
+    rmSync(join(dirs.projectDir, '.poundlock', 'runs', 'r1'), { recursive: true, force: true })
+    const statePath = join(dirs.projectDir, '.poundlock', 'runs', '20261011-1500-demo', 'state.json')
+    const edit = (old_string, new_string) => ({ hook_event_name: 'PreToolUse', tool_name: 'Edit', agent_type: 'poundlock:at-pm', session_id: 's-1', tool_input: { file_path: statePath, old_string, new_string } })
     assert.equal(decisionOf(run('rework', edit('', JSON.stringify(without(NEW, 'stage_roles'), null, 2)), GATE, dirs.projectDir)).permissionDecision, 'deny')
     assert.notEqual(decisionOf(run('rework', edit('', JSON.stringify(NEW, null, 2)), GATE, dirs.projectDir)).permissionDecision, 'deny')
     // 落盘之后（照真实顺序：Write 建目录、写文件），再用 Edit 去掉那一行。
@@ -114,15 +114,15 @@ test('H6（docs/78 §8）：Edit 建 run 不带 stage_roles 拒、带了放行�
 })
 
 // 复核（docs/78 §8，中 2）：建 run 因为缺 stage_roles 被拒，原话记录里不留打算绑到哪一趟（binding）——那一趟没建出来。这一条排在原话绑定之前。
-test('H6（docs/78 §8）：/agent-team:at 之后建 run 不带 stage_roles 被拒——项目一级的原话记录不记 binding', () => {
+test('H6（docs/78 §8）：/poundlock:at 之后建 run 不带 stage_roles 被拒——项目一级的原话记录不记 binding', () => {
   const dirs = makeRun({ runId: 'r1', stage: 'S1' })
   try {
-    rmSync(join(dirs.projectDir, '.agent-team', 'runs', 'r1'), { recursive: true, force: true })
-    const expansion = { hook_event_name: 'UserPromptExpansion', expansion_type: 'slash_command', command_name: 'agent-team:at', command_args: '做一个待办应用', command_source: 'plugin', prompt: '/agent-team:at 做一个待办应用', session_id: 's-1' }
+    rmSync(join(dirs.projectDir, '.poundlock', 'runs', 'r1'), { recursive: true, force: true })
+    const expansion = { hook_event_name: 'UserPromptExpansion', expansion_type: 'slash_command', command_name: 'poundlock:at', command_args: '做一个待办应用', command_source: 'plugin', prompt: '/poundlock:at 做一个待办应用', session_id: 's-1' }
     run('user-words', expansion, GATE, dirs.projectDir)
-    const statePath = join(dirs.projectDir, '.agent-team', 'runs', '20261011-1500-demo', 'state.json')
+    const statePath = join(dirs.projectDir, '.poundlock', 'runs', '20261011-1500-demo', 'state.json')
     assert.equal(decisionOf(run('rework', write(statePath, without(NEW, 'stage_roles')), GATE, dirs.projectDir)).permissionDecision, 'deny')
-    const words = JSON.parse(readFileSync(join(dirs.projectDir, '.agent-team', USER_WORDS_FILE), 'utf8'))
+    const words = JSON.parse(readFileSync(join(dirs.projectDir, '.poundlock', USER_WORDS_FILE), 'utf8'))
     assert.equal(words.binding ?? null, null, JSON.stringify(words))
     assert.ok(!existsSync(join(statePath, '..')))
   } finally {
@@ -138,7 +138,7 @@ test('H6（docs/78 §8）：跑过一阵的一趟（目录里有任何一份门�
   for (const name of GATE_FILES.map((p) => p.split('/').pop())) {
     const dirs = makeRun({ runId: 'r1', stage: 'S2', artifacts: ['00-contract.md'], roster: [] })
     try {
-      const statePath = join(dirs.projectDir, '.agent-team', 'runs', 'r1', 'state.json')
+      const statePath = join(dirs.projectDir, '.poundlock', 'runs', 'r1', 'state.json')
       writeFileSync(join(statePath, '..', name), name === 'dispatches.jsonl' ? dispatchLine({ at: '2026-10-11T10:00:00.000Z', agentId: 'a0000000000000b01', toolUseId: null, role: 'at-product', stage: 'S2', caller: '__main__', callerId: null, mode: 'background' }) + '\n' : '{}')
       const now = JSON.parse(readFileSync(statePath, 'utf8'))
       rmSync(statePath)
@@ -151,7 +151,7 @@ test('H6（docs/78 §8）：跑过一阵的一趟（目录里有任何一份门�
   }
 })
 
-// 第二轮复核（docs/78 §8，中 1、中 2、低 2）：建 run 的几种走法都核——先建空目录再写（/agent-team:at 第 1 节的正路）、先写了契约再建 run（门禁的回传会把人
+// 第二轮复核（docs/78 §8，中 1、中 2、低 2）：建 run 的几种走法都核——先建空目录再写（/poundlock:at 第 1 节的正路）、先写了契约再建 run（门禁的回传会把人
 // 引到这条路上）、目录里多了系统杂文件或空子目录、第二趟（runs/ 下已经有别的一趟）。
 test('H6（docs/78 §8）：先建空目录、先写了契约、目录里有系统杂文件或空子目录、第二趟——建 run 不带 stage_roles 都拒，带了放行', () => {
   const cases = {
@@ -167,7 +167,7 @@ test('H6（docs/78 §8）：先建空目录、先写了契约、目录里有系�
     // 第二趟：runs/ 下留着 makeRun 建的 r1（一趟完整的 run），新的一趟另起一个目录。
     const dirs = makeRun({ runId: 'r1', stage: 'S5', artifacts: ['00-contract.md'], roster: [] })
     try {
-      const dir = join(dirs.projectDir, '.agent-team', 'runs', '20261011-1500-demo')
+      const dir = join(dirs.projectDir, '.poundlock', 'runs', '20261011-1500-demo')
       mkdirSync(dir)
       prep(dir)
       const statePath = join(dir, 'state.json')
@@ -186,7 +186,7 @@ test('H6（docs/78 §8）：先建空目录、先写了契约、目录里有系�
 test('H6（docs/78）：写入之前的 state.json 在、却不是合法 JSON——不当成建 run，不带 stage_roles 的修复写入照常放行', () => {
   const dirs = makeRun({ runId: 'r1', stage: 'S2', roster: [], stage_roles: {} })
   try {
-    const statePath = join(dirs.projectDir, '.agent-team', 'runs', 'r1', 'state.json')
+    const statePath = join(dirs.projectDir, '.poundlock', 'runs', 'r1', 'state.json')
     const now = JSON.parse(readFileSync(statePath, 'utf8'))
     writeFileSync(statePath, '{ 坏了')
     const d = decisionOf(run('rework', write(statePath, without(now, 'stage_roles')), GATE, dirs.projectDir))
@@ -197,7 +197,7 @@ test('H6（docs/78）：写入之前的 state.json 在、却不是合法 JSON—
   }
 })
 
-test('正文（docs/78）：/agent-team:at 第 1 节说清建 run 那一次少了 stage_roles 会被拒，之后每次写都要带着它', () => {
+test('正文（docs/78）：/poundlock:at 第 1 节说清建 run 那一次少了 stage_roles 会被拒，之后每次写都要带着它', () => {
   const at = readFileSync(new URL('../commands/at.md', import.meta.url), 'utf8')
   const s1 = at.slice(at.indexOf('## 1. 建 run'), at.indexOf('## 2. '))
   assert.ok(s1.includes('建 run 那一次少了 `stage_roles`（或者值不是对象），门禁拒这次写入'), s1)

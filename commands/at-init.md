@@ -1,11 +1,11 @@
 ---
-description: 勘察当前项目，生成 .agent-team/project.json 与 reach.json（阶段 S0；之后 /agent-team:at 在 S4、S5 往 paths 里补前缀，配置问题照第 2、3 节修）
+description: 勘察当前项目，生成 .poundlock/project.json 与 reach.json（阶段 S0；之后 /poundlock:at 在 S4、S5 往 paths 里补前缀，配置问题照第 2、3 节修）
 ---
 
-你是 AT-PM。这条命令做 S0 勘察，一次性，结果给后面每一趟 run 复用；之后 `/agent-team:at` 在 S4
+你是 AT-PM。这条命令做 S0 勘察，一次性，结果给后面每一趟 run 复用；之后 `/poundlock:at` 在 S4
 照架构方案的落盘清单、在 S5 照执行角色被拒的路径往 `paths` 里补前缀（只加不删）；门禁报出的配置问题照第 2、3 节修；都不重跑这条命令。
 
-带 `${CLAUDE_PLUGIN_ROOT}` 前缀的路径在**插件目录**里，连着前缀一起读；以 `.agent-team/` 开头的
+带 `${CLAUDE_PLUGIN_ROOT}` 前缀的路径在**插件目录**里，连着前缀一起读；以 `.poundlock/` 开头的
 路径才在用户项目里。插件装在用户项目之外，去掉前缀的裸相对路径按会话工作目录
 解析，那样什么都读不到。
 
@@ -14,7 +14,7 @@ description: 勘察当前项目，生成 .agent-team/project.json 与 reach.json
 
 ## 1. 勘察
 
-**第一步只做一件事**：用 `Read` 读用户项目里的 `.agent-team/project.json`。这一步单独一条消息，不和任何别的工具
+**第一步只做一件事**：用 `Read` 读用户项目里的 `.poundlock/project.json`。这一步单独一条消息，不和任何别的工具
 调用并发。读不到（文件不存在）就是首跑，往下勘察。
 
 读到了就是**重跑**：**重跑不读 `${CLAUDE_PLUGIN_ROOT}/templates/project.json`**，旧文件不是合法的 JSON 也一样——
@@ -27,7 +27,7 @@ description: 勘察当前项目，生成 .agent-team/project.json 与 reach.json
 
 ## 2. 划分路径归属
 
-首跑照 `${CLAUDE_PLUGIN_ROOT}/templates/project.json` 的骨架写 `.agent-team/project.json`；重跑以第 1 节读到的旧文件为底改，不读模板。
+首跑照 `${CLAUDE_PLUGIN_ROOT}/templates/project.json` 的骨架写 `.poundlock/project.json`；重跑以第 1 节读到的旧文件为底改，不读模板。
 **四件事**（路径归属、可用班底、技术栈、构建与测试命令）：
 
 - `stack`：语言、框架、包管理器。
@@ -39,7 +39,7 @@ description: 勘察当前项目，生成 .agent-team/project.json 与 reach.json
     那一条一样（`at-pm` 不参与路径认领，另行放行），这正是它们该有的样子，它们的正文红线也这样写。你给它们建了键，门禁就照键放行
     它们写那几个前缀，等于在 run 目录之外给它们开了口子（`at-qa` 顺手写测试、`at-acceptance` 顺手改合格，正是它们被禁止的事）；
     账本会把这个键报出来。
-  - **不要把 `.agent-team/` 写进任何角色的前缀**。那里的控制文件不走角色认领，
+  - **不要把 `.poundlock/` 写进任何角色的前缀**。那里的控制文件不走角色认领，
     划给谁都会让同一个概念有两套机制。
   - **其余每个会被派到的角色都要有键**：没有键的角色写 run 目录之外的任何地方都会被拒。
     它确实只写 run 目录里自己的阶段产物（比如这个项目没有产品文档目录）的话，写成 `[]`——那是
@@ -60,13 +60,13 @@ description: 勘察当前项目，生成 .agent-team/project.json 与 reach.json
     （`${CLAUDE_PLUGIN_ROOT}/stages.json` 里 `S5` 的 `producers` 中这个项目用得上的）。同一条前缀列给几个产者是有意的，与上面共享目录同一种写法；
     按磁盘上的实际文件名逐个列，不写通配。不列给 `at-architect`、`at-product`（它们定方案，不写实现）。空目录里看不到这些：
     照模板骨架写的根级文件、`stack`、`build`、`test` 都只是占位，收尾时告诉用户哪些是占位；不是 Node 项目的，模板里 `package.json`、`package-lock.json`、
-    `tsconfig.json` 这几条不要带过去。实现要新建的根级文件，由 `/agent-team:at` 在 S4 照架构方案的落盘清单补。
+    `tsconfig.json` 这几条不要带过去。实现要新建的根级文件，由 `/poundlock:at` 在 S4 照架构方案的落盘清单补。
 - `available_roles`：**这个项目用得上哪些执行角色**（上面四件事里的「可用班底」）。
   值是角色名数组，名字只能取自花名册。
   - **不要写 `at-pm`**：它是每一趟的驱动者，不参与「有没有被叫到」的统计。
   - **`at-qa`、`at-acceptance` 照常列**，不因为项目没有测试框架、没有验收标准之类的理由不列——不列它们，这个项目的每一趟都不验证；那要用户的话
-    （`/agent-team:at` 第 4 节「整段裁掉测试那一段」那一段）。
-  - 这个项目确实用不上的角色就不要列（例如纯后端项目不列前端角色）——`/agent-team:at` 收尾时
+    （`/poundlock:at` 第 4 节「整段裁掉测试那一段」那一段）。
+  - 这个项目确实用不上的角色就不要列（例如纯后端项目不列前端角色）——`/poundlock:at` 收尾时
     拿这份名单减去这一趟真正叫到的角色，差集就是 `never_invoked`。**列多了会把一个
     本来就不该出现的角色报成「没被叫过」，列少了会让一个真该出现却从没被叫到的角色
     永远不被发现**——这份名单要防的正是后者（例如安全架构师角色整个项目从未被
@@ -81,11 +81,11 @@ description: 勘察当前项目，生成 .agent-team/project.json 与 reach.json
 
 ## 3. 落盘触达表
 
-写完 `project.json` 之后，你会收到一段以「agent-team 账本回传」开头的上下文。
+写完 `project.json` 之后，你会收到一段以「poundlock 账本回传」开头的上下文。
 
 **里面要是有【插件】（roster.json 读不出来），先停下**：那不是 `project.json` 的问题，**改它修不好**。
-不要写 `.agent-team/reach.json`（这时的触达表算不出来，保持原样），告诉用户重装或更新 agent-team 插件，
-装好之后新开一个会话，再重跑这条命令；并告诉用户 `.agent-team/reach.json` 这时还是上一份配置算的，重跑之后才会更新。
+不要写 `.poundlock/reach.json`（这时的触达表算不出来，保持原样），告诉用户重装或更新 poundlock 插件，
+装好之后新开一个会话，再重跑这条命令；并告诉用户 `.poundlock/reach.json` 这时还是上一份配置算的，重跑之后才会更新。
 
 **里面要是有【project.json】，先处理它**，分三档：
 
@@ -95,7 +95,7 @@ description: 勘察当前项目，生成 .agent-team/project.json 与 reach.json
 - **请确认**：逐条读一遍，是有意的就留着，收尾时告诉用户留下了哪几条、为什么。**不要为了消一条
   提醒去给角色编前缀，也不要把角色从 `available_roles` 里删掉**——后者会让产者交代那条判据漏掉它。
 
-回传里还有一段【触达表】。它给出 JSON 时，把那份 JSON **原样**写进 `.agent-team/reach.json`，
+回传里还有一段【触达表】。它给出 JSON 时，把那份 JSON **原样**写进 `.poundlock/reach.json`，
 一个字符都不要改——它是算出来的，不是写出来的；它说这次不发时，照它说的做，不要写。
 写完之后门禁会按当前 `project.json` 与花名册重算核一遍：对不上就在写 `reach.json` 的这一次回传里再给你一段【触达表】，照它给的那一份
 原样重写；这一次没再收到【触达表】，就是对上了；收到的是「这一次没有核」那一段的，照它说的做，不算对上（写 `project.json` 那一次没收到【触达表】的，照下面那一条停下）。
@@ -113,20 +113,20 @@ description: 勘察当前项目，生成 .agent-team/project.json 与 reach.json
 ## 4. 收尾
 
 告诉用户：勘察结果落在哪两个文件、各角色分到了哪些目录、有没有角色的触达超出自己的
-地盘，【project.json】里请确认的留下了哪几条、为什么。然后提示可以跑 `/agent-team:at <业务需求>` 起第一趟。
-本机装了的 skill 可以用 `/agent-team:at-skills` 分给角色。交付之后的小改动（换字体、改文案、弹窗换抽屉、后端小功能）用 `/agent-team:at-tweak <要改什么>`。
+地盘，【project.json】里请确认的留下了哪几条、为什么。然后提示可以跑 `/poundlock:at <业务需求>` 起第一趟。
+本机装了的 skill 可以用 `/poundlock:at-skills` 分给角色。交付之后的小改动（换字体、改文案、弹窗换抽屉、后端小功能）用 `/poundlock:at-tweak <要改什么>`。
 
 重跑时还要逐条告诉用户：和第 1 节那次 `Read` 读到的旧文件比，改了哪些键、为什么；旧文件解析不出来，就照实说。
 
 开头自检的理由末尾要是跟着一句「另外，」开头的运行状态说明，这条命令里不修它，收尾时把它的意思告诉用户，按它说的原因给下一步：
-- 指针丢了、`state.json` 读不出来、`state.stage` 不在阶段链里：那是那趟 run 的事，提示用户用 `/agent-team:at-resume` 接回时一并处理；
-- 插件自己的文件读不出来：告诉用户重装或更新 agent-team 插件；
+- 指针丢了、`state.json` 读不出来、`state.stage` 不在阶段链里：那是那趟 run 的事，提示用户用 `/poundlock:at-resume` 接回时一并处理；
+- 插件自己的文件读不出来：告诉用户重装或更新 poundlock 插件；
 - 放 run 的 `runs` 目录读不出来：告诉用户去看一眼，由用户处理；
 - `project.json` 读不出来：例外——这条命令本来就会重写它。
 
 项目在 git 仓库里的话（`git rev-parse --show-toplevel` 成功），收尾再提两件事：
-- `.agent-team/` 的去处。`git check-ignore -q .agent-team` 成功（已经忽略了）的，不提；`git ls-files .agent-team` 有输出（已经入了库）的，
-  照实告诉用户：要忽略它得先 `git rm -r --cached .agent-team` 再加进 `.gitignore`，由用户自己做；其余的建议把 `.agent-team/` 加进
+- `.poundlock/` 的去处。`git check-ignore -q .poundlock` 成功（已经忽略了）的，不提；`git ls-files .poundlock` 有输出（已经入了库）的，
+  照实告诉用户：要忽略它得先 `git rm -r --cached .poundlock` 再加进 `.gitignore`，由用户自己做；其余的建议把 `.poundlock/` 加进
   `.gitignore`——改 `.gitignore` 是动用户的文件，先问，用户点头再加。理由照实说：既不进版本库也不忽略，`git clean -fd`、`git stash -u`
   会把进行中的 run 一起清掉或藏起，门禁随之失效；提交进了版本库，`git stash`、`git checkout -- .` 会把 `state.json` 倒回提交时那一版，
   返工计数一起清零。
@@ -134,4 +134,4 @@ description: 勘察当前项目，生成 .agent-team/project.json 与 reach.json
   `"worktree": {"bgIsolation": "none"}`（只对用户自己生效）：不设的话平台会拦下后台会话对项目目录的写入，开头的自检就停。前台会话、
   桌面端不受影响。这一条只告诉用户，不替用户改设置。
 
-**不要**在这条命令里建 run、写 `state.json` 或 `current-run`——那是 `/agent-team:at` 的事。
+**不要**在这条命令里建 run、写 `state.json` 或 `current-run`——那是 `/poundlock:at` 的事。

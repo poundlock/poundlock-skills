@@ -106,7 +106,7 @@ test('M3x：/at-resume 第 2 节「齐了」那一支指回 /at 的同一次 Wri
   assert.match(RESUME_S2, /空集要么是这一段还没记账/)
 })
 
-// 续跑时 PM 手上没有 /agent-team:at 的正文（主会话没有 Skill 工具），不给可读的路径就读不到那几条规矩——
+// 续跑时 PM 手上没有 /poundlock:at 的正文（主会话没有 Skill 工具），不给可读的路径就读不到那几条规矩——
 // 真实会话里没读到的几次都把 trimmed 写成了 { 段: [角色] }（docs/32 §3）。
 test('M3x：/at-resume「产物齐了」那一支给出 at.md 的可读路径、两个字段的方向，并写明旧 run 不加 stage_roles', () => {
   const done = bulletOf(RESUME_S2, '\\*\\*产物齐了\\*\\*')
@@ -115,11 +115,11 @@ test('M3x：/at-resume「产物齐了」那一支给出 at.md 的可读路径、
   assert.match(done, /没有 `stage_roles`[^\n]*不要加/, '「产物齐了」那一支没写旧 run（没有 stage_roles）不要加')
 })
 
-test('M3x：/at-resume 里引用 /agent-team:at 某一节的段落，都带着 at.md 的可读路径', () => {
-  const paras = RESUME.split(/\n\s*\n/).filter((p) => p.includes('`/agent-team:at`') && /节/.test(p))
-  assert.ok(paras.length > 0, '前置：commands/at-resume.md 里找不到引用 /agent-team:at 某一节的段落——这条判据空转了')
+test('M3x：/at-resume 里引用 /poundlock:at 某一节的段落，都带着 at.md 的可读路径', () => {
+  const paras = RESUME.split(/\n\s*\n/).filter((p) => p.includes('`/poundlock:at`') && /节/.test(p))
+  assert.ok(paras.length > 0, '前置：commands/at-resume.md 里找不到引用 /poundlock:at 某一节的段落——这条判据空转了')
   for (const p of paras) {
-    assert.ok(p.includes('`${CLAUDE_PLUGIN_ROOT}/commands/at.md`'), `这一段引用了 /agent-team:at 的某一节，却没给可读路径：${p.slice(0, 80)}`)
+    assert.ok(p.includes('`${CLAUDE_PLUGIN_ROOT}/commands/at.md`'), `这一段引用了 /poundlock:at 的某一节，却没给可读路径：${p.slice(0, 80)}`)
   }
 })
 

@@ -15,7 +15,7 @@ const PROJECT = {
     'at-frontend': ['src/web/', 'src/shared/'],
   },
 }
-const RUN = '/proj/.agent-team/runs/r1'
+const RUN = '/proj/.poundlock/runs/r1'
 
 // Important 2（评审三轮）：run 目录下的合法写入集不再是"目录下任何东西"，
 // 而是"调用者自己阶段的 produces"，判据来自 stages.json。夹具形状照抄
@@ -30,7 +30,7 @@ const STAGES = {
   S6: { role: 'at-frontend', requires: [], produces: ['05-impl/at-frontend.md'] },
 }
 
-const AT = '/proj/.agent-team'
+const AT = '/proj/.poundlock'
 
 const call = (role, filePath) =>
   decideWritePath({ roster: ROSTER, role, filePath, project: PROJECT, runDir: RUN, stages: STAGES, agentTeamDir: AT })
@@ -160,8 +160,8 @@ test('写 run 目录下任意非产物文件拒绝——不是"目录下随便�
 // writepath.mjs 里 `if (underDir(filePath, runDir))` 这个调用点被错误替换（比如手滑
 // 写成裸的 startsWith 判断），H3 这一层不会有任何东西响——这条补上。
 //
-// 夹具里 RUN 是 '/proj/.agent-team/runs/r1'，同前缀的兄弟目录是
-// '/proj/.agent-team/runs/r1-backup'：'r1-backup' 以 'r1' 开头，但不是 r1 的子目录。
+// 夹具里 RUN 是 '/proj/.poundlock/runs/r1'，同前缀的兄弟目录是
+// '/proj/.poundlock/runs/r1-backup'：'r1-backup' 以 'r1' 开头，但不是 r1 的子目录。
 //
 // 断言不能只看 decision === 'deny'：如果 underDir 退化成 startsWith(d)（去掉尾部
 // 斜杠），目标会被误判成"在 run 目录下"，但因为它既不是任何阶段的 produces、也没有
@@ -204,8 +204,8 @@ test('同一角色多个阶段的 produces 都能写——不是只认第一个�
 test('S5 多产者：at-frontend 写自己的实现记录，归属算到 at-frontend 而不是 S5.role', () => {
   const owner = stageOwnerOfRunPath(
     STAGES_M2A,
-    '/p/.agent-team/runs/r1',
-    norm('/p/.agent-team/runs/r1/05-impl/at-frontend.md'),
+    '/p/.poundlock/runs/r1',
+    norm('/p/.poundlock/runs/r1/05-impl/at-frontend.md'),
   )
   assert.equal(owner.role, 'at-frontend')
 })
@@ -213,8 +213,8 @@ test('S5 多产者：at-frontend 写自己的实现记录，归属算到 at-fron
 test('S5 多产者：不在 producers 里的角色名不产生归属', () => {
   const owner = stageOwnerOfRunPath(
     STAGES_M2A,
-    '/p/.agent-team/runs/r1',
-    norm('/p/.agent-team/runs/r1/05-impl/at-outsider.md'),
+    '/p/.poundlock/runs/r1',
+    norm('/p/.poundlock/runs/r1/05-impl/at-outsider.md'),
   )
   assert.equal(owner, null)
 })
@@ -436,11 +436,11 @@ test('第 33 条（WP1）：前缀按目录边界认——src/server 盖不住 s
   assert.equal(r('/proj/src/serverless.ts').decision, 'deny')
 })
 
-// 用户登记的 skill 复制在 .agent-team/skills/ 下、清单是 .agent-team/skills.json：角色读它们照做，所以角色不能改它们——
-// 哪怕 paths 里把那个目录写给了它（.agent-team 不划给任何角色）。项目经理经 skills-cli 写，这里放行。
-test('只有项目经理写得进 .agent-team/skills.json 与 .agent-team/skills/ 下', () => {
+// 用户登记的 skill 复制在 .poundlock/skills/ 下、清单是 .poundlock/skills.json：角色读它们照做，所以角色不能改它们——
+// 哪怕 paths 里把那个目录写给了它（.poundlock 不划给任何角色）。项目经理经 skills-cli 写，这里放行。
+test('只有项目经理写得进 .poundlock/skills.json 与 .poundlock/skills/ 下', () => {
   const dispatchable = [...new Set(Object.values(ROSTER).flatMap((r) => r.can_delegate_to ?? []))]
-  const claimed = { paths: { ...PROJECT.paths, 'at-ui': ['.agent-team/skills/'], 'at-qa': ['.agent-team/'] } }
+  const claimed = { paths: { ...PROJECT.paths, 'at-ui': ['.poundlock/skills/'], 'at-qa': ['.poundlock/'] } }
   for (const rel of [SKILLS_REGISTRY, `${SKILLS_DIR}/ui-kit__polish/SKILL.md`]) {
     const filePath = `${AT}/${rel}`
     for (const role of dispatchable) {

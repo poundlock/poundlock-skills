@@ -14,7 +14,7 @@ import { dispatchLine, stopLine } from '../hooks/lib/completion.mjs'
 const NL = String.fromCharCode(10)
 const TAG = '【派发】这一趟收口了'
 const ctxOf = (stdout) => (stdout.trim() ? JSON.parse(stdout).hookSpecificOutput?.additionalContext ?? '' : '')
-const posted = (file) => ({ hook_event_name: 'PostToolUse', tool_name: 'Write', agent_type: 'agent-team:at-pm', tool_input: { file_path: file } })
+const posted = (file) => ({ hook_event_name: 'PostToolUse', tool_name: 'Write', agent_type: 'poundlock:at-pm', tool_input: { file_path: file } })
 const AT = '2026-10-10T10:00:00.000Z'
 const id = (n) => 'a' + String(n).padStart(16, '0')
 const dispatched = (n, role, stage) => dispatchLine({ at: AT, agentId: id(n), toolUseId: null, role, stage, caller: 'at-pm', callerId: null, mode: 'background' })
@@ -22,7 +22,7 @@ const stopped = (n, role, stage, outcome) => stopLine({ at: AT, agentId: id(n), 
 
 function withRun({ closed, log, other = null }, body) {
   const dirs = makeRun({ runId: 'r1', stage: 'S8', roster: ['at-backend', 'at-frontend', 'at-qa'] })
-  const runsDir = join(dirs.projectDir, '.agent-team', 'runs')
+  const runsDir = join(dirs.projectDir, '.poundlock', 'runs')
   const runDir = join(runsDir, 'r1')
   const statePath = join(runDir, 'state.json')
   const state = JSON.parse(readFileSync(statePath, 'utf8'))
@@ -88,7 +88,7 @@ test('复核（docs/56 §8）：收口之后写别的文件（不是 state.json�
   })
 })
 
-test('/agent-team:at 收口第五步：同时收到【派发】列出的门禁没见停下的人，照它如实告诉用户（不叫它等一条不一定会到的通知）', () => {
+test('/poundlock:at 收口第五步：同时收到【派发】列出的门禁没见停下的人，照它如实告诉用户（不叫它等一条不一定会到的通知）', () => {
   const at = readFileSync(new URL('../commands/at.md', import.meta.url), 'utf8').replace(/\s+/g, '')
   assert.ok(at.includes('同时收到别的回传（例如产者交代、【派发】列出的门禁没见停下的人）的，照它如实告诉用户。'), 'commands/at.md')
   assert.ok(!at.includes('等它停下再汇报'), 'commands/at.md')

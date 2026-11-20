@@ -6,7 +6,7 @@
 // 事实），不看正文用了哪个词（tests/agents.test.mjs 记过「换个同义词就整份被跳过」那一族）。
 //
 // 复核（docs/40 §3）：承重的句子整句钉住（空白不计）——只认关键词的判据挡不住「把话说反」（「不必停下」照样含「停下」）。红线的
-// 清单从 /agent-team:at 第 4 节 sensitive 那一行逐项取来核：两处原来各写各的，多出来的一项在 PM 那一侧没有落点。
+// 清单从 /poundlock:at 第 4 节 sensitive 那一行逐项取来核：两处原来各写各的，多出来的一项在 PM 那一侧没有落点。
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync, readdirSync } from 'node:fs'
@@ -20,11 +20,11 @@ const bodyOf = (f) => read(`agents/${f}`).split(/^---\s*$/m).slice(2).join('---'
 const stripWs = (s) => s.replace(/\s+/g, '')
 const has = (text, sentence) => stripWs(text).includes(stripWs(sentence))
 const roster = JSON.parse(read('roster.json'))
-const MAIN = JSON.parse(read('settings.json')).agent.replace(/^agent-team:/, '')
+const MAIN = JSON.parse(read('settings.json')).agent.replace(/^poundlock:/, '')
 
 const AGENTS = readdirSync(url('agents')).filter((f) => f.endsWith('.md'))
 const BASH_ROLES = AGENTS.filter((f) => toolsDeclarationOf(read(`agents/${f}`)).names.includes('Bash'))
-// 执行角色：持 Bash、不是主会话。主会话（PM）碰到敏感操作是自己问用户（/agent-team:at 第 4 节的 sensitive），不冒泡。
+// 执行角色：持 Bash、不是主会话。主会话（PM）碰到敏感操作是自己问用户（/poundlock:at 第 4 节的 sensitive），不冒泡。
 const BASH_EXEC = BASH_ROLES.filter((f) => f !== `${MAIN}.md`)
 // 只跑测试、不认领路径的那一类（at-qa）例外不同：它不改代码，要起停测试用的服务。按 tools: 里有没有 Edit 分——没有 Edit 的执行
 // 角色改不了代码。
@@ -37,7 +37,7 @@ const COORDINATORS = Object.entries(roster)
 const RED_LINE =
   '- **敏感或不可逆的操作不做，停下冒泡**：凭据/密钥/密码；产生费用；对外发送或发布（发包、部署）；删除或覆盖非本趟产出的文件；' +
   '清空或改动非本趟建的数据（数据库、云上资源）；`git push` 或改远端；动 CI/CD 与生产配置；动工作树或历史的 `git` 命令（`clean`、' +
-  '`stash`、`reset`、`checkout`、`switch`、`restore`、`rebase`、`commit` 这类——没进版本库的 `.agent-team/` 会被一起清掉或藏起，进了' +
+  '`stash`、`reset`、`checkout`、`switch`、`restore`、`rebase`、`commit` 这类——没进版本库的 `.poundlock/` 会被一起清掉或藏起，进了' +
   '版本库的 `state.json` 会被倒回去）；结束不是自己起的进程（按名字或端口一把杀——`taskkill /IM`、`killall`、`pkill` 这类——会把这台机器上' +
   '同名的进程全杀掉，连带用户别的程序，还可能有 Claude Code 自己与它的工具）。' +
   `碰到这样一步就停下，最后一条回复的第一行写「${BUBBLE_MARK}」，说清是哪一步、为什么要它——做不做由用户定。` +
@@ -57,10 +57,10 @@ function redLineSection(body) {
 }
 const hasRedLine = (body, except) => has(redLineSection(body), RED_LINE + except)
 
-/** /agent-team:at 第 4 节表里 sensitive 那一行的各项。 */
+/** /poundlock:at 第 4 节表里 sensitive 那一行的各项。 */
 function sensitiveItems() {
   const row = read('commands/at.md').split(/\r?\n/).find((l) => l.startsWith('| `sensitive` |'))
-  assert.ok(row, '/agent-team:at 第 4 节没有 sensitive 那一行')
+  assert.ok(row, '/poundlock:at 第 4 节没有 sensitive 那一行')
   return row.split('|')[2].split('；').map((s) => s.trim()).filter(Boolean)
 }
 
@@ -87,7 +87,7 @@ function redLineItems() {
 // 括号里是说明（举例、后果），两处可以写得不一样；比的是括号外的那一项本身。
 const itemKey = (s) => stripWs(s.replace(/（[^）]*）/g, ''))
 
-test('M4e 复核：红线的清单与 /agent-team:at 第 4 节 sensitive 那一行逐项对得上（两个方向）——PM 照那一行问用户，多出、少掉的一项都没有落点', () => {
+test('M4e 复核：红线的清单与 /poundlock:at 第 4 节 sensitive 那一行逐项对得上（两个方向）——PM 照那一行问用户，多出、少掉的一项都没有落点', () => {
   const at = sensitiveItems().map(itemKey).sort()
   const red = redLineItems().map(itemKey).sort()
   assert.ok(at.length > 0 && red.length > 0)
@@ -142,7 +142,7 @@ test('M4e 复核 PM 红线：动工作树或历史的 git 命令自己也不跑�
     has(
       red,
       '- **动工作树或历史的 `git` 命令你也不自己跑**（`clean`、`stash`、`reset`、`checkout`、`switch`、`restore`、`rebase`、`commit` 这类）：' +
-        '要跑先照 `/agent-team:at` 第 4 节的 `sensitive` 问用户——没进版本库的 `.agent-team/` 会被一起清掉或藏起，进了版本库的 `state.json`' +
+        '要跑先照 `/poundlock:at` 第 4 节的 `sensitive` 问用户——没进版本库的 `.poundlock/` 会被一起清掉或藏起，进了版本库的 `state.json`' +
         '会被倒回去。门禁回传里提到这些命令的，是让你转告用户，不是让你去跑。',
     ),
     'PM 的红线缺 git 命令那一条',
@@ -158,7 +158,7 @@ const STOP_NOTE =
   '与 PID，不要按名字或端口一把杀。'
 const PM_PROCESS =
   '- **不是你自己起的进程你也不结束**：按名字或端口一把杀（`taskkill /IM`、`killall`、`pkill` 这类）会把这台机器上同名的进程全杀掉，' +
-  '连带用户别的程序，还可能有 Claude Code 自己与它的工具——要那样做先照 `/agent-team:at` 第 4 节的 `sensitive` 问用户。'
+  '连带用户别的程序，还可能有 Claude Code 自己与它的工具——要那样做先照 `/poundlock:at` 第 4 节的 `sensitive` 问用户。'
 
 test('M4h：红线与 sensitive 那一行都有「结束不是自己起的进程」（两处逐项对得上由上面那条核）', () => {
   assert.ok(sensitiveItems().map(itemKey).includes(itemKey('结束不是自己起的进程')), sensitiveItems().join(' / '))
@@ -179,7 +179,7 @@ test('M4h README 两半「什么时候会问你」的敏感操作那一行：列
   assert.ok(row(read('README.md'), '| Sensitive |').includes("killing processes it didn't start"), row(read('README.md'), '| Sensitive |'))
 })
 
-test('M4e 复核：批准只认契约修订记录——/agent-team:at 第 4 节写清 sensitive 的修订块怎么写；架构师单列要删除、改名的已有文件，PM 在 S4 一次问完', () => {
+test('M4e 复核：批准只认契约修订记录——/poundlock:at 第 4 节写清 sensitive 的修订块怎么写；架构师单列要删除、改名的已有文件，PM 在 S4 一次问完', () => {
   const at = read('commands/at.md')
   assert.ok(has(at, 'sensitive 那一类的答复，修订块里写清是哪一步、批不批——执行角色碰到红线里那几类操作时，只认这里写明批准了的那一步。'))
   assert.ok(has(at, '落盘清单末尾标了「删除」「改名」的已有文件也一样，一次问完'))
@@ -219,8 +219,8 @@ test('M4e 第 25 条 at-pm 自检：平台报错里提到 EnterWorktree 或 bgIs
   )
 })
 
-test('M4e at-pm：at-init 收尾那一问（.gitignore）与 /agent-team:at 第 1 节那一问一样另算，不记 escalation', () => {
-  assert.ok(has(bodyOf(`${MAIN}.md`), '`/agent-team:at-init` 收尾那一问（要不要把 `.agent-team/` 加进 `.gitignore`）也另算：不记 escalation、不动契约。'))
+test('M4e at-pm：at-init 收尾那一问（.gitignore）与 /poundlock:at 第 1 节那一问一样另算，不记 escalation', () => {
+  assert.ok(has(bodyOf(`${MAIN}.md`), '`/poundlock:at-init` 收尾那一问（要不要把 `.poundlock/` 加进 `.gitignore`）也另算：不记 escalation、不动契约。'))
 })
 
 test('M4e 第 39、25 条 at-init 收尾：在 git 仓库里才提；已忽略的不提、已入库的由用户先撤；建议 .gitignore 先问；后台会话的设置只告诉不代改', () => {
@@ -228,8 +228,8 @@ test('M4e 第 39、25 条 at-init 收尾：在 git 仓库里才提；已忽略�
   const s = init.slice(init.indexOf('## 4. 收尾'))
   for (const sentence of [
     '项目在 git 仓库里的话（`git rev-parse --show-toplevel` 成功），收尾再提两件事：',
-    '`git check-ignore -q .agent-team` 成功（已经忽略了）的，不提；`git ls-files .agent-team` 有输出（已经入了库）的，照实告诉用户：' +
-      '要忽略它得先 `git rm -r --cached .agent-team` 再加进 `.gitignore`，由用户自己做；其余的建议把 `.agent-team/` 加进 `.gitignore`' +
+    '`git check-ignore -q .poundlock` 成功（已经忽略了）的，不提；`git ls-files .poundlock` 有输出（已经入了库）的，照实告诉用户：' +
+      '要忽略它得先 `git rm -r --cached .poundlock` 再加进 `.gitignore`，由用户自己做；其余的建议把 `.poundlock/` 加进 `.gitignore`' +
       '——改 `.gitignore` 是动用户的文件，先问，用户点头再加。',
     '要在这个仓库里用后台会话（`claude --bg`、agent view）跑团队，得先在项目的 `.claude/settings.local.json` 里设 ' +
       '`"worktree": {"bgIsolation": "none"}`（只对用户自己生效）：不设的话平台会拦下后台会话对项目目录的写入，开头的自检就停。' +
@@ -253,7 +253,7 @@ const SERVICE_NOTE =
 const AFTER_SERVICE_IMPL = '加依赖先用 `Edit` 改清单'
 const AFTER_SERVICE_QA = '**`06-test.md` 的第一行写总的结论'
 const PM_SERVICE_NOTE =
-  `你自己起的服务用完就停；收口时要留着给用户看效果的，照 \`/agent-team:at\` 第 6 节写进交付文档的 \`${SERVICES_HEAD}\`，与执行角色记下的一起核、问用户` +
+  `你自己起的服务用完就停；收口时要留着给用户看效果的，照 \`/poundlock:at\` 第 6 节写进交付文档的 \`${SERVICES_HEAD}\`，与执行角色记下的一起核、问用户` +
   '——那一问里用户选了停掉的，执行角色起的也照那一节按核出来的 PID 停，不再照 `sensitive` 记。'
 const PM_AFTER = '- **返工计数只许增，不许减。**'
 const BS = String.fromCharCode(92)
@@ -287,10 +287,10 @@ const CLOSE_SERVICES = [
 const CLOSE_TELL =
   `还在跑的服务（停不掉的、用户要留着的、问不了没停的），告诉用户在 \`08-delivery.md\` 的 \`${SERVICES_HEAD}\`，逐个说端口、PID、怎么停；` +
   '只列出来的，告诉用户那一节另列着，不是团队记下的、没动。'
-const PM_ASIDE = '`/agent-team:at` 第 6 节收口时问要不要停还在跑的服务那一问也另算：不记 escalation、不动契约。'
+const PM_ASIDE = '`/poundlock:at` 第 6 节收口时问要不要停还在跑的服务那一问也另算：不记 escalation、不动契约。'
 const RESUME_RECHECK = '写收口标记之前，照那一节第三步把起过的服务重核一遍、还在跑的照它问用户，交付文档那一节照结果改'
 
-/** /agent-team:at 第 6 节里第 n 步（「**三、」到下一步「**四、」之前；第五步到「收口之后这一趟就冻结了」之前）。 */
+/** /poundlock:at 第 6 节里第 n 步（「**三、」到下一步「**四、」之前；第五步到「收口之后这一趟就冻结了」之前）。 */
 function closeStep(n) {
   const at = read('commands/at.md')
   const s6 = at.slice(at.indexOf('## 6. 收尾'))

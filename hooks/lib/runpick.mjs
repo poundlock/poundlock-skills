@@ -5,7 +5,7 @@
 //     照它判写路径比落到 current-run 或「没有 run」上对。找不到（前台派发的派发记录跑完才记）再按 hook 输入里的会话 id 找这个会话名下没收尾的那一趟。
 //   - 主线程（项目经理、不带 agent_type 的主会话；不带 agent_id）：这个会话名下没收口的那一趟微调。
 //   - 都不是：回 null，调用方照旧按 current-run。
-// 「是不是一趟微调」只认门禁记过的：state.json 写着 tweak、run 目录里绑着 /agent-team:at-tweak 的原话记录（门禁专属）——state.json 里自己写一个 mode
+// 「是不是一趟微调」只认门禁记过的：state.json 写着 tweak、run 目录里绑着 /poundlock:at-tweak 的原话记录（门禁专属）——state.json 里自己写一个 mode
 // 换不来这一层（与 H1 换花名册、H6 认 mode 同一个口径）。
 import { isPlainObject } from './stages.mjs'
 import { modeOf, TWEAK_MODE } from './tweak.mjs'

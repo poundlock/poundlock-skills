@@ -11,13 +11,13 @@ import { makeRun } from './fixtures/make-run.mjs'
 
 const NL = String.fromCharCode(10)
 const INJECT = fileURLToPath(new URL('./helpers/inject-throw.cjs', import.meta.url))
-const crash = (check, input, cwd, how) => run(check, input, GATE, cwd, { ...hermeticEnv(), AGENT_TEAM_TEST_THROW: how }, { nodeArgs: ['-r', INJECT] })
+const crash = (check, input, cwd, how) => run(check, input, GATE, cwd, { ...hermeticEnv(), POUNDLOCK_TEST_THROW: how }, { nodeArgs: ['-r', INJECT] })
 const H = (...ids) => ids.map((stage) => ({ stage, at: '2026-10-06T10:00:00Z' }))
 const CHAIN = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8']
 
 function withRun(opts, files, body) {
   const dirs = makeRun({ runId: 'r1', ...opts })
-  const runDir = join(dirs.projectDir, '.agent-team', 'runs', 'r1')
+  const runDir = join(dirs.projectDir, '.poundlock', 'runs', 'r1')
   for (const [name, text] of Object.entries(files)) writeFileSync(join(runDir, name), text)
   try {
     return body({ ...dirs, runDir })
@@ -29,8 +29,8 @@ function withRun(opts, files, body) {
 
 test('第 33 条（G10）：H1 判定中途崩溃——最外层 catch 照安全边界拒，理由带上异常消息', () => {
   withRun({ stage: 'S2', history: H('S1', 'S2') }, {}, ({ projectDir }) => {
-    const target = 'agent-team:at-crash'
-    const input = { hook_event_name: 'PreToolUse', tool_name: 'Agent', agent_type: 'agent-team:at-pm', tool_input: { subagent_type: target, prompt: 'x' } }
+    const target = 'poundlock:at-crash'
+    const input = { hook_event_name: 'PreToolUse', tool_name: 'Agent', agent_type: 'poundlock:at-pm', tool_input: { subagent_type: target, prompt: 'x' } }
     const r = crash('delegation', input, projectDir, `prefix:${target}`)
     const d = decisionOf(r.stdout)
     assert.equal(d?.permissionDecision, 'deny', r.stdout + r.stderr)
@@ -45,7 +45,7 @@ test('第 33 条（CK4）：H6 是 fail closed 的——收口那一次写入在
     const statePath = join(runDir, 'state.json')
     const now = JSON.parse(readFileSync(statePath, 'utf8'))
     const content = JSON.stringify({ ...now, never_invoked: [], closed_at: '2026-10-06T12:00:00Z' }, null, 2)
-    const input = { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'agent-team:at-pm', tool_input: { file_path: statePath, content } }
+    const input = { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'poundlock:at-pm', tool_input: { file_path: statePath, content } }
     assert.equal(decisionOf(run('rework', input, GATE, projectDir).stdout), null, '不注入时这次收口放行')
     const r = crash('rework', input, projectDir, 'normalize')
     const d = decisionOf(r.stdout)

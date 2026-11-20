@@ -156,13 +156,13 @@ const ENV_OFF = hermeticEnv()
 const ENV_ON = { ...hermeticEnv(), [TRACE_ENV]: '1' }
 
 function cleanDir() {
-  const cwd = mkdtempSync(join(tmpdir(), 'agent-team-trace-cwd-'))
+  const cwd = mkdtempSync(join(tmpdir(), 'poundlock-trace-cwd-'))
   return { cwd, cleanup: () => rmSync(cwd, { recursive: true, force: true }) }
 }
 
 function fromRun(opts) {
   const dirs = makeRun(opts)
-  const runDir = join(dirs.projectDir, '.agent-team', 'runs', opts.runId ?? 'r1')
+  const runDir = join(dirs.projectDir, '.poundlock', 'runs', opts.runId ?? 'r1')
   return {
     cwd: dirs.projectDir,
     runDir,
@@ -179,7 +179,7 @@ const SCENARIOS = [
     check: 'delegation',
     setup: () => ({
       ...cleanDir(),
-      input: { tool_name: 'Agent', agent_type: 'at-pm', tool_input: { subagent_type: 'agent-team:at-product' } },
+      input: { tool_name: 'Agent', agent_type: 'at-pm', tool_input: { subagent_type: 'poundlock:at-product' } },
     }),
     shape: { status: 0, stdout: 'empty', stderr: 'empty' },
   },
@@ -197,7 +197,7 @@ const SCENARIOS = [
     check: 'readiness',
     setup: () => ({
       ...fromRun({ runId: 'r1', stage: 'S2', artifacts: ['00-contract.md'], roster: ['at-product'], project: PROJECT }),
-      input: { tool_name: 'Agent', agent_type: 'at-pm', tool_input: { subagent_type: 'agent-team:at-product' } },
+      input: { tool_name: 'Agent', agent_type: 'at-pm', tool_input: { subagent_type: 'poundlock:at-product' } },
     }),
     shape: { status: 0, stdout: 'empty', stderr: 'empty' },
   },
@@ -206,7 +206,7 @@ const SCENARIOS = [
     check: 'readiness',
     setup: () => ({
       ...cleanDir(),
-      input: { tool_name: 'Agent', agent_type: 'at-pm', tool_input: { subagent_type: 'agent-team:at-product' } },
+      input: { tool_name: 'Agent', agent_type: 'at-pm', tool_input: { subagent_type: 'poundlock:at-product' } },
     }),
     shape: { status: 0, stdout: 'empty', stderr: 'nonempty' },
   },
@@ -293,7 +293,7 @@ const SCENARIOS = [
     check: 'deliverable',
     setup: () => ({
       ...fromRun({ runId: 'r1', stage: 'S2', roster: ['at-product'] }),
-      input: { tool_name: 'Agent', tool_input: { subagent_type: 'agent-team:at-product' } },
+      input: { tool_name: 'Agent', tool_input: { subagent_type: 'poundlock:at-product' } },
     }),
     shape: { status: 0, stdout: 'nonempty', stderr: 'empty' },
   },
@@ -302,7 +302,7 @@ const SCENARIOS = [
     check: 'stop-gate',
     setup: () => ({
       ...fromRun({ runId: 'r1', stage: 'S2', artifacts: ['01-prd.md'] }),
-      input: { hook_event_name: 'SubagentStop', agent_type: 'agent-team:at-product' },
+      input: { hook_event_name: 'SubagentStop', agent_type: 'poundlock:at-product' },
     }),
     shape: { status: 0, stdout: 'empty', stderr: 'empty' },
   },
@@ -311,7 +311,7 @@ const SCENARIOS = [
     check: 'stop-gate',
     setup: () => ({
       ...fromRun({ runId: 'r1', stage: 'S2' }),
-      input: { hook_event_name: 'SubagentStop', agent_type: 'agent-team:at-product' },
+      input: { hook_event_name: 'SubagentStop', agent_type: 'poundlock:at-product' },
     }),
     shape: { status: 2, stdout: 'empty', stderr: 'nonempty' },
   },
@@ -323,12 +323,12 @@ const SCENARIOS = [
     check: 'stop-gate',
     setup: () => ({
       ...fromRun({ runId: 'r1', stage: 'S4' }),
-      input: { hook_event_name: 'SubagentStop', agent_type: 'agent-team:at-pm' },
+      input: { hook_event_name: 'SubagentStop', agent_type: 'poundlock:at-pm' },
     }),
     shape: { status: 0, stdout: 'empty', stderr: 'empty' },
   },
   {
-    name: 'ledger：写的不在 .agent-team 下，静默退出',
+    name: 'ledger：写的不在 .poundlock 下，静默退出',
     check: 'ledger',
     setup: () => {
       const s = fromRun({ runId: 'r1', stage: 'S2' })
@@ -384,7 +384,7 @@ const SCENARIOS = [
     check: 'handback',
     setup: () => ({
       ...fromRun({ runId: 'r1', stage: 'S2', artifacts: ['01-prd.md'] }),
-      input: { hook_event_name: 'PreToolUse', tool_name: 'SubagentHandback', agent_type: 'agent-team:at-product', tool_input: { message: '写好了。' } },
+      input: { hook_event_name: 'PreToolUse', tool_name: 'SubagentHandback', agent_type: 'poundlock:at-product', tool_input: { message: '写好了。' } },
     }),
     shape: { status: 0, stdout: 'empty', stderr: 'empty' },
   },
@@ -393,7 +393,7 @@ const SCENARIOS = [
     check: 'handback',
     setup: () => ({
       ...fromRun({ runId: 'r1', stage: 'S2' }),
-      input: { hook_event_name: 'PreToolUse', tool_name: 'SubagentHandback', agent_type: 'agent-team:at-product', tool_input: { message: '写好了。' } },
+      input: { hook_event_name: 'PreToolUse', tool_name: 'SubagentHandback', agent_type: 'poundlock:at-product', tool_input: { message: '写好了。' } },
     }),
     shape: { status: 0, stdout: 'nonempty', stderr: 'empty' },
   },
@@ -405,7 +405,7 @@ const SCENARIOS = [
       input: {
         hook_event_name: 'PostToolUse',
         tool_name: 'SubagentHandback',
-        agent_type: 'agent-team:at-product',
+        agent_type: 'poundlock:at-product',
         tool_input: { message: '冒泡：缺输入' },
         tool_response: { success: true, message: 'Report delivered to your caller.' },
       },
@@ -419,20 +419,20 @@ const SCENARIOS = [
     setup: () => ({ ...fromRun({ runId: 'r1', stage: 'S2' }), input: { hook_event_name: 'UserPromptSubmit', prompt: '继续' } }),
     shape: { status: 0, stdout: 'empty', stderr: 'empty' },
   },
-  // M4o（docs/50）：原话记录器。只取不写文件的两格——记下原话会写 .agent-team/user-words.json，那是记录器的本分。
+  // M4o（docs/50）：原话记录器。只取不写文件的两格——记下原话会写 .poundlock/user-words.json，那是记录器的本分。
   {
-    name: 'user-words：展开的不是 /agent-team:at，静默',
+    name: 'user-words：展开的不是 /poundlock:at，静默',
     check: 'user-words',
     setup: () => ({
       ...fromRun({ runId: 'r1', stage: 'S2' }),
-      input: { hook_event_name: 'UserPromptExpansion', expansion_type: 'slash_command', command_name: 'agent-team:at-init', command_args: 'x', session_id: 's' },
+      input: { hook_event_name: 'UserPromptExpansion', expansion_type: 'slash_command', command_name: 'poundlock:at-init', command_args: 'x', session_id: 's' },
     }),
     shape: { status: 0, stdout: 'empty', stderr: 'empty' },
   },
   {
-    name: 'user-words：项目里没有 .agent-team，不记，stderr 留痕',
+    name: 'user-words：项目里没有 .poundlock，不记，stderr 留痕',
     check: 'user-words',
-    setup: () => ({ ...cleanDir(), input: { hook_event_name: 'UserPromptExpansion', expansion_type: 'slash_command', command_name: 'agent-team:at', command_args: 'x', session_id: 's' } }),
+    setup: () => ({ ...cleanDir(), input: { hook_event_name: 'UserPromptExpansion', expansion_type: 'slash_command', command_name: 'poundlock:at', command_args: 'x', session_id: 's' } }),
     shape: { status: 0, stdout: 'empty', stderr: 'nonempty' },
   },
   // 一趟只归一个会话：命令展开时的【会话】。这一趟没有归属记录（旧 run），静默。
@@ -441,7 +441,7 @@ const SCENARIOS = [
     check: 'session-notice',
     setup: () => ({
       ...fromRun({ runId: 'r1', stage: 'S2' }),
-      input: { hook_event_name: 'UserPromptExpansion', expansion_type: 'slash_command', command_name: 'agent-team:at', command_args: 'x', session_id: 's' },
+      input: { hook_event_name: 'UserPromptExpansion', expansion_type: 'slash_command', command_name: 'poundlock:at', command_args: 'x', session_id: 's' },
     }),
     shape: { status: 0, stdout: 'empty', stderr: 'empty' },
   },

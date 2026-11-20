@@ -15,19 +15,19 @@ import { makeRun } from './fixtures/make-run.mjs'
 import { DISPATCHES_FILE } from '../hooks/lib/control-files.mjs'
 import { dispatchLine, elsewhereRunOf, readDispatchLog, stopLine } from '../hooks/lib/completion.mjs'
 
-const BACKEND = 'agent-team:at-backend'
-const ARCH = 'agent-team:at-architect'
+const BACKEND = 'poundlock:at-backend'
+const ARCH = 'poundlock:at-architect'
 const S5 = { stage: 'S5', roster: ['at-architect'], stage_roles: {} }
 
 // 项目里两趟：r1（旧，先建）与 r2（新）。body 拿到 dirs、两个 run 目录与切指针的函数。
 function twoRuns(body, { r2Stage = 'S5' } = {}) {
   const dirs = makeRun({ runId: 'r1', ...S5 })
-  const r1 = join(dirs.projectDir, '.agent-team', 'runs', 'r1')
-  const r2 = join(dirs.projectDir, '.agent-team', 'runs', 'r2')
+  const r1 = join(dirs.projectDir, '.poundlock', 'runs', 'r1')
+  const r2 = join(dirs.projectDir, '.poundlock', 'runs', 'r2')
   mkdirSync(r2, { recursive: true })
   const state = JSON.parse(readFileSync(join(r1, 'state.json'), 'utf8'))
   writeFileSync(join(r2, 'state.json'), JSON.stringify({ ...state, run_id: 'r2', stage: r2Stage, history: [{ stage: r2Stage, at: '2026-10-06T12:00:00Z' }] }))
-  const point = (id) => writeFileSync(join(dirs.projectDir, '.agent-team', 'current-run'), id)
+  const point = (id) => writeFileSync(join(dirs.projectDir, '.poundlock', 'current-run'), id)
   try {
     return body({ ...dirs, r1, r2, point })
   } finally {
@@ -116,7 +116,7 @@ test('第 24 条（完成核验）：r1 派出去的人的完成通知到了、�
     const c = contextOf(run('completion', prompt(note('a0000000000000106')), GATE, projectDir))
     assert.ok(c.includes('at-backend（S5）') && c.includes('"r1"'), c)
     assert.match(c, /不按这一趟核/)
-    assert.match(c, /\/agent-team:at-resume/)
+    assert.match(c, /\/poundlock:at-resume/)
     assert.ok(!c.includes('没交齐'), `不该按 r2 的 S5 说它没交齐：${c}`)
   })
 })
@@ -217,7 +217,7 @@ test('第 24 条（H3）：r1 的执行角色往 r1 的 run 目录写——照�
 test('第 24 条：runs 下复制出来的目录（名字不是合法的 run id）不算一趟——r1 派出去的人停下，停下行记回 r1，不记进副本', () => {
   twoRuns(({ projectDir, r1, point }) => {
     run('deliverable', post(BACKEND, 'a0000000000000205'), GATE, projectDir)
-    const copy = join(projectDir, '.agent-team', 'runs', 'r1 - Copy')
+    const copy = join(projectDir, '.poundlock', 'runs', 'r1 - Copy')
     mkdirSync(copy, { recursive: true })
     writeFileSync(join(copy, 'state.json'), readFileSync(join(r1, 'state.json')))
     writeFileSync(join(copy, DISPATCHES_FILE), readFileSync(join(r1, DISPATCHES_FILE)))
@@ -232,7 +232,7 @@ test('第 24 条：runs 下复制出来的目录（名字不是合法的 run id�
 test('第 24 条：两趟都记着同一个人（认不准派它的是哪一趟）——不认，照当前这一趟判', () => {
   twoRuns(({ projectDir, r1, point }) => {
     run('deliverable', post(BACKEND, 'a0000000000000206'), GATE, projectDir)
-    const r0 = join(projectDir, '.agent-team', 'runs', 'r0')
+    const r0 = join(projectDir, '.poundlock', 'runs', 'r0')
     mkdirSync(r0, { recursive: true })
     writeFileSync(join(r0, 'state.json'), readFileSync(join(r1, 'state.json')))
     writeFileSync(join(r0, DISPATCHES_FILE), readFileSync(join(r1, DISPATCHES_FILE)))

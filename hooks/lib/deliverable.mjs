@@ -113,7 +113,7 @@ export function isKnownStage(stages, stageId) {
 //   - 冒泡不改「交没交」：这里只决定 H5b 放不放它停下。下一段的前置（H2）与收口照常判缺，【阶段】不说齐了；推进那一次 H6
 //     核离开那一段叫到的产者交齐了没有（M4d，docs/38，第 17 条：hooks/lib/advance.mjs）——冒泡之后不补齐、也没照出路裁掉，就推不过去。
 //   - 父级那一侧（M4d，docs/38，第 19 条）：前台派发跑完时 H5a 读 tool_response.content、后台派发完成时完成核验读通知里的 <result>，
-//     认同一个标记（bubbleReason），说它冒泡了、引出它的理由；读它下文写的缺什么、要谁定的，仍是正文（/agent-team:at 第 3 节「核实」）。
+//     认同一个标记（bubbleReason），说它冒泡了、引出它的理由；读它下文写的缺什么、要谁定的，仍是正文（/poundlock:at 第 3 节「核实」）。
 export const BUBBLE_MARK = '冒泡：'
 const BUBBLE_HEAD = new RegExp(`^[\\s#>*_\`\\-「【]*(?:\\d+[.)、]\\s*)?${BUBBLE_MARK.slice(0, -1)}[\\s*_\`」】]*[：:]`)
 

@@ -29,7 +29,7 @@ const S7_RUN = { stage: 'S7', history: upTo('S7'), roster: ['at-qa', 'at-accepta
 
 function withRun(opts, files, body) {
   const dirs = makeRun({ runId: 'r1', ...opts })
-  const runDir = join(dirs.projectDir, '.agent-team', 'runs', 'r1')
+  const runDir = join(dirs.projectDir, '.poundlock', 'runs', 'r1')
   for (const [name, text] of Object.entries({ '00-contract.md': CONTRACT, ...files })) writeFileSync(join(runDir, name), text)
   try {
     return body({ ...dirs, runDir })
@@ -41,19 +41,19 @@ function withRun(opts, files, body) {
 const stateWrite = (runDir, change) => {
   const statePath = join(runDir, 'state.json')
   const now = JSON.parse(readFileSync(statePath, 'utf8'))
-  return { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'agent-team:at-pm', tool_input: { file_path: statePath, content: JSON.stringify(change(now), null, 2) } }
+  return { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'poundlock:at-pm', tool_input: { file_path: statePath, content: JSON.stringify(change(now), null, 2) } }
 }
 const closeWrite = (runDir) => stateWrite(runDir, (s) => ({ ...s, never_invoked: [], closed_at: '2026-10-06T12:00:00Z' }))
 const advanceS7 = (runDir) => stateWrite(runDir, (s) => ({ ...s, stage: 'S8', history: [...s.history, ...H('S8')] }))
 const asked = (answer, extra = {}) => ({
   hook_event_name: 'PostToolUse',
   tool_name: 'AskUserQuestion',
-  agent_type: 'agent-team:at-pm',
+  agent_type: 'poundlock:at-pm',
   tool_input: { questions: [{ question: '验收没过，怎么办？', header: '交付', multiSelect: false, options: [] }] },
   tool_response: { questions: [{ question: '验收没过，怎么办？', header: '交付', multiSelect: false, options: [] }], answers: { '验收没过，怎么办？': answer }, ...extra },
 })
 const prompted = (prompt) => ({ hook_event_name: 'UserPromptSubmit', prompt })
-const posted = (file) => ({ hook_event_name: 'PostToolUse', tool_name: 'Write', agent_type: 'agent-team:at-pm', tool_input: { file_path: file } })
+const posted = (file) => ({ hook_event_name: 'PostToolUse', tool_name: 'Write', agent_type: 'poundlock:at-pm', tool_input: { file_path: file } })
 const approvalsOf = (runDir) => {
   const f = join(runDir, 'approvals.jsonl')
   return existsSync(f) ? readFileSync(f, 'utf8').split(NL).filter(Boolean).map((l) => JSON.parse(l)) : []
@@ -68,7 +68,7 @@ test('M4k H6：收口时验收结论判不通过——拒（附照现状交付�
     assert.ok(d.permissionDecisionReason.includes('「照现状交付」'), d.permissionDecisionReason)
     const r = run('approval-ask', asked('照现状交付'), GATE, projectDir)
     assert.ok(ctxOf(r.stdout).includes('【门禁】已记下照现状交付的批准'), r.stdout)
-    assert.match(JSON.parse(r.stdout).systemMessage, /^agent-team 照现状交付：已记下/)
+    assert.match(JSON.parse(r.stdout).systemMessage, /^poundlock 照现状交付：已记下/)
     assert.deepEqual(approvalsOf(runDir).map((v) => [v.kind, v.product, v.sha, v.source]), [['deliver-as-is', '07-acceptance.md', sha(FAIL), 'ask']])
     assert.equal(decisionOf(run('rework', closeWrite(runDir), GATE, projectDir).stdout), null, '批准之后收口放行')
     writeFileSync(join(runDir, '07-acceptance.md'), FAIL + '- 补一句' + NL)
@@ -187,7 +187,7 @@ test('M4k 评审 F5：S7 齐了时【阶段】也读首行——PM 收到「推�
     const c = ctxOf(run('ledger', posted(join(runDir, 'state.json')), GATE, projectDir).stdout)
     assert.ok(c.includes('推进出 S7') && c.includes('「结论：不通过」') && c.includes('「照现状交付」'), c)
     writeFileSync(join(runDir, '07-acceptance.md'), '# 验收报告' + NL + NL + '结论：通过' + NL)
-    const byAcc = { hook_event_name: 'PostToolUse', tool_name: 'Write', agent_type: 'agent-team:at-acceptance', tool_input: { file_path: join(runDir, '07-acceptance.md') } }
+    const byAcc = { hook_event_name: 'PostToolUse', tool_name: 'Write', agent_type: 'poundlock:at-acceptance', tool_input: { file_path: join(runDir, '07-acceptance.md') } }
     const mine = ctxOf(run('ledger', byAcc, GATE, projectDir).stdout)
     assert.ok(mine.includes('你写的 07-acceptance.md 第一行读不出验收结论') && mine.includes('改完再停下'), mine)
     writeFileSync(join(runDir, '07-acceptance.md'), PASS)
@@ -198,7 +198,7 @@ test('M4k 评审 F5：S7 齐了时【阶段】也读首行——PM 收到「推�
 
 test('M4k 评审 F10：H6 因为验收结论拒、而门禁找不到进行中的 run 时——拒绝理由补一句用户的批准会记不下', () => {
   withRun(S8_RUN, DONE(FAIL), ({ projectDir, runDir }) => {
-    rmSync(join(projectDir, '.agent-team', 'current-run'))
+    rmSync(join(projectDir, '.poundlock', 'current-run'))
     const d = decisionOf(run('rework', closeWrite(runDir), GATE, projectDir).stdout)
     assert.equal(d?.permissionDecision, 'deny', JSON.stringify(d))
     assert.ok(d.permissionDecisionReason.includes('「结论：不通过」') && d.permissionDecisionReason.includes('用户的回答会记不下'), d.permissionDecisionReason)
@@ -209,7 +209,7 @@ test('M4k 评审 F11：插件的阶段链上认不出验收那一段——H6 不
   const REPO = new URL('../', import.meta.url)
   const stages = JSON.parse(readFileSync(new URL('stages.json', REPO), 'utf8'))
   stages.S7 = { ...stages.S7, role: 'at-reviewer' }
-  const plugin = realpathSync(mkdtempSync(join(tmpdir(), 'agent-team-m4k-plug-')))
+  const plugin = realpathSync(mkdtempSync(join(tmpdir(), 'poundlock-m4k-plug-')))
   try {
     cpSync(new URL('hooks', REPO), join(plugin, 'hooks'), { recursive: true })
     cpSync(new URL('roster.json', REPO), join(plugin, 'roster.json'))
@@ -297,7 +297,7 @@ test('M4k 复核（中 3、低 4）：记录器认对着上一版契约的——
 
 test('M4k H3：批准记录是门禁专属文件——拒绝理由说它也记照现状交付的批准', () => {
   withRun(S8_RUN, DONE(FAIL), ({ projectDir, runDir }) => {
-    const write = { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'agent-team:at-pm', tool_input: { file_path: join(runDir, 'approvals.jsonl'), content: '{}' } }
+    const write = { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'poundlock:at-pm', tool_input: { file_path: join(runDir, 'approvals.jsonl'), content: '{}' } }
     const d = decisionOf(run('writepath', write, GATE, projectDir).stdout)
     assert.equal(d?.permissionDecision, 'deny', JSON.stringify(d))
     assert.ok(d.permissionDecisionReason.includes('照现状交付'), d.permissionDecisionReason)
@@ -308,7 +308,7 @@ test('M4k 记录器：照现状交付那一问被排除（离开键盘）、读�
   withRun(S8_RUN, DONE(FAIL), ({ projectDir, runDir }) => {
     const afk = ctxOf(run('approval-ask', asked('照现状交付', { afkTimeoutMs: 60000 }), GATE, projectDir).stdout)
     assert.ok(afk.includes('没有记成照现状交付的批准') && afk.includes('离开'), afk)
-    rmSync(join(projectDir, '.agent-team', 'current-run'))
+    rmSync(join(projectDir, '.poundlock', 'current-run'))
     const none = ctxOf(run('approval-ask', asked('照现状交付'), GATE, projectDir).stdout)
     assert.ok(none.includes('没有记成照现状交付的批准') && none.includes('读不到这个项目的运行状态'), none)
     assert.deepEqual(approvalsOf(runDir), [])

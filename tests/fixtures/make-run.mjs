@@ -2,7 +2,7 @@ import { mkdtempSync, mkdirSync, realpathSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 
-// 造一个临时的 .agent-team 结构供门禁测试读取。
+// 造一个临时的 .poundlock 结构供门禁测试读取。
 // 只写测试需要的字段，不模拟完整产品结构。
 //
 // M2b Task 2：加可选 roster（缺省 []，与改动前逐字相同的旧行为）。S2 从单产者阶段
@@ -50,12 +50,12 @@ export function makeRun({ runId = 'r1', stage = 'S2', artifacts = [], project = 
   // /private/var/...，夹具交给测试的却是 /var/...——两边对不上，门禁子进程测试成片地红。
   // M3q 之后 norm() 会把两种写法解析成同一个物理位置（tests/path-alias.test.mjs 钉着），这一步
   // 不再是必需的；留着，是为了夹具这一层不制造别名，测试失败时看到的路径就是真实路径。
-  const projectDir = realpathSync(mkdtempSync(join(tmpdir(), 'agent-team-proj-')))
-  const pluginDir = realpathSync(mkdtempSync(join(tmpdir(), 'agent-team-plug-')))
+  const projectDir = realpathSync(mkdtempSync(join(tmpdir(), 'poundlock-proj-')))
+  const pluginDir = realpathSync(mkdtempSync(join(tmpdir(), 'poundlock-plug-')))
 
-  const runDir = join(projectDir, '.agent-team', 'runs', runId)
+  const runDir = join(projectDir, '.poundlock', 'runs', runId)
   mkdirSync(runDir, { recursive: true })
-  writeFileSync(join(projectDir, '.agent-team', 'current-run'), runId, 'utf8')
+  writeFileSync(join(projectDir, '.poundlock', 'current-run'), runId, 'utf8')
   // state.json 必须满足 hooks/lib/state.mjs 的 schema：Task 6 的 ledger 会对它跑
   // validateState，Task 7 的 H5 会拿 stage 当判据。夹具写一份不合法的 state 会让那
   // 两个任务在一堆不相干的报错里排查。history 与 rework 保持一致（默认没有返工）。
@@ -82,7 +82,7 @@ export function makeRun({ runId = 'r1', stage = 'S2', artifacts = [], project = 
     writeFileSync(p, `fixture ${rel}\n`, 'utf8')
   }
   if (project) {
-    writeFileSync(join(projectDir, '.agent-team', 'project.json'), JSON.stringify(project), 'utf8')
+    writeFileSync(join(projectDir, '.poundlock', 'project.json'), JSON.stringify(project), 'utf8')
   }
   if (stages) {
     writeFileSync(join(pluginDir, 'stages.json'), JSON.stringify(stages), 'utf8')

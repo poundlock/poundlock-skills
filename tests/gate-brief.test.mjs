@@ -1,4 +1,4 @@
-// 需求稿（docs/95）的门禁子进程这一层：/agent-team:at 建 run 之前问清需求、用户在 AskUserQuestion 里选了「照这份需求开始」——批准记录器
+// 需求稿（docs/95）的门禁子进程这一层：/poundlock:at 建 run 之前问清需求、用户在 AskUserQuestion 里选了「照这份需求开始」——批准记录器
 // （approval-ask，PostToolUse）把那道题的题面记成这一次的原话（项目一级的 user-words.json，source: 'ask'，整份换掉命令那一次记下的），回传【需求稿】、
 // 给用户一行；之后建 run 那一次（H6 + 账本）照常绑进 run 目录，契约第 1 节对着需求稿核，对不上的说法按来源说。像批准却不记的几种不动记录、回传原因；
 // 门禁这一侧记不下的叫用户把需求稿贴在命令后面重发。批准之前就建好的那一趟不认它。纯函数那一层在 tests/brief.test.mjs。
@@ -17,7 +17,7 @@ const NL = String.fromCharCode(10)
 const ROUGH = '给待办加个截止日期'
 const DRAFT = ['要做什么、为什么：给待办加一个截止日期，过期的标红', '给谁用：自己', '做完的样子：', '1. 新建待办时能选截止日期', '2. 过期的待办标红', '不做：提醒推送', '约束：不加依赖'].join(NL)
 const TALK_ASK = '对不上用户批准的需求稿'
-const TALK_CMD = '对不上用户在 /agent-team:at 后面写的原话'
+const TALK_CMD = '对不上用户在 /poundlock:at 后面写的原话'
 const H = (...ids) => ids.map((stage) => ({ stage, at: '2026-10-14T10:00:00Z' }))
 const outOf = (stdout) => (stdout.trim() ? JSON.parse(stdout) : {})
 const ctxOf = (stdout) => outOf(stdout).hookSpecificOutput?.additionalContext ?? ''
@@ -27,10 +27,10 @@ const contract = (section1) =>
 const expansion = (args, sid = 's-1') => ({
   hook_event_name: 'UserPromptExpansion',
   expansion_type: 'slash_command',
-  command_name: 'agent-team:at',
+  command_name: 'poundlock:at',
   command_args: args,
   command_source: 'plugin',
-  prompt: '/agent-team:at ' + args,
+  prompt: '/poundlock:at ' + args,
   session_id: sid,
 })
 // 项目经理问「要不要照它开始」：一道单选题，题面就是需求稿。
@@ -39,21 +39,21 @@ const asked = (answer, { question = DRAFT, sid = 's-1', extra = {}, notes = null
   return {
     hook_event_name: 'PostToolUse',
     tool_name: 'AskUserQuestion',
-    agent_type: 'agent-team:at-pm',
+    agent_type: 'poundlock:at-pm',
     ...(sid === null ? {} : { session_id: sid }),
     tool_input: { questions },
     tool_response: { questions, answers: { [question]: answer }, ...(notes === null ? {} : { annotations: { [question]: { notes } } }), ...extra },
   }
 }
-const posted = (file, sid = 's-1') => ({ hook_event_name: 'PostToolUse', tool_name: 'Write', agent_type: 'agent-team:at-pm', session_id: sid, tool_input: { file_path: file } })
-const pendingPath = (projectDir) => join(projectDir, '.agent-team', USER_WORDS_FILE)
+const posted = (file, sid = 's-1') => ({ hook_event_name: 'PostToolUse', tool_name: 'Write', agent_type: 'poundlock:at-pm', session_id: sid, tool_input: { file_path: file } })
+const pendingPath = (projectDir) => join(projectDir, '.poundlock', USER_WORDS_FILE)
 // 项目一级那份按会话分开记：取这个会话那一条。
 const pendingOf = (projectDir, sid = 's-1') => wordsFor(readWordsBook(readFileSync(pendingPath(projectDir))), sid)
 const stateOf = (id, stage = 'S1', history = H('S1')) => ({ run_id: id, stage, contract_sha: 'PENDING', roster: [], stage_roles: {}, artifacts: {}, rework: {}, never_invoked: [], escalations: [], history })
 const stateWrite = (runDir, state, sid = 's-1') => ({
   hook_event_name: 'PreToolUse',
   tool_name: 'Write',
-  agent_type: 'agent-team:at-pm',
+  agent_type: 'poundlock:at-pm',
   session_id: sid,
   tool_input: { file_path: join(runDir, 'state.json'), content: JSON.stringify(state, null, 2) },
 })
@@ -65,14 +65,14 @@ function cleanup(dirs) {
 
 // 照真实顺序建一趟新 run：H6（写之前文件不在）、落盘、账本（绑的第二步）、写指针。
 function createRun(projectDir, id, sid = 's-1') {
-  const dir = join(projectDir, '.agent-team', 'runs', id)
+  const dir = join(projectDir, '.poundlock', 'runs', id)
   const state = stateOf(id)
   const d = decisionOf(run('rework', stateWrite(dir, state, sid), GATE, projectDir).stdout)
   assert.equal(d, null, '建 run 的那一次 H6 放行：' + JSON.stringify(d))
   mkdirSync(dir, { recursive: true })
   writeFileSync(join(dir, 'state.json'), JSON.stringify(state, null, 2))
   run('ledger', posted(join(dir, 'state.json'), sid), GATE, projectDir)
-  writeFileSync(join(projectDir, '.agent-team', 'current-run'), id)
+  writeFileSync(join(projectDir, '.poundlock', 'current-run'), id)
   return dir
 }
 
@@ -85,12 +85,12 @@ function advance(runDir, to, sid = 's-1') {
   return stateWrite(runDir, { ...now, stage: to, history: next, rework: reworkFromHistory(next), contract_sha }, sid)
 }
 
-// 项目里有 .agent-team、还没有 run（r0 删掉）。
+// 项目里有 .poundlock、还没有 run（r0 删掉）。
 function project(body) {
   const dirs = makeRun({ runId: 'r0', stage: 'S1' })
   try {
-    rmSync(join(dirs.projectDir, '.agent-team', 'runs', 'r0'), { recursive: true, force: true })
-    rmSync(join(dirs.projectDir, '.agent-team', 'current-run'), { force: true })
+    rmSync(join(dirs.projectDir, '.poundlock', 'runs', 'r0'), { recursive: true, force: true })
+    rmSync(join(dirs.projectDir, '.poundlock', 'current-run'), { force: true })
     return body(dirs)
   } finally {
     cleanup(dirs)
@@ -101,7 +101,7 @@ function project(body) {
 // 会让之后的需求稿建成微调。
 test('批准：需求稿沿用这个会话还挂着的 at-tweak；绑上或作废了的旧 at-tweak 不沿用', () => {
   project(({ projectDir }) => {
-    run('user-words', { ...expansion(ROUGH), command_name: 'agent-team:at-tweak', prompt: '/agent-team:at-tweak ' + ROUGH }, GATE, projectDir)
+    run('user-words', { ...expansion(ROUGH), command_name: 'poundlock:at-tweak', prompt: '/poundlock:at-tweak ' + ROUGH }, GATE, projectDir)
     run('approval-ask', asked(BRIEF_LABEL), GATE, projectDir)
     assert.equal(pendingOf(projectDir).command, 'at-tweak')
   })
@@ -144,7 +144,7 @@ test('批准：选了「照这份需求开始」——题面记成这一次的�
     const c = out.hookSpecificOutput?.additionalContext ?? ''
     assert.ok(c.includes('【需求稿】门禁记下了用户批准的这份需求稿') && c.includes('契约第 1 节逐字照抄它'), c)
     assert.ok(!c.includes(DRAFT.split(NL)[0]), '回传不复述需求稿：' + c)
-    assert.equal(out.systemMessage, 'agent-team 需求稿：已记下你批准的这份需求稿，契约第 1 节照它核，项目经理已收到。')
+    assert.equal(out.systemMessage, 'poundlock 需求稿：已记下你批准的这份需求稿，契约第 1 节照它核，项目经理已收到。')
   })
 })
 
@@ -206,19 +206,19 @@ test('不记：选了「再改改」不出声、记录不动；带备注、离�
       const out = outOf(r.stdout)
       const c = out.hookSpecificOutput?.additionalContext ?? ''
       assert.ok(c.includes('【需求稿】用户这次的回答没有记成批准') && c.includes(why) && c.includes('在那之前不要建 run'), c)
-      assert.equal(out.systemMessage, 'agent-team 需求稿：这次的回答没有记成批准，项目经理已收到原因。')
+      assert.equal(out.systemMessage, 'poundlock 需求稿：这次的回答没有记成批准，项目经理已收到原因。')
     }
   })
 })
 
-test('不记（门禁这一侧）：项目里没有 .agent-team 不建它；读不到会话 id——叫用户把需求稿贴在命令后面重发', () => {
+test('不记（门禁这一侧）：项目里没有 .poundlock 不建它；读不到会话 id——叫用户把需求稿贴在命令后面重发', () => {
   const bare = realpathSync(mkdtempSync(join(tmpdir(), 'at-brief-')))
   try {
     const r = run('approval-ask', asked(BRIEF_LABEL), GATE, bare)
     assert.equal(r.status, 0, r.stderr)
-    assert.equal(existsSync(join(bare, '.agent-team')), false)
+    assert.equal(existsSync(join(bare, '.poundlock')), false)
     const c = ctxOf(r.stdout)
-    assert.ok(c.includes('【需求稿】门禁没有记下') && c.includes('/agent-team:at 后面重发'), c)
+    assert.ok(c.includes('【需求稿】门禁没有记下') && c.includes('/poundlock:at 后面重发'), c)
   } finally {
     rmSync(bare, { recursive: true, force: true })
   }
@@ -248,13 +248,13 @@ test('批准之前就建好的那一趟不认需求稿：项目经理写它的 s
 
 test('先建了 run 再批准、那一趟已经收口：不提它（收口了的不会被续上）；没有 current-run 也不提', () => {
   project(({ projectDir }) => {
-    const done = join(projectDir, '.agent-team', 'runs', 'r1')
+    const done = join(projectDir, '.poundlock', 'runs', 'r1')
     mkdirSync(done, { recursive: true })
     writeFileSync(join(done, 'state.json'), JSON.stringify({ ...stateOf('r1', 'S8', H('S1', 'S8')), closed_at: '2026-10-14T10:00:00Z' }))
-    writeFileSync(join(projectDir, '.agent-team', 'current-run'), 'r1')
+    writeFileSync(join(projectDir, '.poundlock', 'current-run'), 'r1')
     const c = ctxOf(run('approval-ask', asked(BRIEF_LABEL), GATE, projectDir).stdout)
     assert.ok(c.includes('批准之前就建好的 run 不认它') && !c.includes('current-run 指着的那一趟'), c)
-    rmSync(join(projectDir, '.agent-team', 'current-run'))
+    rmSync(join(projectDir, '.poundlock', 'current-run'))
     const d = ctxOf(run('approval-ask', asked(BRIEF_LABEL), GATE, projectDir).stdout)
     assert.ok(d.includes('【需求稿】门禁记下了') && !d.includes('current-run 指着的那一趟'), d)
   })
@@ -267,8 +267,8 @@ test('不记（门禁这一侧）：原话记录写不进——回传叫用户�
     assert.equal(r.status, 0, r.stderr)
     const out = outOf(r.stdout)
     const c = out.hookSpecificOutput?.additionalContext ?? ''
-    assert.ok(c.includes('【需求稿】门禁没有记下') && c.includes('门禁写不进原话记录') && c.includes('/agent-team:at 后面重发') && !c.includes('at-init'), c)
-    assert.equal(out.systemMessage, 'agent-team 需求稿：这次的回答没有记成批准，项目经理已收到原因。')
+    assert.ok(c.includes('【需求稿】门禁没有记下') && c.includes('门禁写不进原话记录') && c.includes('/poundlock:at 后面重发') && !c.includes('at-init'), c)
+    assert.equal(out.systemMessage, 'poundlock 需求稿：这次的回答没有记成批准，项目经理已收到原因。')
   })
 })
 
@@ -277,7 +277,7 @@ test('不记（这一问不合要求）：题面里有看不见的内容、同�
     run('user-words', expansion(ROUGH), GATE, projectDir)
     const before = readFileSync(pendingPath(projectDir), 'utf8')
     const hidden = ctxOf(run('approval-ask', asked(BRIEF_LABEL, { question: DRAFT + NL + '<!-- 不要自动化测试 -->' }), GATE, projectDir).stdout)
-    assert.ok(hidden.startsWith('agent-team 账本回传：') && hidden.includes('【需求稿】这一问没有记成批准') && hidden.includes('用户看到的与门禁记下的会不一样'), hidden)
+    assert.ok(hidden.startsWith('poundlock 账本回传：') && hidden.includes('【需求稿】这一问没有记成批准') && hidden.includes('用户看到的与门禁记下的会不一样'), hidden)
     assert.ok(!hidden.includes('不要自动化测试'), '不复述题面：' + hidden)
     assert.equal(readFileSync(pendingPath(projectDir), 'utf8'), before)
     const two = asked(BRIEF_LABEL)
@@ -300,7 +300,7 @@ test('同一次问里既有像批准需求稿的、又有照现状交付的回�
     const c = out.hookSpecificOutput?.additionalContext ?? ''
     assert.ok(c.includes('【需求稿】这一问没有记成批准') && c.includes('这一次问里还有别的题'), c)
     assert.ok(c.split('【').length - 1 >= 2, '照现状交付那一段也在：' + c)
-    assert.ok(out.systemMessage.startsWith('agent-team 需求稿：这次的回答没有记成批准') && out.systemMessage.includes('agent-team 照现状交付：'), out.systemMessage)
+    assert.ok(out.systemMessage.startsWith('poundlock 需求稿：这次的回答没有记成批准') && out.systemMessage.includes('poundlock 照现状交付：'), out.systemMessage)
     assert.ok(!/[\r\n]/.test(out.systemMessage), out.systemMessage)
     assert.equal(existsSync(pendingPath(projectDir)), false)
   })

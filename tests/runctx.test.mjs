@@ -29,10 +29,10 @@ test('读得到当前 run 的 id、state 与 stages', () => {
 // 对外的权威解释，见本文件顶部 readRunContext 上方的头部注释——下面每条
 // 测试只标它落在哪个分支、为什么落在那个分支，不重复整套论证。
 
-test('没有 .agent-team 时返回 ok:false 而不是抛异常，kind 是 no-run', () => {
+test('没有 .poundlock 时返回 ok:false 而不是抛异常，kind 是 no-run', () => {
   const ctx = readRunContext('/definitely/not/a/real/path', '/also/not/real')
   assert.equal(ctx.ok, false)
-  assert.match(ctx.reason, /current-run|\.agent-team/)
+  assert.match(ctx.reason, /current-run|\.poundlock/)
   assert.equal(ctx.kind, 'no-run')
 })
 
@@ -45,7 +45,7 @@ test('没有 .agent-team 时返回 ok:false 而不是抛异常，kind 是 no-run
 test('current-run 指向不存在的 run 时返回 ok:false，kind 是 unreadable（不是 no-run）', () => {
   const dirs = makeRun({ runId: 'r1', stages: STAGES })
   try {
-    rmSync(`${dirs.projectDir}/.agent-team/runs/r1`, { recursive: true, force: true })
+    rmSync(`${dirs.projectDir}/.poundlock/runs/r1`, { recursive: true, force: true })
     const ctx = readRunContext(dirs.projectDir, dirs.pluginDir)
     assert.equal(ctx.ok, false)
     // M1：不止判定失败，还要钉住失败原因是「目录不存在」，
@@ -60,12 +60,12 @@ test('current-run 指向不存在的 run 时返回 ok:false，kind 是 unreadabl
 // 这条与上面那条是同一条理由的两个实物（pointer 在 = 有人开过 run），
 // 依据都在 runctx.mjs 头部注释里——空内容是异常状态，不是干净的缺席。
 // ⚠️ 这两条都变绿不等于分类判别力还在：把 kind 塌成恒 'unreadable' 时它们照样绿，
-// 真正会红的是本文件里 pointer **不在**的那两条——「没有 .agent-team 时……kind 是
+// 真正会红的是本文件里 pointer **不在**的那两条——「没有 .poundlock 时……kind 是
 // no-run」与「kind 是 no-run 的失败返回也带 agentTeamDir」。两侧各有人守着。
 test('current-run 是空文件时返回 ok:false，kind 是 unreadable（不是 no-run）', () => {
   const dirs = makeRun({ runId: 'r1', stages: STAGES })
   try {
-    writeFileSync(`${dirs.projectDir}/.agent-team/current-run`, '', 'utf8')
+    writeFileSync(`${dirs.projectDir}/.poundlock/current-run`, '', 'utf8')
     const ctx = readRunContext(dirs.projectDir, dirs.pluginDir)
     assert.equal(ctx.ok, false)
     assert.match(ctx.reason, /空/)
@@ -75,7 +75,7 @@ test('current-run 是空文件时返回 ok:false，kind 是 unreadable（不是 
   }
 })
 
-// ——— M3c 这一格：current-run **根本不在**，而 .agent-team/runs/ 下有子目录（M3q 起只数子目录与链接）———
+// ——— M3c 这一格：current-run **根本不在**，而 .poundlock/runs/ 下有子目录（M3q 起只数子目录与链接）———
 //
 // 与上面两条是同一条理由的第三个实物，轴是「有没有人建过 run」而不是「pointer 在不在」
 // （完整论证在 hooks/lib/runctx.mjs 头部 ③ 那一段）。它此前归 no-run，于是 H3/H4 这两个
@@ -84,7 +84,7 @@ test('current-run 是空文件时返回 ok:false，kind 是 unreadable（不是 
 test('current-run 不在、而 runs/ 下有一个 run 目录时返回 ok:false，kind 是 unreadable（不是 no-run）', () => {
   const dirs = makeRun({ runId: 'r1', stages: STAGES })
   try {
-    rmSync(join(dirs.projectDir, '.agent-team', 'current-run'), { force: true })
+    rmSync(join(dirs.projectDir, '.poundlock', 'current-run'), { force: true })
     const ctx = readRunContext(dirs.projectDir, dirs.pluginDir)
     assert.equal(ctx.ok, false)
     assert.equal(ctx.kind, 'unreadable')
@@ -92,7 +92,7 @@ test('current-run 不在、而 runs/ 下有一个 run 目录时返回 ok:false�
     // 指针不在**和** runs/ 非空，两件事缺一这一格就不成立。
     assert.match(ctx.reason, /找不到/)
     assert.match(ctx.reason, /非空/)
-    assert.equal(ctx.agentTeamDir, join(dirs.projectDir, '.agent-team'))
+    assert.equal(ctx.agentTeamDir, join(dirs.projectDir, '.poundlock'))
   } finally {
     cleanup(dirs)
   }
@@ -102,14 +102,14 @@ test('current-run 不在、而 runs/ 下有一个 run 目录时返回 ok:false�
 // 「自举一个字没变」。判据被错改成「指针不在一律 unreadable」时上面那条照样绿，
 // 红的是这三条——而它们红掉的真实后果是建第一个 run 这个自举动作永远做不成。
 // 三种形态各占一个 test()：它们是三个不同的早退点（runs/ 不存在 / runs/ 存在但空 /
-// .agent-team 整个不存在），不是同一个不变量按数据遍历。
-// 「.agent-team 整个不存在」那一条不在这里另写：本文件上面「没有 .agent-team 时返回
+// .poundlock 整个不存在），不是同一个不变量按数据遍历。
+// 「.poundlock 整个不存在」那一条不在这里另写：本文件上面「没有 .poundlock 时返回
 // ok:false 而不是抛异常，kind 是 no-run」就是它。
-test('自举边界：.agent-team 在、runs/ 不存在——仍然 no-run，仍然放行', () => {
+test('自举边界：.poundlock 在、runs/ 不存在——仍然 no-run，仍然放行', () => {
   const dirs = makeRun({ runId: 'r1', stages: STAGES })
   try {
-    rmSync(join(dirs.projectDir, '.agent-team', 'current-run'), { force: true })
-    rmSync(join(dirs.projectDir, '.agent-team', 'runs'), { recursive: true, force: true })
+    rmSync(join(dirs.projectDir, '.poundlock', 'current-run'), { force: true })
+    rmSync(join(dirs.projectDir, '.poundlock', 'runs'), { recursive: true, force: true })
     const ctx = readRunContext(dirs.projectDir, dirs.pluginDir)
     assert.equal(ctx.ok, false)
     assert.equal(ctx.kind, 'no-run', '从来没有人建过 run = 干净的缺席，收窄不该碰它')
@@ -121,8 +121,8 @@ test('自举边界：.agent-team 在、runs/ 不存在——仍然 no-run，仍�
 test('自举边界：runs/ 存在但是空目录——仍然 no-run，仍然放行', () => {
   const dirs = makeRun({ runId: 'r1', stages: STAGES })
   try {
-    rmSync(join(dirs.projectDir, '.agent-team', 'current-run'), { force: true })
-    rmSync(join(dirs.projectDir, '.agent-team', 'runs', 'r1'), { recursive: true, force: true })
+    rmSync(join(dirs.projectDir, '.poundlock', 'current-run'), { force: true })
+    rmSync(join(dirs.projectDir, '.poundlock', 'runs', 'r1'), { recursive: true, force: true })
     const ctx = readRunContext(dirs.projectDir, dirs.pluginDir)
     assert.equal(ctx.ok, false)
     assert.equal(
@@ -144,9 +144,9 @@ test('自举边界：runs/ 存在但是空目录——仍然 no-run，仍然放�
 // ENOTDIR，不依赖权限也不依赖并发。
 const makeUnreadableRunsDir = () => {
   const dirs = makeRun({ runId: 'r1', stages: STAGES })
-  rmSync(join(dirs.projectDir, '.agent-team', 'current-run'), { force: true })
-  rmSync(join(dirs.projectDir, '.agent-team', 'runs'), { recursive: true, force: true })
-  writeFileSync(join(dirs.projectDir, '.agent-team', 'runs'), '不是目录', 'utf8')
+  rmSync(join(dirs.projectDir, '.poundlock', 'current-run'), { force: true })
+  rmSync(join(dirs.projectDir, '.poundlock', 'runs'), { recursive: true, force: true })
+  writeFileSync(join(dirs.projectDir, '.poundlock', 'runs'), '不是目录', 'utf8')
   return dirs
 }
 
@@ -170,7 +170,7 @@ test('runs/ 读不出来时的返回**带 agentTeamDir**——这一支必须自
     const ctx = readRunContext(dirs.projectDir, dirs.pluginDir)
     assert.equal(
       ctx.agentTeamDir,
-      join(dirs.projectDir, '.agent-team'),
+      join(dirs.projectDir, '.poundlock'),
       '最外层兜底 catch 那一支没有 agentTeamDir，是因为 base 压根没算出来——这里 base ' +
         '是算出来的。丢掉它，ledger 那条缝（/at-init 的触达表靠 ctx.agentTeamDir 认路）' +
         '会在这里静默倒退成照原路 fail open',
@@ -183,7 +183,7 @@ test('runs/ 读不出来时的返回**带 agentTeamDir**——这一支必须自
 test('state.json 是坏 JSON 时返回 ok:false 而不是抛异常，kind 是 unreadable', () => {
   const dirs = makeRun({ runId: 'r1', stages: STAGES })
   try {
-    writeFileSync(`${dirs.projectDir}/.agent-team/runs/r1/state.json`, '{ not json', 'utf8')
+    writeFileSync(`${dirs.projectDir}/.poundlock/runs/r1/state.json`, '{ not json', 'utf8')
     const ctx = readRunContext(dirs.projectDir, dirs.pluginDir)
     assert.equal(ctx.ok, false)
     // M1：钉住失败来自 readJson 的「解析失败」分支（reason 里带「失败」二字），
@@ -202,7 +202,7 @@ test('state.json 是坏 JSON 时返回 ok:false 而不是抛异常，kind 是 un
 test('state.json 内容是合法 JSON 但不是对象（字面量 null）时返回 ok:false', () => {
   const dirs = makeRun({ runId: 'r1', stages: STAGES })
   try {
-    writeFileSync(`${dirs.projectDir}/.agent-team/runs/r1/state.json`, 'null', 'utf8')
+    writeFileSync(`${dirs.projectDir}/.poundlock/runs/r1/state.json`, 'null', 'utf8')
     const ctx = readRunContext(dirs.projectDir, dirs.pluginDir)
     assert.equal(ctx.ok, false)
     assert.match(ctx.reason, /不是一个 JSON 对象/)
@@ -270,12 +270,12 @@ test('pluginDir 是 undefined 时返回 ok:false 而不是抛异常，kind 是 u
 })
 
 // M2：current-run 的内容会被原样拼进 runs/<runId>/... 路径。不校验的话，
-// ../../x 这样的内容会被 path.join 正规化到 .agent-team/runs 之外，
+// ../../x 这样的内容会被 path.join 正规化到 .poundlock/runs 之外，
 // 让 H5 交付物门禁去别的目录判定产物是否存在。
 test('current-run 内容含路径穿越字符时返回 ok:false，kind 是 unreadable', () => {
   const dirs = makeRun({ runId: 'r1', stages: STAGES })
   try {
-    writeFileSync(`${dirs.projectDir}/.agent-team/current-run`, '../../x', 'utf8')
+    writeFileSync(`${dirs.projectDir}/.poundlock/current-run`, '../../x', 'utf8')
     const ctx = readRunContext(dirs.projectDir, dirs.pluginDir)
     assert.equal(ctx.ok, false)
     assert.match(ctx.reason, /run id/)
@@ -316,7 +316,7 @@ test('project.json 不存在时，project 字段是 null', () => {
 test('project.json 是坏 JSON 时整个上下文返回 ok:false，kind 是 unreadable（不能被当成 no-run 放宽）', () => {
   const dirs = makeRun({ runId: 'r1', stages: STAGES })
   try {
-    writeFileSync(`${dirs.projectDir}/.agent-team/project.json`, '{ not json', 'utf8')
+    writeFileSync(`${dirs.projectDir}/.poundlock/project.json`, '{ not json', 'utf8')
     const ctx = readRunContext(dirs.projectDir, dirs.pluginDir)
     assert.equal(ctx.ok, false)
     // run 本身是真实存在的（makeRun 造出了 current-run/runs/<id>/state.json），
@@ -327,12 +327,12 @@ test('project.json 是坏 JSON 时整个上下文返回 ok:false，kind 是 unre
   }
 })
 
-test('ctx 带 agentTeamDir，等于 <projectDir>/.agent-team', () => {
+test('ctx 带 agentTeamDir，等于 <projectDir>/.poundlock', () => {
   const { projectDir, pluginDir } = makeRun({ stages: STAGES })
   try {
     const ctx = readRunContext(projectDir, pluginDir)
     assert.equal(ctx.ok, true)
-    assert.equal(ctx.agentTeamDir, join(projectDir, '.agent-team'))
+    assert.equal(ctx.agentTeamDir, join(projectDir, '.poundlock'))
   } finally {
     rmSync(projectDir, { recursive: true, force: true })
     rmSync(pluginDir, { recursive: true, force: true })
@@ -340,7 +340,7 @@ test('ctx 带 agentTeamDir，等于 <projectDir>/.agent-team', () => {
 })
 
 // M1b 终审 C1：失败返回里也要有 agentTeamDir。没有它，ledger 在「还没有 run」时
-// 连「这次写的是不是 .agent-team/project.json」都问不出来，触达表回传在全新项目上
+// 连「这次写的是不是 .poundlock/project.json」都问不出来，触达表回传在全新项目上
 // 结构性不可达。两条分别钉住 no-run 与 unreadable，各自占一个 test()——它们是两个
 // 不同的返回点，不是同一个不变量按数据遍历。
 // ⚠️ M3c：这条的夹具原来只删 current-run，而那已经不再是 no-run——runs/r1/ 还在时
@@ -350,12 +350,12 @@ test('ctx 带 agentTeamDir，等于 <projectDir>/.agent-team', () => {
 test('kind 是 no-run 的失败返回也带 agentTeamDir', () => {
   const { projectDir, pluginDir } = makeRun({ stages: STAGES })
   try {
-    rmSync(join(projectDir, '.agent-team', 'current-run'), { force: true })
-    rmSync(join(projectDir, '.agent-team', 'runs'), { recursive: true, force: true })
+    rmSync(join(projectDir, '.poundlock', 'current-run'), { force: true })
+    rmSync(join(projectDir, '.poundlock', 'runs'), { recursive: true, force: true })
     const ctx = readRunContext(projectDir, pluginDir)
     assert.equal(ctx.ok, false)
     assert.equal(ctx.kind, 'no-run')
-    assert.equal(ctx.agentTeamDir, join(projectDir, '.agent-team'))
+    assert.equal(ctx.agentTeamDir, join(projectDir, '.poundlock'))
   } finally {
     rmSync(projectDir, { recursive: true, force: true })
     rmSync(pluginDir, { recursive: true, force: true })
@@ -365,11 +365,11 @@ test('kind 是 no-run 的失败返回也带 agentTeamDir', () => {
 test('kind 是 unreadable 的失败返回也带 agentTeamDir', () => {
   const { projectDir, pluginDir } = makeRun({ stages: STAGES })
   try {
-    writeFileSync(join(projectDir, '.agent-team', 'current-run'), '', 'utf8')
+    writeFileSync(join(projectDir, '.poundlock', 'current-run'), '', 'utf8')
     const ctx = readRunContext(projectDir, pluginDir)
     assert.equal(ctx.ok, false)
     assert.equal(ctx.kind, 'unreadable')
-    assert.equal(ctx.agentTeamDir, join(projectDir, '.agent-team'))
+    assert.equal(ctx.agentTeamDir, join(projectDir, '.poundlock'))
   } finally {
     rmSync(projectDir, { recursive: true, force: true })
     rmSync(pluginDir, { recursive: true, force: true })
@@ -377,7 +377,7 @@ test('kind 是 unreadable 的失败返回也带 agentTeamDir', () => {
 })
 
 // 最外层兜底 catch 那一支是唯一**没有** agentTeamDir 的失败返回，而且那是有意的：
-// 抛出的很可能正是 join(projectDir, '.agent-team') 自己。调用方按「取不到就照原路
+// 抛出的很可能正是 join(projectDir, '.poundlock') 自己。调用方按「取不到就照原路
 // fail open」处理，所以这条边界要钉住——凭空补一个值出来就是在编一条路径。
 test('projectDir 不是字符串时（最外层兜底 catch）不带 agentTeamDir——那条路径根本没算出来', () => {
   const ctx = readRunContext(undefined, undefined)
@@ -389,7 +389,7 @@ test('projectDir 不是字符串时（最外层兜底 catch）不带 agentTeamDi
 
 // readProjectConfig：不要求有进行中的 run，ledger 在 ctx 读不出来时靠它拿到触达表的
 // 判据。三条分别是「读得到」「文件不在」「内容不是对象」，三种不同的返回形状，拆开。
-test('readProjectConfig 读得到 .agent-team/project.json', () => {
+test('readProjectConfig 读得到 .poundlock/project.json', () => {
   const { projectDir, pluginDir } = makeRun({ stages: STAGES, project: { paths: { 'at-product': ['docs/'] } } })
   try {
     const r = readProjectConfig(projectDir)
@@ -416,7 +416,7 @@ test('readProjectConfig 在 project.json 不存在时返回 ok:false，不抛', 
 test('readProjectConfig 对「合法 JSON 但不是对象」返回 ok:false——与 readRunContext 同一条边界', () => {
   const { projectDir, pluginDir } = makeRun({ stages: STAGES })
   try {
-    writeFileSync(join(projectDir, '.agent-team', 'project.json'), 'null', 'utf8')
+    writeFileSync(join(projectDir, '.poundlock', 'project.json'), 'null', 'utf8')
     const r = readProjectConfig(projectDir)
     assert.equal(r.ok, false)
     assert.match(r.reason, /不是一个 JSON 对象/)
@@ -461,7 +461,7 @@ test('artifactBytes 读不到时返回 null，不抛', () => {
 test('state.json 与 project.json 带 UTF-8 BOM：照样读得出来', () => {
   const dirs = makeRun({ runId: 'r1', stages: STAGES, project: { paths: {} } })
   try {
-    const base = join(dirs.projectDir, '.agent-team')
+    const base = join(dirs.projectDir, '.poundlock')
     for (const rel of [join('runs', 'r1', 'state.json'), 'project.json']) {
       const p = join(base, rel)
       writeFileSync(p, '﻿' + readFileSync(p, 'utf8'), 'utf8')
@@ -479,28 +479,28 @@ test('state.json 与 project.json 带 UTF-8 BOM：照样读得出来', () => {
 // 选——stages.json 坏了该重装插件，project.json 坏了该改 project.json，只说「修 current-run、state.json」会把 PM 派去修
 // 一个没坏的东西（hooks/lib/fail-open.mjs 的 runContextFix）。逐个出口列举，一格一个造法。
 const CAUSE_CASES = [
-  ['丢指针③：current-run 不在、runs/ 下有 run', 'pointer', (d) => rmSync(join(d.projectDir, '.agent-team', 'current-run'))],
+  ['丢指针③：current-run 不在、runs/ 下有 run', 'pointer', (d) => rmSync(join(d.projectDir, '.poundlock', 'current-run'))],
   ['current-run 读不出来（它是个目录）', 'pointer', (d) => {
-    const p = join(d.projectDir, '.agent-team', 'current-run')
+    const p = join(d.projectDir, '.poundlock', 'current-run')
     rmSync(p)
     mkdirSync(p)
   }],
-  ['current-run 是空的', 'pointer', (d) => writeFileSync(join(d.projectDir, '.agent-team', 'current-run'), '', 'utf8')],
-  ['current-run 不是合法的 run id', 'pointer', (d) => writeFileSync(join(d.projectDir, '.agent-team', 'current-run'), '../x', 'utf8')],
-  ['current-run 指向的 run 目录不存在', 'pointer', (d) => writeFileSync(join(d.projectDir, '.agent-team', 'current-run'), 'r9', 'utf8')],
+  ['current-run 是空的', 'pointer', (d) => writeFileSync(join(d.projectDir, '.poundlock', 'current-run'), '', 'utf8')],
+  ['current-run 不是合法的 run id', 'pointer', (d) => writeFileSync(join(d.projectDir, '.poundlock', 'current-run'), '../x', 'utf8')],
+  ['current-run 指向的 run 目录不存在', 'pointer', (d) => writeFileSync(join(d.projectDir, '.poundlock', 'current-run'), 'r9', 'utf8')],
   ['runs 读不出来（它是个文件）', 'runs', (d) => {
-    rmSync(join(d.projectDir, '.agent-team', 'current-run'))
-    rmSync(join(d.projectDir, '.agent-team', 'runs'), { recursive: true, force: true })
-    writeFileSync(join(d.projectDir, '.agent-team', 'runs'), '不是目录', 'utf8')
+    rmSync(join(d.projectDir, '.poundlock', 'current-run'))
+    rmSync(join(d.projectDir, '.poundlock', 'runs'), { recursive: true, force: true })
+    writeFileSync(join(d.projectDir, '.poundlock', 'runs'), '不是目录', 'utf8')
   }],
-  ['state.json 是坏 JSON', 'state', (d) => writeFileSync(join(d.projectDir, '.agent-team', 'runs', 'r1', 'state.json'), '{ x', 'utf8')],
-  ['state.json 不在', 'state', (d) => rmSync(join(d.projectDir, '.agent-team', 'runs', 'r1', 'state.json'))],
+  ['state.json 是坏 JSON', 'state', (d) => writeFileSync(join(d.projectDir, '.poundlock', 'runs', 'r1', 'state.json'), '{ x', 'utf8')],
+  ['state.json 不在', 'state', (d) => rmSync(join(d.projectDir, '.poundlock', 'runs', 'r1', 'state.json'))],
   ['插件的 stages.json 是坏 JSON', 'plugin', (d) => writeFileSync(join(d.pluginDir, 'stages.json'), '{ x', 'utf8')],
   // 复核（docs/30 §3，noise 第 1 条）：解析得出、形状不对的插件文件此前算读出来了，每一次派发都被说成 state.stage 不在阶段链里。
   ['插件的 stages.json 是 {}', 'plugin', (d) => writeFileSync(join(d.pluginDir, 'stages.json'), '{}', 'utf8')],
   ['插件的 stages.json 里某一段的值不是对象', 'plugin', (d) => writeFileSync(join(d.pluginDir, 'stages.json'), JSON.stringify({ ...STAGES, S3: 1 }), 'utf8')],
   ['插件的 stages.json 里某一段的值是数组', 'plugin', (d) => writeFileSync(join(d.pluginDir, 'stages.json'), JSON.stringify({ ...STAGES, S3: [] }), 'utf8')],
-  ['project.json 是坏 JSON', 'project', (d) => writeFileSync(join(d.projectDir, '.agent-team', 'project.json'), '{ x', 'utf8')],
+  ['project.json 是坏 JSON', 'project', (d) => writeFileSync(join(d.projectDir, '.poundlock', 'project.json'), '{ x', 'utf8')],
 ]
 
 for (const [label, cause, mutate] of CAUSE_CASES) {
@@ -517,7 +517,7 @@ for (const [label, cause, mutate] of CAUSE_CASES) {
   })
 }
 
-test('M3v：最外层兜底 catch 的 cause 是 plugin——门禁自己读不动，改 .agent-team 修不好', () => {
+test('M3v：最外层兜底 catch 的 cause 是 plugin——门禁自己读不动，改 .poundlock 修不好', () => {
   const ctx = readRunContext(undefined, undefined)
   assert.equal(ctx.kind, 'unreadable')
   assert.equal(ctx.cause, 'plugin')
@@ -540,7 +540,7 @@ test('第 33 条（C9）：current-run 末尾带 LF、CRLF、空白——照样�
   for (const tail of [LF, CR + LF, '  ' + LF]) {
     const dirs = makeRun({ runId: 'r9', stage: 'S2', stages: STAGES })
     try {
-      writeFileSync(join(dirs.projectDir, '.agent-team', 'current-run'), 'r9' + tail)
+      writeFileSync(join(dirs.projectDir, '.poundlock', 'current-run'), 'r9' + tail)
       const ctx = readRunContext(dirs.projectDir, dirs.pluginDir)
       assert.equal(ctx.ok, true, JSON.stringify(tail))
       assert.equal(ctx.runId, 'r9')
@@ -553,7 +553,7 @@ test('第 33 条（C9）：current-run 末尾带 LF、CRLF、空白——照样�
 // 并行微调（边看边改微调的设计 §5.8）：微调不写 current-run。第一趟就是微调的项目、指针不在而 runs/ 下只有微调的目录（state 写着 tweak、run 目录里
 // 绑着 at-tweak 的原话记录），不是「有人建过完整的 run 而指针丢了」——判 no-run。混进一个别的 run 目录照旧判读不出。
 function tweakDir(projectDir, id, command = 'at-tweak') {
-  const dir = join(projectDir, '.agent-team', 'runs', id)
+  const dir = join(projectDir, '.poundlock', 'runs', id)
   mkdirSync(dir, { recursive: true })
   writeFileSync(join(dir, 'state.json'), JSON.stringify({ run_id: id, mode: 'tweak', stage: 'S5', history: [{ stage: 'S1', at: 't' }] }))
   writeFileSync(join(dir, 'user-words.json'), JSON.stringify({ at: 't', session_id: 's-1', args: '改', source: 'command', command, bound: id }))
@@ -563,8 +563,8 @@ function tweakDir(projectDir, id, command = 'at-tweak') {
 test('current-run 不在、runs/ 下只有微调的目录：kind 是 no-run；混进一个不是微调的 run 目录照旧 unreadable', () => {
   const dirs = makeRun({ runId: 'full1', stage: 'S2', stages: STAGES })
   try {
-    rmSync(join(dirs.projectDir, '.agent-team', 'runs', 'full1'), { recursive: true, force: true })
-    rmSync(join(dirs.projectDir, '.agent-team', 'current-run'))
+    rmSync(join(dirs.projectDir, '.poundlock', 'runs', 'full1'), { recursive: true, force: true })
+    rmSync(join(dirs.projectDir, '.poundlock', 'current-run'))
     tweakDir(dirs.projectDir, 't1')
     tweakDir(dirs.projectDir, 't2')
     assert.equal(readRunContext(dirs.projectDir, dirs.pluginDir).kind, 'no-run')

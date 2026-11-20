@@ -37,7 +37,7 @@ const sha = (text) => sha256OfContract(Buffer.from(text, 'utf8'))
 function fixture({ ids, files = {}, approvals = null, extra = {}, roster = ROSTER } = {}) {
   const stage = ids[ids.length - 1]
   const dirs = makeRun({ runId: 'r1', stage, roster, project: PROJECT })
-  const runDir = join(dirs.projectDir, '.agent-team', 'runs', 'r1')
+  const runDir = join(dirs.projectDir, '.poundlock', 'runs', 'r1')
   for (const [rel, text] of Object.entries(files)) {
     mkdirSync(dirname(join(runDir, rel)), { recursive: true })
     writeFileSync(join(runDir, rel), text, 'utf8')
@@ -120,7 +120,7 @@ test('approval-ask：第 4 轮、用户选了「再返工一轮：回到 S5」�
       { source: 'ask', rework_to: 'S5', covers: ['S5', 'S6'] },
     ])
     assert.match(contextOf(r), /已记下返工批准：回到 S5（覆盖 S5、S6；这一趟共 1 条）/)
-    assert.match(out(r).systemMessage, /^agent-team 返工批准：已记下/)
+    assert.match(out(r).systemMessage, /^poundlock 返工批准：已记下/)
   })
 })
 
@@ -177,7 +177,7 @@ test('approval-ask：模型在 tool_input 里预填的答案不算——只读 t
 
 test('approval-ask：读不到运行状态（current-run 指针丢了）→ 不记，回传带按原因的修法', () => {
   using({ ids: roundsOf(3) }, (fx) => {
-    rmSync(join(fx.p, '.agent-team', 'current-run'))
+    rmSync(join(fx.p, '.poundlock', 'current-run'))
     const r = run('approval-ask', asked({ q: L5 }), GATE, fx.p)
     assert.equal(existsSync(fx.approvalsPath), false)
     assert.match(contextOf(r), /读不到这个项目的运行状态/)
@@ -216,7 +216,7 @@ test('approval-prompt：读不出输入、判定中途崩溃 → stdout 为空�
     const bad = run('approval-prompt', 'not json', GATE, fx.p)
     assert.equal(bad.stdout, '')
     assert.equal(bad.status, 0)
-    const crash = run('approval-prompt', prompted(L5), GATE, fx.p, { ...hermeticEnv(), AGENT_TEAM_TEST_THROW: 'normalize' }, { nodeArgs: ['-r', INJECT] })
+    const crash = run('approval-prompt', prompted(L5), GATE, fx.p, { ...hermeticEnv(), POUNDLOCK_TEST_THROW: 'normalize' }, { nodeArgs: ['-r', INJECT] })
     assert.equal(crash.stdout, '')
     assert.equal(crash.status, 0)
     assert.match(crash.stderr, /injected: normalize/)
@@ -225,8 +225,8 @@ test('approval-prompt：读不出输入、判定中途崩溃 → stdout 为空�
 
 test('approval-ask：判定中途崩溃 → 回传说「这次的回答没有记下」，不说放行', () => {
   using({ ids: roundsOf(3) }, (fx) => {
-    const r = run('approval-ask', asked({ q: L5 }), GATE, fx.p, { ...hermeticEnv(), AGENT_TEAM_TEST_THROW: 'normalize' }, { nodeArgs: ['-r', INJECT] })
-    assert.match(contextOf(r), /^agent-team 账本回传：\n【门禁】这次的回答没有记下/)
+    const r = run('approval-ask', asked({ q: L5 }), GATE, fx.p, { ...hermeticEnv(), POUNDLOCK_TEST_THROW: 'normalize' }, { nodeArgs: ['-r', INJECT] })
+    assert.match(contextOf(r), /^poundlock 账本回传：\n【门禁】这次的回答没有记下/)
     assert.doesNotMatch(out(r).systemMessage, /放行/)
   })
 })
@@ -254,9 +254,9 @@ test('H3：认不出的写法（流后缀、结尾带点、大写）在文件还
   })
 })
 
-test('H3：别的项目的 .agent-team/runs/<id>/approvals.jsonl 也拒；同名的业务文件不拦', () => {
+test('H3：别的项目的 .poundlock/runs/<id>/approvals.jsonl 也拒；同名的业务文件不拦', () => {
   using({ ids: roundsOf(3) }, (fx) => {
-    const other = join(fx.p, 'elsewhere', '.agent-team', 'runs', 'r9', 'approvals.jsonl')
+    const other = join(fx.p, 'elsewhere', '.poundlock', 'runs', 'r9', 'approvals.jsonl')
     assert.ok(denied(run('writepath', writeFile(other, 'at-pm'), GATE, fx.p)))
     assert.equal(run('writepath', writeFile(join(fx.p, 'src', 'web', 'delivered.json'), 'at-frontend'), GATE, fx.p).stdout, '')
   })
@@ -296,9 +296,9 @@ test('H6：PM 自己往 approvals.jsonl 里伪造的行，H3 写不进；Bash �
 
 test('H6 诊断：这份 state.json 不在 current-run 指向的那一趟里 → 理由末尾说批准会记到别处', () => {
   using({ ids: roundsOf(3) }, (fx) => {
-    mkdirSync(join(fx.p, '.agent-team', 'runs', 'r2'), { recursive: true })
-    writeFileSync(join(fx.p, '.agent-team', 'runs', 'r2', 'state.json'), JSON.stringify(stateOf(['S1'])))
-    writeFileSync(join(fx.p, '.agent-team', 'current-run'), 'r2')
+    mkdirSync(join(fx.p, '.poundlock', 'runs', 'r2'), { recursive: true })
+    writeFileSync(join(fx.p, '.poundlock', 'runs', 'r2', 'state.json'), JSON.stringify(stateOf(['S1'])))
+    writeFileSync(join(fx.p, '.poundlock', 'current-run'), 'r2')
     const r = run('rework', writeState(fx, stateOf([...roundsOf(3), 'S5'])), GATE, fx.p)
     assert.ok(denied(r))
     assert.match(reasonOf(r), /不在 current-run 指向的那一趟 run 里/)
@@ -352,9 +352,9 @@ const IMPL = { '00-contract.md': 'c\n', '01-prd.md': 'p\n', '03-arch.md': 'a\n',
 
 test('H2 B2：S6 里架构师再派 at-backend——快照拍过（PM 推进时记过账）之后拒，之前放行', () => {
   using({ ids: FIRST6, files: IMPL }, (fx) => {
-    assert.equal(run('readiness', dispatch('agent-team:at-backend', 'agent-team:at-architect'), GATE, fx.p).stdout, '', '还没有快照')
+    assert.equal(run('readiness', dispatch('poundlock:at-backend', 'poundlock:at-architect'), GATE, fx.p).stdout, '', '还没有快照')
     run('ledger', postedState(fx), GATE, fx.p)
-    const r = run('readiness', dispatch('agent-team:at-backend', 'agent-team:at-architect'), GATE, fx.p)
+    const r = run('readiness', dispatch('poundlock:at-backend', 'poundlock:at-architect'), GATE, fx.p)
     assert.ok(denied(r))
     assert.match(reasonOf(r), /不记回退重做 S5/)
     assert.match(reasonOf(r), /冒泡给派你的人/)
@@ -364,7 +364,7 @@ test('H2 B2：S6 里架构师再派 at-backend——快照拍过（PM 推进时�
 test('H2 L7：S7 里 PM 派 at-qa 补测——06-test.md 交过 → 拒，出路是先记一次回退（回到 S6）', () => {
   using({ ids: [...FIRST6, 'S7'], files: { ...IMPL, '06-test.md': 't\n' } }, (fx) => {
     run('ledger', postedState(fx), GATE, fx.p)
-    const r = run('readiness', dispatch('agent-team:at-qa', 'at-pm'), GATE, fx.p)
+    const r = run('readiness', dispatch('poundlock:at-qa', 'at-pm'), GATE, fx.p)
     assert.ok(denied(r))
     assert.match(reasonOf(r), /回到 S6/)
   })
@@ -373,32 +373,32 @@ test('H2 L7：S7 里 PM 派 at-qa 补测——06-test.md 交过 → 拒，出路
 test('H2：回退记过之后（stage 回到 S5）同一次派发放行', () => {
   using({ ids: [...FIRST6, 'S5'], files: IMPL }, (fx) => {
     run('ledger', postedState(fx), GATE, fx.p)
-    assert.equal(run('readiness', dispatch('agent-team:at-backend', 'agent-team:at-architect'), GATE, fx.p).stdout, '')
+    assert.equal(run('readiness', dispatch('poundlock:at-backend', 'poundlock:at-architect'), GATE, fx.p).stdout, '')
   })
 })
 
 test('H3 B4：S6 里 at-backend 改自己 S5 的实现记录——快照之后拒；补派（快照之后才落盘）写几次都放行', () => {
   using({ ids: FIRST6, files: IMPL }, (fx) => {
     run('ledger', postedState(fx), GATE, fx.p)
-    const r = run('writepath', writeFile(join(fx.runDir, '05-impl/at-backend.md'), 'agent-team:at-backend'), GATE, fx.p)
+    const r = run('writepath', writeFile(join(fx.runDir, '05-impl/at-backend.md'), 'poundlock:at-backend'), GATE, fx.p)
     assert.ok(denied(r))
     assert.match(reasonOf(r), /回到 S5/)
     // at-frontend 那份在快照里没有：补派。
     const fe = join(fx.runDir, '05-impl/at-frontend.md')
-    assert.equal(run('writepath', writeFile(fe, 'agent-team:at-frontend'), GATE, fx.p).stdout, '')
+    assert.equal(run('writepath', writeFile(fe, 'poundlock:at-frontend'), GATE, fx.p).stdout, '')
     writeFileSync(fe, 'fe\n')
-    assert.equal(run('writepath', writeFile(fe, 'agent-team:at-frontend'), GATE, fx.p).stdout, '', '第二次写')
+    assert.equal(run('writepath', writeFile(fe, 'poundlock:at-frontend'), GATE, fx.p).stdout, '', '第二次写')
   })
 })
 
 test('H3 L2：架构师在 S5 改 03-arch.md 放行（它在 S5 有活）；到了 S6 拒', () => {
   using({ ids: [...FIRST6.slice(0, 5)], files: IMPL }, (fx) => {
     run('ledger', postedState(fx), GATE, fx.p)
-    assert.equal(run('writepath', writeFile(join(fx.runDir, '03-arch.md'), 'agent-team:at-architect'), GATE, fx.p).stdout, '')
+    assert.equal(run('writepath', writeFile(join(fx.runDir, '03-arch.md'), 'poundlock:at-architect'), GATE, fx.p).stdout, '')
   })
   using({ ids: FIRST6, files: IMPL }, (fx) => {
     run('ledger', postedState(fx), GATE, fx.p)
-    assert.ok(denied(run('writepath', writeFile(join(fx.runDir, '03-arch.md'), 'agent-team:at-architect'), GATE, fx.p)))
+    assert.ok(denied(run('writepath', writeFile(join(fx.runDir, '03-arch.md'), 'poundlock:at-architect'), GATE, fx.p)))
   })
 })
 
@@ -459,7 +459,7 @@ test('复核 ledger：stage 没变的 state.json 写入不重拍快照——补�
     writeFileSync(fx.statePath, JSON.stringify({ ...fx.state, stage_roles: { S5: ['at-architect', 'at-backend', 'at-frontend'] } }, null, 2))
     run('ledger', postedState(fx), GATE, fx.p)
     assert.equal(Object.hasOwn(JSON.parse(readFileSync(fx.deliveredPath, 'utf8')).products, '05-impl/at-frontend.md'), false)
-    assert.equal(run('writepath', writeFile(fe, 'agent-team:at-frontend'), GATE, fx.p).stdout, '')
+    assert.equal(run('writepath', writeFile(fe, 'poundlock:at-frontend'), GATE, fx.p).stdout, '')
     // 推进到 S7：重拍，补派那份进快照。
     writeFileSync(fx.statePath, JSON.stringify(stateOf([...FIRST6, 'S7']), null, 2))
     run('ledger', postedState(fx), GATE, fx.p)
@@ -519,7 +519,7 @@ test('变异 G05：approvals.jsonl 里已有一条盖住了 → 再选一次标�
 
 // G06：没有 run 与读不出运行状态不分时全绿。
 test('变异 G06：没有进行中的 run → 回传说没有 run，不给修法', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'agent-team-norun-'))
+  const dir = mkdtempSync(join(tmpdir(), 'poundlock-norun-'))
   try {
     const r = run('approval-ask', asked({ q: L5 }), GATE, dir)
     assert.match(contextOf(r), /没有进行中的 run/)
@@ -530,7 +530,7 @@ test('变异 G06：没有进行中的 run → 回传说没有 run，不给修法
 })
 
 // C10：去掉「认不出的写法」那一支时全绿——别的写法都被路径形状认出来了。网络路径的形状看不穿（norm 不碰网络），只有它拦得住。
-test('变异 C10：主线程经网络共享写门禁专属文件（形状里没有 .agent-team）→ 拒', { skip: process.platform !== 'win32' }, () => {
+test('变异 C10：主线程经网络共享写门禁专属文件（形状里没有 .poundlock）→ 拒', { skip: process.platform !== 'win32' }, () => {
   using({ ids: roundsOf(3) }, (fx) => {
     const r = run('writepath', writeFile('\\\\localhost\\share\\runs\\r1\\approvals.jsonl', null), GATE, fx.p)
     assert.ok(denied(r), r.stdout)
@@ -551,8 +551,8 @@ test('变异 D02：早段的产物还是上一轮的（rework_base 与磁盘、�
   const extra = { rework_base: { '05-impl/at-backend.md': sha('b\n') } }
   using({ ids: [...FIRST6, 'S5', 'S6'], files: IMPL, extra }, (fx) => {
     run('ledger', postedState(fx), GATE, fx.p)
-    assert.equal(run('readiness', dispatch('agent-team:at-backend', 'agent-team:at-architect'), GATE, fx.p).stdout, '')
-    assert.equal(run('writepath', writeFile(join(fx.runDir, '05-impl/at-backend.md'), 'agent-team:at-backend'), GATE, fx.p).stdout, '')
+    assert.equal(run('readiness', dispatch('poundlock:at-backend', 'poundlock:at-architect'), GATE, fx.p).stdout, '')
+    assert.equal(run('writepath', writeFile(join(fx.runDir, '05-impl/at-backend.md'), 'poundlock:at-backend'), GATE, fx.p).stdout, '')
   })
 })
 
@@ -561,7 +561,7 @@ test('变异 D04：S5 里 at-product 派 at-ui、at-ui 的 S2 产物交过 → �
   const files = { ...IMPL, '02-ui-spec.md': 'u\n', '02-wireframe.html': '<p>w</p>\n' }
   using({ ids: FIRST6.slice(0, 5), files }, (fx) => {
     run('ledger', postedState(fx), GATE, fx.p)
-    const r = run('readiness', dispatch('agent-team:at-ui', 'agent-team:at-product'), GATE, fx.p)
+    const r = run('readiness', dispatch('poundlock:at-ui', 'poundlock:at-product'), GATE, fx.p)
     assert.ok(denied(r), r.stdout)
     assert.match(reasonOf(r), /不记回退重做 S2/)
   })
@@ -570,11 +570,11 @@ test('变异 D04：S5 里 at-product 派 at-ui、at-ui 的 S2 产物交过 → �
 // 变异 Y05：H6 改读 current-run 那一趟的批准时全绿——诊断那一条里别的 run 没有批准。批准不许串 run。
 test('变异 Y05：current-run 指向的另一趟 run 有批准，这一趟没有 → 这一趟的第 4 轮照拒', () => {
   using({ ids: roundsOf(3) }, (fx) => {
-    const r2 = join(fx.p, '.agent-team', 'runs', 'r2')
+    const r2 = join(fx.p, '.poundlock', 'runs', 'r2')
     mkdirSync(r2, { recursive: true })
     writeFileSync(join(r2, 'state.json'), JSON.stringify(stateOf(roundsOf(3))))
     writeFileSync(join(r2, 'approvals.jsonl'), JSON.stringify({ at: 't', source: 'ask', rework_to: 'S5', covers: ['S5', 'S6'] }) + '\n')
-    writeFileSync(join(fx.p, '.agent-team', 'current-run'), 'r2')
+    writeFileSync(join(fx.p, '.poundlock', 'current-run'), 'r2')
     const r = run('rework', writeState(fx, stateOf([...roundsOf(3), 'S5'])), GATE, fx.p)
     assert.ok(denied(r))
     assert.match(reasonOf(r), /不在 current-run 指向的那一趟 run 里/)
@@ -592,9 +592,9 @@ test('变异 X11：approvals.jsonl 写不进（成了目录）→ 回传说写�
   })
 })
 
-// 变异 X15：不看 .agent-team 在不在就拒认不出的写法时全绿。没有用这支团队的项目里，同名的业务文件（哪怕写法古怪）不归门禁管。
-test('变异 X15：项目里没有 .agent-team 时，主线程用认不出的写法写同名业务文件 → 不拦', { skip: process.platform !== 'win32' }, () => {
-  const dir = mkdtempSync(join(tmpdir(), 'agent-team-plain-'))
+// 变异 X15：不看 .poundlock 在不在就拒认不出的写法时全绿。没有用这支团队的项目里，同名的业务文件（哪怕写法古怪）不归门禁管。
+test('变异 X15：项目里没有 .poundlock 时，主线程用认不出的写法写同名业务文件 → 不拦', { skip: process.platform !== 'win32' }, () => {
+  const dir = mkdtempSync(join(tmpdir(), 'poundlock-plain-'))
   try {
     const r = run('writepath', writeFile(join(dir, 'data', 'approvals.jsonl::$DATA'), null), GATE, dir)
     assert.equal(r.stdout, '')

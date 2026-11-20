@@ -12,8 +12,8 @@ export function failRead(name, times = Infinity) {
   if (name === 'project.json') {
     // 一直失败：读运行上下文、readProjectConfig、各条缝里的重读加起来远不到这个数。
     const n = Number.isFinite(times) ? times : 99
-    return { env: { ...hermeticEnv(), AGENT_TEAM_TEST_PROJECT_READS: `busy*${n}` }, opts: { nodeArgs: ['-r', PROJECT_READS] } }
+    return { env: { ...hermeticEnv(), POUNDLOCK_TEST_PROJECT_READS: `busy*${n}` }, opts: { nodeArgs: ['-r', PROJECT_READS] } }
   }
   if (Number.isFinite(times)) throw new Error('failRead：project.json 之外的文件只能一直读不出（inject-throw.cjs 的 read:）')
-  return { env: { ...hermeticEnv(), AGENT_TEAM_TEST_THROW: `read:${name}` }, opts: { nodeArgs: ['-r', INJECT] } }
+  return { env: { ...hermeticEnv(), POUNDLOCK_TEST_THROW: `read:${name}` }, opts: { nodeArgs: ['-r', INJECT] } }
 }

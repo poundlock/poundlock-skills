@@ -105,7 +105,7 @@ const PLUGIN_PATH = /^(\.\/|\$CLAUDE_PLUGIN_ROOT\/)?(agents\/|commands\/|hooks\/
 const barePluginPaths = (text) => [...text.matchAll(/`([^`\n]+)`/g)].map((m) => m[1]).filter((span) => PLUGIN_PATH.test(span))
 
 test('自检：barePluginPaths() 认得出裸路径与漏了花括号的，带前缀的与用户项目里的路径不算', () => {
-  const sample = '读 `stages.json`、`hooks/lib/stages.mjs`、`${CLAUDE_PLUGIN_ROOT}/roster.json`、`.agent-team/project.json`、`./agents/at-qa.md`、`$CLAUDE_PLUGIN_ROOT/roster.json`'
+  const sample = '读 `stages.json`、`hooks/lib/stages.mjs`、`${CLAUDE_PLUGIN_ROOT}/roster.json`、`.poundlock/project.json`、`./agents/at-qa.md`、`$CLAUDE_PLUGIN_ROOT/roster.json`'
   assert.deepEqual(barePluginPaths(sample), ['stages.json', 'hooks/lib/stages.mjs', './agents/at-qa.md', '$CLAUDE_PLUGIN_ROOT/roster.json'])
 })
 

@@ -1,4 +1,4 @@
-// 需求稿（docs/95）的纯函数那一层：/agent-team:at 建 run 之前，项目经理把问清的需求整理成需求稿，用 AskUserQuestion 单独问要不要照它开始，
+// 需求稿（docs/95）的纯函数那一层：/poundlock:at 建 run 之前，项目经理把问清的需求整理成需求稿，用 AskUserQuestion 单独问要不要照它开始，
 // 题面就是整份需求稿；用户选了规范标签，批准记录器把题面记成这一次的原话（source: 'ask'）。这里核：认回答（briefAnswer）、题面里看不见的内容
 // （hiddenIn）、记录的来源（pendingRecord、readWords）、对不上时按来源说（wordsMismatchText）、给项目经理的那一段（briefNotice）。
 // 子进程那一层在 tests/gate-brief.test.mjs。
@@ -118,11 +118,11 @@ test('wordsMismatchText：来源是 ask 时说「对不上用户批准的需求�
   const ask = wordsMismatchText(m, 'ask')
   assert.ok(ask.startsWith('契约第 1 节对不上用户批准的需求稿（门禁在用户点「' + BRIEF_LABEL + '」时记下了它'), ask)
   assert.ok(ask.includes(USER_WORDS_FILE) && ask.includes('第 1 节第 2 行应是'), ask)
-  assert.ok(!ask.includes('/agent-team:at 后面写的原话'), ask)
-  for (const t of [wordsMismatchText(m), wordsMismatchText(m, 'command')]) assert.ok(t.startsWith('契约第 1 节对不上用户在 /agent-team:at 后面写的原话'), t)
+  assert.ok(!ask.includes('/poundlock:at 后面写的原话'), ask)
+  for (const t of [wordsMismatchText(m), wordsMismatchText(m, 'command')]) assert.ok(t.startsWith('契约第 1 节对不上用户在 /poundlock:at 后面写的原话'), t)
 })
 
-test('briefNotice：记下了说照它建这一趟；三组原因各有出路——用户那一侧改好再问、这一问不合要求照要求重问、门禁这一侧请用户重发（没有 .agent-team 的先跑 at-init）', () => {
+test('briefNotice：记下了说照它建这一趟；三组原因各有出路——用户那一侧改好再问、这一问不合要求照要求重问、门禁这一侧请用户重发（没有 .poundlock 的先跑 at-init）', () => {
   const ok = briefNotice()
   assert.ok(ok.startsWith('【需求稿】门禁记下了用户批准的这份需求稿'), ok)
   for (const k of ['契约第 1 节逐字照抄它', '推进出第一段时门禁拿它核', '批准之前就建好的 run 不认它']) assert.ok(ok.includes(k), k)
@@ -139,9 +139,9 @@ test('briefNotice：记下了说照它建这一趟；三组原因各有出路—
     assert.ok(t.startsWith('【需求稿】这一问没有记成批准：') && t.includes('照要求重问一次') && t.includes(reask) && t.includes('在那之前不要建 run'), `${w}：${t}`)
     assert.ok(!t.includes('回答的形状认不出'), `${w} 有自己的说法`)
   }
-  for (const w of ['no-session', 'no-agent-team', 'write-failed']) {
+  for (const w of ['no-session', 'no-poundlock', 'write-failed']) {
     const t = briefNotice(w)
-    assert.ok(t.startsWith('【需求稿】门禁没有记下') && t.includes('/agent-team:at 后面重发') && t.includes('不要照现在这样往下建 run'), `${w}：${t}`)
-    assert.equal(t.includes('先请用户跑 /agent-team:at-init'), w === 'no-agent-team', w)
+    assert.ok(t.startsWith('【需求稿】门禁没有记下') && t.includes('/poundlock:at 后面重发') && t.includes('不要照现在这样往下建 run'), `${w}：${t}`)
+    assert.equal(t.includes('先请用户跑 /poundlock:at-init'), w === 'no-poundlock', w)
   }
 })

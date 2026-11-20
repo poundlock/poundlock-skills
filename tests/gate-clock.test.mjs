@@ -1,6 +1,6 @@
 // 门禁的钟（docs/93）：项目经理没有钟，state.json 的 history[].at 与 closed_at 一直是估的——真实会话里七场全是，越写越往后，
 // 收口时间写到了会话结束之后。门禁在项目经理写 state.json 之前总会说话的两处带上门禁此刻的时间：自检的回复（每一轮第一次写
-// .agent-team 之前；桌面端每个角色交回来都会触发一轮）与【阶段】（推进、收口）；命令正文叫它照抄、不要估。门禁不核这两个时间
+// .poundlock 之前；桌面端每个角色交回来都会触发一轮）与【阶段】（推进、收口）；命令正文叫它照抄、不要估。门禁不核这两个时间
 // （不用它们判任何事），这里只钉「给了」与「格式过得了收口标记的形状」。
 // docs/94：两场真实会话里项目经理收口那一次都把 history 里挨着的 S8 那一条已有的时间换成了收口时间、再自己改回去（整份重写 state.json 时把手头这件事
 // 的时间带进了挨着的那一条）。几处说法都写明只有这次新写的那个时间照最新的写，已经写下的原样带着；门禁不核这些时间（它们不进任何判据，只是记录）。
@@ -77,13 +77,13 @@ test('门禁子进程：自检的回复与【阶段】带的是门禁跑的那�
   try {
     const p = dirs.projectDir
     let t0 = Date.now()
-    const check = run('writepath', { hook_event_name: 'PreToolUse', tool_name: 'Write', tool_input: { file_path: join(p, '.agent-team', 'gate-check'), content: 'x' } }, undefined, p)
+    const check = run('writepath', { hook_event_name: 'PreToolUse', tool_name: 'Write', tool_input: { file_path: join(p, '.poundlock', 'gate-check'), content: 'x' } }, undefined, p)
     let t1 = Date.now()
     const reason = decisionOf(check.stdout)?.permissionDecisionReason ?? ''
     inWindow(reason.slice(reason.indexOf('门禁此刻的时间是')), t0, t1)
-    const statePath = join(p, '.agent-team', 'runs', 'r1', 'state.json')
+    const statePath = join(p, '.poundlock', 'runs', 'r1', 'state.json')
     t0 = Date.now()
-    const led = run('ledger', { hook_event_name: 'PostToolUse', tool_name: 'Write', agent_type: 'agent-team:at-pm', tool_input: { file_path: statePath } }, GATE, p)
+    const led = run('ledger', { hook_event_name: 'PostToolUse', tool_name: 'Write', agent_type: 'poundlock:at-pm', tool_input: { file_path: statePath } }, GATE, p)
     t1 = Date.now()
     const ctx = led.stdout.trim() ? JSON.parse(led.stdout).hookSpecificOutput?.additionalContext ?? '' : ''
     const at = ctx.indexOf('"stage": "S2", "at": "')

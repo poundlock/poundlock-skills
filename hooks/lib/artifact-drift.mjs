@@ -82,7 +82,7 @@ export function compareArtifacts({ artifacts, stages, artifactBytes, roster }) {
   const out = { drifted: [], missing: [], unrecorded: [] }
   for (const name of producedNames(stages)) {
     // M4c（docs/37，全量审查第 37 条前半）：契约不在这里比。它的账只记在 state.json 的 contract_sha（写契约那一刻门禁只回传那一处），
-    // 原来这里只读 artifacts['00-contract.md']：照 /agent-team:at 记账的 run 每次派发返回都报「artifacts 里没记」，把 sha 抄进来的
+    // 原来这里只读 artifacts['00-contract.md']：照 /poundlock:at 记账的 run 每次派发返回都报「artifacts 里没记」，把 sha 抄进来的
     // run 每次合法修订之后又报「记账之后被改过」，真漂移与这两句噪声逐字相同。契约由 H5a 与写 state.json 时的【契约】拿
     // contract_sha 比磁盘（hooks/gate.mjs 的 contractNoticeFor、hooks/lib/ledger.mjs 的 contractCheckNotice）。旧 run 的 artifacts
     // 里记着的契约 sha 一律不读。

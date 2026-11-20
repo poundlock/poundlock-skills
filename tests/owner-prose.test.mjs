@@ -1,4 +1,4 @@
-// 一趟只归一个会话——正文那一层：/agent-team:at 第 1 节与 /agent-team:at-resume 第 1 节各有「别的会话的一趟」一段，逐字带门禁认的规范标签
+// 一趟只归一个会话——正文那一层：/poundlock:at 第 1 节与 /poundlock:at-resume 第 1 节各有「别的会话的一趟」一段，逐字带门禁认的规范标签
 // （hooks/lib/owner.mjs 是单一真源）；门禁拒绝理由与【会话】里点名的小节在正文里真的有；at-status 报归属。
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
@@ -29,13 +29,13 @@ test('at.md 第 1 节有「别的会话的一趟」，逐字带四个标签，�
   const s = section1(read('at'))
   const at = s.indexOf('**' + NAME + '**')
   assert.ok(at >= 0, '第 1 节里要有加粗的「' + NAME + '」')
-  const look = s.indexOf('**先看 `.agent-team/current-run` 指着的那一趟**')
+  const look = s.indexOf('**先看 `.poundlock/current-run` 指着的那一趟**')
   assert.ok(look > at, '「' + NAME + '」要排在「先看 current-run 指着的那一趟」之前')
   const part = s.slice(at, look)
   for (const label of [SUPPLEMENT_LABEL, END_LABEL, TAKEOVER_CLOSE_LABEL, BACK_LABEL]) assert.ok(part.includes('「' + label + '」'), label)
   assert.ok(part.includes('【会话】'), '这一段从【会话】回传起')
   assert.ok(part.includes('补充需求：'), '给用户一句能原样发过去的话')
-  assert.ok(part.includes('/agent-team:at-resume'), '原会话没了的出路')
+  assert.ok(part.includes('/poundlock:at-resume'), '原会话没了的出路')
   assert.ok(part.includes('不记 escalation'), '这一问不记 escalation')
 })
 
@@ -73,7 +73,7 @@ test('门禁拒绝理由与【会话】里点名的小节在正文里都找得�
     sessionNotice({ command: 'at-resume', runId: 'r1' }),
   ]
   const refs = new Set()
-  for (const t of texts) for (const m of t.matchAll(/\/agent-team:([a-z-]+) 第 1 节「([^」]+)」/g)) refs.add(m[1] + '|' + m[2])
+  for (const t of texts) for (const m of t.matchAll(/\/poundlock:([a-z-]+) 第 1 节「([^」]+)」/g)) refs.add(m[1] + '|' + m[2])
   assert.deepEqual([...refs].sort(), ['at-resume|' + NAME, 'at|' + NAME])
   for (const r of refs) {
     const [cmd, name] = r.split('|')

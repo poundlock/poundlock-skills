@@ -1,5 +1,5 @@
-// docs/79（docs/42 §4、docs/29 §5「reach.json 写完之后会落后」）：.agent-team/reach.json 是项目经理照【触达表】手抄的快照，门禁只在写它的那一刻核
-// （ledger.mjs 的 reachCheckNotice）。之后 project.json 被手改（两趟之间用户改了 paths）、写坏、被删，/agent-team:at-status 照旧照它报。现在每趟开头
+// docs/79（docs/42 §4、docs/29 §5「reach.json 写完之后会落后」）：.poundlock/reach.json 是项目经理照【触达表】手抄的快照，门禁只在写它的那一刻核
+// （ledger.mjs 的 reachCheckNotice）。之后 project.json 被手改（两趟之间用户改了 paths）、写坏、被删，/poundlock:at-status 照旧照它报。现在每趟开头
 // 写 current-run 时，按当前 project.json 与花名册重算一遍、与磁盘上的比：对不上、写坏了、有重复的键、不在，【触达表】说出来、给出正确的那一份。
 // project.json 有阻断或插件问题时不核（那时【触达表】本来就叫 PM 先别写，「正确的那一份」也算不准）；写 state.json 等别的时机不核（免得每次记账都刷）。
 import { test } from 'node:test'
@@ -15,7 +15,7 @@ import { reachStaleNotice } from '../hooks/lib/ledger.mjs'
 
 const TEMPLATE = JSON.parse(readFileSync(new URL('../templates/project.json', import.meta.url), 'utf8'))
 const ROSTER = JSON.parse(readFileSync(new URL('../roster.json', import.meta.url), 'utf8'))
-const posted = (file_path, agent_type = 'agent-team:at-pm') => ({ hook_event_name: 'PostToolUse', tool_name: 'Write', agent_type, tool_input: { file_path } })
+const posted = (file_path, agent_type = 'poundlock:at-pm') => ({ hook_event_name: 'PostToolUse', tool_name: 'Write', agent_type, tool_input: { file_path } })
 const ctxOf = (r) => decisionOf(r.stdout)?.additionalContext ?? ''
 const expectedOf = (project) => computeReach({ roster: ROSTER, paths: project.paths })
 const WIDER = { ...TEMPLATE, paths: { ...TEMPLATE.paths, 'at-backend': [...(TEMPLATE.paths['at-backend'] ?? []), 'scripts/'] } }
@@ -24,9 +24,9 @@ const WIDER = { ...TEMPLATE, paths: { ...TEMPLATE.paths, 'at-backend': [...(TEMP
 // 换掉花名册——门禁从它自己所在的插件根读花名册，tests/gate-acceptance.test.mjs 同一个做法）。
 const DIR = Symbol('dir')
 // failReach：门禁子进程读 reach.json 时一直抛（tests/helpers/fail-read.mjs，三个系统都跑得到；错误不带 code，与被占用、权限拒绝同一支）。
-function pointer({ project = TEMPLATE, reach, file = 'current-run', writer = 'agent-team:at-pm', roster = null, failReach = false }) {
+function pointer({ project = TEMPLATE, reach, file = 'current-run', writer = 'poundlock:at-pm', roster = null, failReach = false }) {
   const dirs = makeRun({ runId: 'r1', stage: 'S1', project })
-  const plugin = roster === null ? null : realpathSync(mkdtempSync(join(tmpdir(), 'agent-team-r37-plug-')))
+  const plugin = roster === null ? null : realpathSync(mkdtempSync(join(tmpdir(), 'poundlock-r37-plug-')))
   try {
     let gate
     if (plugin) {
@@ -36,7 +36,7 @@ function pointer({ project = TEMPLATE, reach, file = 'current-run', writer = 'ag
       writeFileSync(join(plugin, 'roster.json'), roster)
       gate = join(plugin, 'hooks', 'boot.mjs')
     }
-    const at = join(dirs.projectDir, '.agent-team')
+    const at = join(dirs.projectDir, '.poundlock')
     if (reach === DIR) mkdirSync(join(at, 'reach.json'))
     else if (reach !== null) writeFileSync(join(at, 'reach.json'), reach)
     const target = file === 'current-run' ? join(at, 'current-run') : join(at, 'runs', 'r1', file)
@@ -49,7 +49,7 @@ function pointer({ project = TEMPLATE, reach, file = 'current-run', writer = 'ag
     if (plugin) rmSync(plugin, { recursive: true, force: true })
   }
 }
-const jsonAfter = (ctx) => JSON.parse(ctx.slice(ctx.indexOf('{', ctx.indexOf('重写进 .agent-team/reach.json'))).split('\n\n')[0])
+const jsonAfter = (ctx) => JSON.parse(ctx.slice(ctx.indexOf('{', ctx.indexOf('重写进 .poundlock/reach.json'))).split('\n\n')[0])
 
 test('reachStaleNotice（docs/79）：对得上不吭声（键序、BOM、CRLF 不算不同）；对不上、写坏了、有重复的键、不在各说一句，都给出正确的那一份', () => {
   const expected = expectedOf(TEMPLATE)
@@ -64,14 +64,14 @@ test('reachStaleNotice（docs/79）：对得上不吭声（键序、BOM、CRLF �
   for (const [text, word] of cases) {
     const s = reachStaleNotice({ text, expected })
     assert.ok(s && s.startsWith('【触达表】') && s.includes(word), String(s))
-    assert.ok(s.includes('/agent-team:at-status'), s)
+    assert.ok(s.includes('/poundlock:at-status'), s)
     assert.deepEqual(JSON.parse(s.slice(s.indexOf('{'))), expected)
   }
 })
 
 test('写 current-run（docs/79）：project.json 改宽了、reach.json 还是旧的——【触达表】说它落后，给出按当前配置算的那一份；对得上时不说', () => {
   const stale = pointer({ project: WIDER, reach: JSON.stringify(expectedOf(TEMPLATE)) })
-  assert.ok(stale.includes('【触达表】') && stale.includes('.agent-team/reach.json'), stale)
+  assert.ok(stale.includes('【触达表】') && stale.includes('.poundlock/reach.json'), stale)
   assert.deepEqual(jsonAfter(stale), expectedOf(WIDER))
   const fresh = pointer({ project: WIDER, reach: JSON.stringify(expectedOf(WIDER)) })
   assert.ok(!fresh.includes('【触达表】'), fresh)
@@ -83,7 +83,7 @@ test('写 current-run（docs/79）：project.json 有阻断时不核 reach.json�
   const BLOCKED = { ...TEMPLATE, paths: { ...TEMPLATE.paths, 'at-backend': ['../'] } }
   const ctx = pointer({ project: BLOCKED, reach: JSON.stringify(expectedOf(TEMPLATE)) })
   assert.ok(ctx.includes('【project.json】'), ctx)
-  assert.ok(!ctx.includes('重写进 .agent-team/reach.json'), ctx)
+  assert.ok(!ctx.includes('重写进 .poundlock/reach.json'), ctx)
 })
 
 // 复核（docs/79 §8）：花名册读不出（插件问题）时不核——照它算的触达表是空的，叫 PM 照着重写会用一份空表盖掉对的那一份；写指针的人不是项目经理时，
@@ -91,26 +91,26 @@ test('写 current-run（docs/79）：project.json 有阻断时不核 reach.json�
 test('写 current-run（docs/79 §8）：花名册读不出时只说【插件】、不给触达表；不是项目经理写的叫它冒泡；成因里有插件更新', () => {
   const broken = pointer({ project: TEMPLATE, reach: JSON.stringify(expectedOf(TEMPLATE)), roster: '{ 坏了' })
   assert.ok(broken.includes('【插件】'), broken)
-  assert.ok(!broken.includes('重写进 .agent-team/reach.json'), broken)
-  const other = pointer({ project: TEMPLATE, reach: null, writer: 'agent-team:at-backend' })
+  assert.ok(!broken.includes('重写进 .poundlock/reach.json'), broken)
+  const other = pointer({ project: TEMPLATE, reach: null, writer: 'poundlock:at-backend' })
   assert.ok(other.includes('【触达表】') && other.includes('原样冒泡'), other)
   const own = pointer({ project: TEMPLATE, reach: null })
   assert.ok(!own.includes('原样冒泡'), own)
   assert.ok(reachStaleNotice({ text: JSON.stringify(expectedOf(WIDER)), expected: expectedOf(TEMPLATE) }).includes('插件更新'))
 })
 
-// docs/88（docs/79 §4「reach.json 在、却读不出来时不核」）：原来一声不吭——/agent-team:at-status 照它报时也读不出，项目经理什么都不知道。现在说这一次没有核、
+// docs/88（docs/79 §4「reach.json 在、却读不出来时不核」）：原来一声不吭——/poundlock:at-status 照它报时也读不出，项目经理什么都不知道。现在说这一次没有核、
 // 成因，给出按当前配置算出来的那一份（写不进去就告诉用户）；不是项目经理写的照旧叫它冒泡。只读一次：短暂占用时多说一次，照着重写一份正确的也无害。
 test('写 current-run（docs/88）：reach.json 在、却读不出来——说这一次没有核，给出按当前配置算出来的那一份；不是项目经理写的叫它冒泡', () => {
   const dir = pointer({ project: TEMPLATE, reach: DIR })
-  assert.ok(dir.includes('【触达表】.agent-team/reach.json 在、却读不出来') && dir.includes('这一次没有核') && dir.includes('写不进去就告诉用户'), dir)
+  assert.ok(dir.includes('【触达表】.poundlock/reach.json 在、却读不出来') && dir.includes('这一次没有核') && dir.includes('写不进去就告诉用户'), dir)
   assert.deepEqual(jsonAfter(dir), expectedOf(TEMPLATE))
   // 复核（docs/88 §8，低 2）：被占用、权限拒绝（错误码不是 EISDIR）也走这一支——只钉目录时，把读不出收窄成 EISDIR 全绿，那几种会被说成「不在」。
   const busy = pointer({ project: TEMPLATE, reach: JSON.stringify(expectedOf(TEMPLATE)), failReach: true })
   assert.ok(busy.includes('在、却读不出来') && !busy.includes('reach.json 不在'), busy)
   // 复核（低 4）：写不进去的告诉用户，不要自己删它或改名（它可能是个目录）。
   assert.ok(dir.includes('不要自己删它或改名'), dir)
-  const other = pointer({ project: TEMPLATE, reach: DIR, writer: 'agent-team:at-backend' })
+  const other = pointer({ project: TEMPLATE, reach: DIR, writer: 'poundlock:at-backend' })
   assert.ok(other.includes('在、却读不出来') && other.includes('原样冒泡'), other)
   // 读得出的照旧：对得上不吭声。
   assert.ok(!pointer({ project: TEMPLATE, reach: JSON.stringify(expectedOf(TEMPLATE)) }).includes('【触达表】'))

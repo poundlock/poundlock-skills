@@ -1,12 +1,12 @@
 {
-  "name": "agent-team-marketplace",
+  "name": "poundlock",
   "description": "十角色软件开发 agent team 插件的自托管市场。",
   "owner": {
     "name": "poundlock"
   },
   "plugins": [
     {
-      "name": "agent-team",
+      "name": "poundlock",
       "source": "./",
       "description": "十角色软件开发 agent team，分层派发与门禁强制的顺序流程。"
     }

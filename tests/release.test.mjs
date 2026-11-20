@@ -86,7 +86,7 @@ test('M4l 复核 planTags：远端没有的要打；远端有、指向同一个�
 const TAG_CLI = join(dirname(fileURLToPath(import.meta.url)), '..', 'scripts', 'tag-release.mjs')
 
 function withRemote(body) {
-  const root = realpathSync(mkdtempSync(join(tmpdir(), 'agent-team-tag-')))
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'poundlock-tag-')))
   const bare = join(root, 'remote.git')
   const dir = join(root, 'work')
   const git = (cwd, ...args) =>

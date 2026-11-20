@@ -250,7 +250,7 @@ test('接线：工具事件上的 matcher 放进来的工具恰好是该检查�
 })
 
 // M4o（docs/50）：原话记录器挂在 UserPromptExpansion 上，只要本插件的 at 这一条命令——它是唯一一个带 matcher 的生命周期检查项，matcher 照
-// checks.mjs 里它自己声明的那一条（锚定；下面另有一条判据核它放进来的命令恰好是 agent-team:at）。别的照旧不带。
+// checks.mjs 里它自己声明的那一条（锚定；下面另有一条判据核它放进来的命令恰好是 poundlock:at）。别的照旧不带。
 test('接线：生命周期事件上的检查项（toolNames 为 null）不带 matcher——它要看见每一次事件；声明了 matcher 的照声明', () => {
   for (const r of registrations()) {
     if (CHECKS[r.check]?.toolNames !== null) continue
@@ -263,11 +263,11 @@ test('接线：生命周期事件上的检查项（toolNames 为 null）不带 m
   }
 })
 
-test('接线（M4o）：原话记录器的 matcher 放进来的命令恰好是 agent-team:at——at-init、at-resume、at-status、裸名、别的插件的 at 都不放', () => {
+test('接线（M4o）：原话记录器的 matcher 放进来的命令恰好是 poundlock:at——at-init、at-resume、at-status、裸名、别的插件的 at 都不放', () => {
   const r = registrations().find((x) => x.check === 'user-words')
   assert.ok(r, 'hooks.json 里没有 user-words 的注册')
-  const names = ['agent-team:at', 'agent-team:at-init', 'agent-team:at-resume', 'agent-team:at-status', 'at', 'probe:at', 'x:agent-team:at', 'agent-team:at ']
-  assert.deepEqual(names.filter((n) => new RegExp(r.matcher).test(n)), ['agent-team:at'], r.matcher)
+  const names = ['poundlock:at', 'poundlock:at-init', 'poundlock:at-resume', 'poundlock:at-status', 'at', 'probe:at', 'x:poundlock:at', 'poundlock:at ']
+  assert.deepEqual(names.filter((n) => new RegExp(r.matcher).test(n)), ['poundlock:at'], r.matcher)
 })
 
 test('接线：每个检查项恰好注册一次', () => {
@@ -293,7 +293,7 @@ test('接线：每一道门禁都经 hooks/boot.mjs 进门，不直接跑 gate.m
 //
 // 门禁起不来时平台一律放行、PM 看不见。门禁自检（agents/at-pm.md）能查出来，但得有人记得做：续会话
 // 之后用户直接说「继续」、压缩之后接着跑，都不经过任何命令。这条 UserPromptSubmit hook 每轮往上下文里
-// 放一句提醒，让 PM 在这一轮第一次派发或写 .agent-team 之前自检。它故意不走 node——要在 node 缺失、
+// 放一句提醒，让 PM 在这一轮第一次派发或写 .poundlock 之前自检。它故意不走 node——要在 node 缺失、
 // Claude Code 太旧（丢掉 args）时照样出现，所以是 shell 形式的一行 echo：纯 ASCII（Windows 没有 Git Bash
 // 时退到 PowerShell 5.1，中文会乱码），整句单引号（bash 与 PowerShell 里都是字面量）。
 
@@ -330,14 +330,14 @@ test('自检提醒：shell 形式、不带 args、不调 node——它要在门�
 test('自检提醒：文字纯 ASCII、不含单引号——PowerShell 5.1 输出中文会乱码，单引号会提前闭合', () => {
   assert.match(REMINDER_TEXT, /^[\x20-\x7e]+$/)
   assert.ok(!REMINDER_TEXT.includes("'"), REMINDER_TEXT)
-  assert.ok(REMINDER_TEXT.startsWith('agent-team reminder:'), REMINDER_TEXT)
+  assert.ok(REMINDER_TEXT.startsWith('poundlock reminder:'), REMINDER_TEXT)
 })
 
 // 两半都承重：复核实测，续会话、门禁离线时原文 6/6 重做自检；只删「去做自检」那半句 4/6，整段删光 3/6。
 // 上限（docs/16 §3）：认不出「do not run the gate self-check」这类说反话的改写，关键词都还在；要答案改变，
 // 得能在 CI 里用真实会话核 PM 的行为。
 test('自检提醒：说了什么时候、做什么、更早的结果不算数', () => {
-  assert.match(REMINDER_TEXT, /before the first Agent dispatch or the first write under \.agent-team in this turn/)
+  assert.match(REMINDER_TEXT, /before the first Agent dispatch or the first write under \.poundlock in this turn/)
   assert.match(REMINDER_TEXT, /\bgate self-check\b/)
   assert.match(REMINDER_TEXT, /\brole file\b/)
   assert.match(REMINDER_TEXT, /Earlier results do not count/)

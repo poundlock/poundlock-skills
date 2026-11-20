@@ -65,7 +65,7 @@ function bulletOf(text, head) {
 const S5 = Object.entries(stages).find(([, s]) => Array.isArray(s.produces) && s.produces.some((p) => String(p).startsWith('05-impl/')))
 const S5_PRODUCERS = S5 ? stageRoles(S5[1]).filter((r) => r !== 'at-architect' && r !== 'at-pm') : []
 
-// 「不写测试」只认的两种情形——产者、at-qa、架构师、PM（/agent-team:at 的 S5 那一条）用同一句。
+// 「不写测试」只认的两种情形——产者、at-qa、架构师、PM（/poundlock:at 的 S5 那一条）用同一句。
 const TEST_EXCEPT =
   '新行为指这一次改动之后，程序对外表现出来、以前没有或者不一样的东西（接口、页面上的交互、数据怎么存怎么算）。不写自动化测试只有两种情形算数：' +
   '这一次没有新行为（只动了文档、设计稿或纯视觉样式，或者重构没有改变对外的表现）；契约第 1 节用户原话或第 4 节修订记录里，用户说了这部分不要测试。' +
@@ -109,12 +109,12 @@ const QA_S5_GATE = '缺了，或者实现记录里有「被写路径隔离拒绝
 const QA_WRITE = '你没有 `paths` 条目：run 目录之外，写路径隔离拒你的每一次 `Write`——你只写自己那份 `06-test.md`。'
 const QA_RED =
   '**对你更紧一层**：`paths` 里没有你的条目，写路径隔离在 run 目录之外拒你的每一次写入——你只写自己那份 `06-test.md`；要改实现、补测试的，' +
-  '照实写进 `06-test.md` 的结论（缺测试判「结论：不通过：缺测试」），不用为这个冒泡，也不要拿 `Bash` 去写。`/agent-team:at-init`（写 ' +
-  '`.agent-team/project.json` 的那条勘察命令）明确禁止给你建条目。'
+  '照实写进 `06-test.md` 的结论（缺测试判「结论：不通过：缺测试」），不用为这个冒泡，也不要拿 `Bash` 去写。`/poundlock:at-init`（写 ' +
+  '`.poundlock/project.json` 的那条勘察命令）明确禁止给你建条目。'
 
 const ACC_RED =
   '⚠️ **`paths` 里没有你的条目，意味着写路径隔离在 run 目录之外拒你的每一次写入**：你只写自己那份 `07-acceptance.md`；要改实现或别的文件的，' +
-  '照实写进 `07-acceptance.md` 的结论（不合格的判没过），不用为这个冒泡。`/agent-team:at-init`（写 `.agent-team/project.json` 的那条勘察命令）' +
+  '照实写进 `07-acceptance.md` 的结论（不合格的判没过），不用为这个冒泡。`/poundlock:at-init`（写 `.poundlock/project.json` 的那条勘察命令）' +
   '明确禁止给你建条目。'
 const ACC_NO_TESTS =
   '判不了是因为新行为根本没有自动化测试的，写明是哪几条——那要回 `S5` 补测试（`S5`、`S6`、`S7` 各吃一轮返工额度），不是回 `S6` 补跑。'
@@ -177,7 +177,7 @@ const RESUME_S5 = '「测试」一节缺了、或者有新行为没有测试又�
 // 挂在「产物齐了」那一条里：「不管展开出来是不是空集」那一条有 M4c 的判据不许出现「停在 S6」（tests/shared-paths-prose.test.mjs）。
 const RESUME_S67 = '停在 `S6`、`S7` 的，「当前段那一条」是 `S6`、`S7` 那一条：记账之前先读结论，没过、判不了的不要记账推进，照那一条处理。'
 
-const NOTE_PM = '「测试」一节缺了、或者有新行为没有测试又不属于那两种情形的，同样不算（门禁看不出这两点；做法与那两种情形见 /agent-team:at 第 3 节「各段的具体做法」里这一段那一条）。'
+const NOTE_PM = '「测试」一节缺了、或者有新行为没有测试又不属于那两种情形的，同样不算（门禁看不出这两点；做法与那两种情形见 /poundlock:at 第 3 节「各段的具体做法」里这一段那一条）。'
 const NOTE_ROLE = '「测试」一节缺了、或者有新行为没有测试又不属于你正文「新行为要有自动化测试」那一节说的两种情形的'
 const NOTE_PEER = '「测试」一节缺了、或者有新行为没有测试又不属于执行角色正文「新行为要有自动化测试」那一节说的两种情形的也不算'
 
@@ -204,7 +204,7 @@ test('M4f 第 21 条修法 3：S5 的每个产者「新行为要有自动化测�
   }
 })
 
-test('M4f 复核：「不写测试」的两种情形，产者、at-qa、架构师、/agent-team:at 的 S5 那一条用的是同一句', () => {
+test('M4f 复核：「不写测试」的两种情形，产者、at-qa、架构师、/poundlock:at 的 S5 那一条用的是同一句', () => {
   for (const role of [...S5_PRODUCERS, 'at-qa', 'at-architect']) assert.ok(has(bodyOf(role), TEST_EXCEPT), `agents/${role}.md 缺那一句`)
   assert.ok(has(read('commands/at.md'), TEST_EXCEPT), 'commands/at.md 缺那一句')
   // 例外不认 PM 自己写的第 3 节、不认架构方案：那两处说要不要测试，各处都不再引。
@@ -223,18 +223,18 @@ test('M4f：架构师——完成定义写上补测试；落盘清单里补框�
   assert.equal(stripWs(para), stripWs(ARCH_READ))
 })
 
-test('M4f：/agent-team:at 的 S5 那一条——「测试」一节那一段在 S5 这一条里（不是别的段底下），整段在', () => {
+test('M4f：/poundlock:at 的 S5 那一条——「测试」一节那一段在 S5 这一条里（不是别的段底下），整段在', () => {
   const s5 = bulletOf(read('commands/at.md'), '- **S5 实现**')
   assert.ok(s5, 'commands/at.md 里找不到「- **S5 实现**」那一条')
   assert.ok(has(s5, AT_S5), 'S5 那一条里缺「测试」一节那一段（整段）')
 })
 
-test('M4f 复核：/agent-team:at 的 S3 那一条——方案说不写测试的，照第 4 节问用户', () => {
+test('M4f 复核：/poundlock:at 的 S3 那一条——方案说不写测试的，照第 4 节问用户', () => {
   const s3 = bulletOf(read('commands/at.md'), '- **S3 技术对齐**')
   assert.ok(s3 && has(s3, AT_S3), 'S3 那一条里缺「方案说这个项目不写测试的」那一句')
 })
 
-test('M4f 复核：/agent-team:at 有 S6、S7 那一条——齐了只说明结论交了，推进之前读结论；排在 S5 那一条之后、「回退」之前', () => {
+test('M4f 复核：/poundlock:at 有 S6、S7 那一条——齐了只说明结论交了，推进之前读结论；排在 S5 那一条之后、「回退」之前', () => {
   const at = read('commands/at.md')
   const b = bulletOf(at, '- **S6 测试、S7 验收**')
   assert.ok(b, 'commands/at.md 里找不到「- **S6 测试、S7 验收**」那一条')
@@ -243,7 +243,7 @@ test('M4f 复核：/agent-team:at 有 S6、S7 那一条——齐了只说明结�
   assert.ok(at.indexOf('- **S5 实现**') < pos && pos < at.indexOf('### 回退'), '那一条要排在 S5 那一条之后、「回退」之前')
 })
 
-test('M4f：/agent-team:at「回退」——06-test.md 报缺测试算 S6 没过、回 S5；验收因为缺测试判不了的同样回 S5、不回 S6，S5、S6、S7 各记一轮', () => {
+test('M4f：/poundlock:at「回退」——06-test.md 报缺测试算 S6 没过、回 S5；验收因为缺测试判不了的同样回 S5、不回 S6，S5、S6、S7 各记一轮', () => {
   const at = read('commands/at.md')
   const back = at.slice(at.indexOf('### 回退'), at.indexOf('回退是一次 `state.json` 的写入'))
   assert.ok(has(back, AT_BACK), back.slice(0, 200))
@@ -310,7 +310,7 @@ test('docs/85 复核：契约的模板第 2 节、格式里第 2 节那一行都
   assert.ok(row && has(row, CONTRACT_S2), 'skills/at-contract-format/SKILL.md 第 2 节那一行')
 })
 
-// docs/85 §8（复核）：上面只钉「包含」与整节、整段，在别处另起一句「派发提示里说这次不用写测试的，照它办」（/agent-team:at 第 5 节、各角色
+// docs/85 §8（复核）：上面只钉「包含」与整节、整段，在别处另起一句「派发提示里说这次不用写测试的，照它办」（/poundlock:at 第 5 节、各角色
 // 「你收到的文字，哪些算数」一节、S5 那一条的末尾）全套不红。反向：这几份正文里同时说到派发与「不要测试」这类说法的句子（按句号切、空白不计），
 // 只许是上面钉住的那几段里的句子（挂着的用例那一句也说到派发提示与测试，但说的不是不写测试，有它自己的整段判据）。认的是字面：不带「派发提示」
 // 「派你的人」这类字样、或者不写成「不要测试」这类说法的放宽认不出（docs/85 §4）。
@@ -362,7 +362,7 @@ test('M4f 第 27 条：at-status 的触达表单列不受 paths 管的身份，�
     has(
       read('commands/at-status.md'),
       '标了 `unrestricted: true` 的（项目经理）单列一行：它在 run 目录之外不受 `paths` 管、写哪都放行，不按前缀报。`reach.json` 里一个角色' +
-        '都没有这个字段的，是旧快照：照前缀报，并提示用户重跑 `/agent-team:at-init` 刷新。',
+        '都没有这个字段的，是旧快照：照前缀报，并提示用户重跑 `/poundlock:at-init` 刷新。',
     ),
   )
 })

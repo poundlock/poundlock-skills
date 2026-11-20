@@ -41,10 +41,10 @@ test('isStageDone（docs/76）：验证段（S6）叫到 at-qa 之后又裁掉�
 test('【阶段】（docs/76）：S5 里叫到之后又裁掉一个执行角色、别的都交了——项目经理写 state.json 时说 S5 齐了（推进本来就放行）', () => {
   const dirs = makeRun({ runId: 'r1', stage: 'S5', artifacts: ['00-contract.md', '01-prd.md', '03-arch.md', '04-dispatch.md', '05-impl/at-backend.md'], roster: S5_STATE.roster })
   try {
-    const statePath = join(dirs.projectDir, '.agent-team', 'runs', 'r1', 'state.json')
+    const statePath = join(dirs.projectDir, '.poundlock', 'runs', 'r1', 'state.json')
     const now = JSON.parse(readFileSync(statePath, 'utf8'))
     writeFileSync(statePath, JSON.stringify({ ...now, ...S5_STATE }))
-    const posted = { hook_event_name: 'PostToolUse', tool_name: 'Write', agent_type: 'agent-team:at-pm', tool_input: { file_path: statePath } }
+    const posted = { hook_event_name: 'PostToolUse', tool_name: 'Write', agent_type: 'poundlock:at-pm', tool_input: { file_path: statePath } }
     const out = run('ledger', posted, GATE, dirs.projectDir).stdout
     const ctx = out.trim() ? JSON.parse(out).hookSpecificOutput?.additionalContext ?? '' : ''
     assert.ok(ctx.includes('【阶段】S5 的产物已经齐了'), ctx)
@@ -107,12 +107,12 @@ test('【阶段】（docs/76 §8）：返工轮里免掉的那份还是上一轮
   const ledger = (extraState, files) => {
     const dirs = makeRun({ runId: 'r1', stage: 'S5', artifacts: ['00-contract.md', '01-prd.md', '03-arch.md', '04-dispatch.md', '05-impl/at-backend.md'], roster: S5_STATE.roster })
     try {
-      const runDir = join(dirs.projectDir, '.agent-team', 'runs', 'r1')
+      const runDir = join(dirs.projectDir, '.poundlock', 'runs', 'r1')
       const statePath = join(runDir, 'state.json')
       for (const [n, c] of Object.entries(files)) writeFileSync(join(runDir, n), c)
       const now = JSON.parse(readFileSync(statePath, 'utf8'))
       writeFileSync(statePath, JSON.stringify({ ...now, ...S5_STATE, ...extraState }))
-      const posted = { hook_event_name: 'PostToolUse', tool_name: 'Write', agent_type: 'agent-team:at-pm', tool_input: { file_path: statePath } }
+      const posted = { hook_event_name: 'PostToolUse', tool_name: 'Write', agent_type: 'poundlock:at-pm', tool_input: { file_path: statePath } }
       const out = run('ledger', posted, GATE, dirs.projectDir).stdout
       return out.trim() ? JSON.parse(out).hookSpecificOutput?.additionalContext ?? '' : ''
     } finally {

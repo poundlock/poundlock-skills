@@ -54,7 +54,7 @@ test('自检一节：认得出续会话后的提醒、平台「先读后写」�
 
 test('自检一节：只有一种结果能往下走，写入成功与权限拒绝都判门禁没在跑', () => {
   assert.match(SECTION.text, /只有一种结果能往下走/)
-  assert.match(SECTION.text, /含有\**「agent-team 门禁自检：在线」/)
+  assert.match(SECTION.text, /含有\**「poundlock 门禁自检：在线」/)
   assert.match(SECTION.text, /写入成功[^\n]*这\**不是\**在线/)
   assert.match(SECTION.text, /权限判定之前/)
   for (const s of ['弹出了写入确认', '被权限设置拒了', "haven't granted", '权限模式挡不住自检']) {
@@ -71,7 +71,7 @@ test('自检一节：停下、不跳过、不自己查 node、每轮都查、更
     /不要用自己的 `Bash` 跑 `node --version`/,
     /更早的自检结果\s*不算数/,
     /每一轮用户消息之后/,
-    /用 `Write` 写 `\.agent-team\/gate-check`/,
+    /用 `Write` 写 `\.poundlock\/gate-check`/,
     /只能引用这一轮/,
   ]) {
     assert.match(SECTION.text, re)
@@ -129,9 +129,9 @@ test('每条不豁免的命令开头那一步：先做自检、拿到在线之�
 })
 
 test('at-pm.md 的那一节点名的命令，恰好是不豁免的那些，并点名豁免的那一条不做', () => {
-  const named = new Set([...SECTION.text.matchAll(/\/agent-team:(at[\w-]*)/g)].map((m) => `${m[1]}.md`))
-  for (const f of COMMANDS) assert.ok(named.has(f), `自检一节没提 /agent-team:${f.replace(/\.md$/, '')}`)
-  for (const f of EXEMPT) assert.match(SECTION.text, new RegExp(`/agent-team:${f.replace(/\.md$/, '')}\`?\\s*只读，不做自检`))
+  const named = new Set([...SECTION.text.matchAll(/\/poundlock:(at[\w-]*)/g)].map((m) => `${m[1]}.md`))
+  for (const f of COMMANDS) assert.ok(named.has(f), `自检一节没提 /poundlock:${f.replace(/\.md$/, '')}`)
+  for (const f of EXEMPT) assert.match(SECTION.text, new RegExp(`/poundlock:${f.replace(/\.md$/, '')}\`?\\s*只读，不做自检`))
 })
 
 test('命令正文不重复写自检路径与固定串——它们只在 at-pm.md 与门禁的常量里各出现一次', () => {

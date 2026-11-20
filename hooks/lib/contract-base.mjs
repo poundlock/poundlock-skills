@@ -382,7 +382,7 @@ export function outdatedFix(stages, outdated, currentStage) {
   const earlier = cur < 0 ? known : known.filter((n) => at(n) < cur)
   if (earlier.length) {
     const sid = ids[Math.min(...earlier.map(at))]
-    return { kind: 'rollback', sid, text: `照 /agent-team:at 第 3 节的「回退」记回到 ${sid}，让产者对着这一版重出` }
+    return { kind: 'rollback', sid, text: `照 /poundlock:at 第 3 节的「回退」记回到 ${sid}，让产者对着这一版重出` }
   }
   const same = known.filter((n) => at(n) === cur)
   if (same.length) {

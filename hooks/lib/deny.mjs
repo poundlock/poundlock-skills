@@ -56,7 +56,7 @@ export function denyOutput(reason, event) {
 
   return {
     stream: 'stderr',
-    text: `agent-team BUG: denyOutput 收到不支持拒绝表达的事件名 ${JSON.stringify(event)}，无法表达拒绝。\n`,
+    text: `poundlock BUG: denyOutput 收到不支持拒绝表达的事件名 ${JSON.stringify(event)}，无法表达拒绝。\n`,
     exitCode: 0,
   }
 }
@@ -97,18 +97,18 @@ export function crashNotice(check, err, recorder = false, records = null) {
   // M4o（docs/50）：原话记录器崩了的后果是这一趟契约第 1 节不跟原话核，用户什么都不用做。
   if (recorder === true && records === 'user-words') {
     return (
-      `agent-team ${check} 检查项在判定过程中异常崩溃（${quote(err?.message ?? err, { max: 120 })}），这次 /agent-team:at 后面的原话没有记下` +
+      `poundlock ${check} 检查项在判定过程中异常崩溃（${quote(err?.message ?? err, { max: 120 })}），这次 /poundlock:at 后面的原话没有记下` +
       `（它是原话记录器，不拦任何东西），这一趟契约第 1 节不跟它核。\n`
     )
   }
   if (recorder === true) {
     return (
-      `agent-team ${check} 检查项在判定过程中异常崩溃（${quote(err?.message ?? err, { max: 120 })}），这次的回答没有记下` +
+      `poundlock ${check} 检查项在判定过程中异常崩溃（${quote(err?.message ?? err, { max: 120 })}），这次的回答没有记下` +
       `（它是批准记录器，不拦任何东西）。用户若是在批准再返工一轮或照现状交付，要再批准一次。\n`
     )
   }
   return (
-    `agent-team ${check} 检查项在判定过程中异常崩溃（${quote(err?.message ?? err, { max: 120 })}），本次放行、` +
+    `poundlock ${check} 检查项在判定过程中异常崩溃（${quote(err?.message ?? err, { max: 120 })}），本次放行、` +
     `没有拦截——这个检查项是 fail open 的。这类崩溃通常来自插件自带文件读坏或形状不对，` +
     `先检查 roster.json 与 stages.json 能否被 JSON.parse。\n`
   )

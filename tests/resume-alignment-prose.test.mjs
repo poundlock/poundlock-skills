@@ -1,4 +1,4 @@
-// M4h（docs/43）：docs/39 §5 第三轮后一半「续跑与对齐」的正文——第 40 条（续跑开工前先读 /agent-team:at 第 3–6 节）、第 38 条（03-alignment.md
+// M4h（docs/43）：docs/39 §5 第三轮后一半「续跑与对齐」的正文——第 40 条（续跑开工前先读 /poundlock:at 第 3–6 节）、第 38 条（03-alignment.md
 // 的定义、S3 的完成定义、派发裁决模板不再说「拉通」）、第 24-1 条（放弃旧 run 之前先确认没有还在跑的派发）。门禁那一半在 tests/readiness.test.mjs、
 // tests/gate-readiness.test.mjs（整段裁掉之后 H2 的拒绝理由）、tests/gate-ledger.test.mjs（写 current-run 时的【派发】）、tests/gate-completion.test.mjs
 // （S2 的协调者进度）。承重的句子整句钉（空白不计）。
@@ -16,9 +16,9 @@ const RESUME = read('commands/at-resume.md')
 // ---- 第 40 条 ----
 
 const RESUME_READ_FIRST =
-  '**先读规矩**：上下文可能已经压缩掉了 `/agent-team:at` 的正文——动手之前先 `Read` `${CLAUDE_PLUGIN_ROOT}/commands/at.md` 第 3–6 节' +
-  '（逐段推进、回退、问用户、收尾），下面说「照 /agent-team:at 第几节」的地方照它办，不凭记忆。'
-test('M4h 第 40 条：at-resume 第 2 节开头——动手之前先读 /agent-team:at 第 3–6 节', () => {
+  '**先读规矩**：上下文可能已经压缩掉了 `/poundlock:at` 的正文——动手之前先 `Read` `${CLAUDE_PLUGIN_ROOT}/commands/at.md` 第 3–6 节' +
+  '（逐段推进、回退、问用户、收尾），下面说「照 /poundlock:at 第几节」的地方照它办，不凭记忆。'
+test('M4h 第 40 条：at-resume 第 2 节开头——动手之前先读 /poundlock:at 第 3–6 节', () => {
   const s2 = RESUME.slice(RESUME.indexOf('## 2. 核实磁盘'), RESUME.indexOf('## 3.'))
   assert.ok(has(s2, RESUME_READ_FIRST), 'at-resume 第 2 节缺「先读规矩」')
   assert.ok(s2.indexOf('**先读规矩**') < s2.indexOf('**先看收没收口。**'), '「先读规矩」要排在第 2 节最前面')
@@ -38,7 +38,7 @@ test('M4h 第 38 条：架构师正文定义 03-alignment.md', () => {
 const AT_S3_ALIGN =
   '完成定义里写上 `03-arch.md` 要带「落盘清单」一节、`03-alignment.md` 写各端对齐的结论与未决问题（两份的写法都见 ' +
   '`${CLAUDE_PLUGIN_ROOT}/agents/at-architect.md`）。'
-test('M4h 第 38 条：/agent-team:at 的 S3 那一条，完成定义列上 03-alignment.md', () => {
+test('M4h 第 38 条：/poundlock:at 的 S3 那一条，完成定义列上 03-alignment.md', () => {
   const s3 = AT.slice(AT.indexOf('- **S3 技术对齐**'), AT.indexOf('- **S4 裁决**'))
   assert.ok(has(s3, AT_S3_ALIGN), 'S3 那一条的完成定义变了')
 })
@@ -55,10 +55,10 @@ test('M4h 第 38 条：派发裁决模板不再说「拉通」，改指 03-align
 const AT_ABANDON =
   '改 `current-run` 之前先确认那一趟没有还在跑的派发（它派出去的人的完成通知都到了）：还在跑的，门禁认得出它们是那一趟派的、不按新的这一趟核，' +
   '但那一趟交的东西没人核，它们改的项目文件还会跟新的这一趟撞在一起；写 `current-run` 那一次的回传里有【派发】一段的，照它办。'
-test('M4h 第 24-1 条：/agent-team:at 第 1 节「放弃」那一支——改 current-run 之前先确认没有还在跑的派发', () => {
+test('M4h 第 24-1 条：/poundlock:at 第 1 节「放弃」那一支——改 current-run 之前先确认没有还在跑的派发', () => {
   // 复核（docs/43 §8，低-4）：只切「停在更早的段」那一条（到下一条「- 」为止）——原来切的是整个第 1 节那一段，挪到「已收口」那一支也绿。
   const start = AT.indexOf('- `stage` 停在更早的段、没收口')
-  assert.ok(start >= 0, '/agent-team:at 第 1 节没有「stage 停在更早的段」那一条')
+  assert.ok(start >= 0, '/poundlock:at 第 1 节没有「stage 停在更早的段」那一条')
   const end = AT.slice(start + 2).search(/\r?\n(\r?\n)?- /)
   const branch = AT.slice(start, end < 0 ? undefined : start + 2 + end)
   assert.ok(has(branch, AT_ABANDON), branch)
@@ -66,7 +66,7 @@ test('M4h 第 24-1 条：/agent-team:at 第 1 节「放弃」那一支——改 
 
 // ---- 复核（docs/43 §8） ----
 
-// 低-2：at-resume 原来写「不在 available_roles 里的不用写」，与 /agent-team:at 第 3 节（凡是决定不叫的都写进 trimmed）、at-pm 正文（判据是
+// 低-2：at-resume 原来写「不在 available_roles 里的不用写」，与 /poundlock:at 第 3 节（凡是决定不叫的都写进 trimmed）、at-pm 正文（判据是
 // 「你真裁过没有」）相反；照它做，整段不做的 S2 只记了 at-product，H2、推进、收口都认不出是整段裁掉。
 const RESUME_TRIM = '`trimmed`（不在 `available_roles` 里的也写——`trimmed` 记的是你裁过谁，不是那条回传点不点名）。'
 test('M4h 复核：at-resume 的 S2 那一条——不用 at-ui 的写进 trimmed，不在 available_roles 里的也写', () => {

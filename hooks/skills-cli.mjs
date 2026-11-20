@@ -1,7 +1,7 @@
 // 项目经理经 Bash 调的 skill 命令行，不是门禁（hooks.json 里不注册它）：
 //   node skills-cli.mjs <list|sync|assign|check|remove> [名字…] [--roles a,b] [--add a,b] [--remove a,b] [--update] [--home <目录>]
 // sync 对已登记、本机原件又变了的要带 --update（换版本之前先问过用户）；assign 用 --add/--remove 增减、--roles 整份换。
-// 项目根照门禁的找法（往上找最近的 .agent-team）；--home 缺省是本机用户主目录（测试传夹具目录）。
+// 项目根照门禁的找法（往上找最近的 .poundlock）；--home 缺省是本机用户主目录（测试传夹具目录）。
 // stdout 恰好一份 JSON（两格缩进）。正常退出码 0，单条失败进 errors；找不到项目、清单读不出来、用法不对、角色不认得：
 // 输出 {"error": "…"}，退出码 2。
 import os from 'node:os'
@@ -49,8 +49,8 @@ function main() {
   const { sub, names, roles, add, remove, update, home } = parseArgs(process.argv.slice(2))
   if (!SUBCOMMANDS.includes(sub)) throw new Error(`认不出的子命令：${sub ?? '（没写）'}，只认 ${SUBCOMMANDS.join('、')}`)
   const projectRoot = projectRootFrom(process.env, process.cwd())
-  const agentTeamDir = path.join(projectRoot, '.agent-team')
-  if (!existsSync(agentTeamDir)) throw new Error(`在 ${projectRoot} 及其上层找不到 .agent-team，先跑 /agent-team:at-init`)
+  const agentTeamDir = path.join(projectRoot, '.poundlock')
+  if (!existsSync(agentTeamDir)) throw new Error(`在 ${projectRoot} 及其上层找不到 .poundlock，先跑 /poundlock:at-init`)
   const roster = JSON.parse(readFileSync(new URL('../roster.json', import.meta.url), 'utf8'))
   const reg = readRegistry(agentTeamDir)
   for (const given of [roles, add, remove]) if (given !== null) assertRoles(given, roster)

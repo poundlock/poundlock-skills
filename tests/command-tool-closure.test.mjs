@@ -103,7 +103,7 @@ const CANDIDATE_TOOLS = [
 // 判断某个候选工具名是不是「以工具的身份」出现在一段正文里：用 \b 词边界、
 // 大小写敏感匹配（跟 tool-surface.test.mjs 判定禁用工具同一种手法）。这批
 // 命令正文里，这几个词的精确大小写英文形式只会用来指真正的 Claude Code 工具
-// ——角色名、参数名都是小写或连字符形式（`agent-team:at-product`、
+// ——角色名、参数名都是小写或连字符形式（`poundlock:at-product`、
 // `subagent_type`），撞不上这个形状；`\bEdit\b` 也不会误中 `NotebookEdit`
 // 内部的 `Edit`（两侧都是词字符，没有词边界）。
 function mentionsTool(text, tool) {

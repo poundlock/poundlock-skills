@@ -1,5 +1,5 @@
-// project.json 形状校验的正文一半（M3u，docs/29，全量审查第 10 条）：/agent-team:at-init 怎么写、怎么处理
-// 【project.json】回传，/agent-team:at 的第 0、1 节，README 已知边界那一句。门禁那一半在
+// project.json 形状校验的正文一半（M3u，docs/29，全量审查第 10 条）：/poundlock:at-init 怎么写、怎么处理
+// 【project.json】回传，/poundlock:at 的第 0、1 节，README 已知边界那一句。门禁那一半在
 // tests/writepath-shape.test.mjs、tests/gate-ledger-project.test.mjs。
 //
 // 上限（docs/16 §3）：钉的是关键句与位置，认不出「说反话」的改写；要答案改变，得能在 CI 里用真实会话核 PM
@@ -59,14 +59,14 @@ test('at-init §2：重跑时缺键的角色逐个判，不一刀切地删角色
 // 在不在的那一步和读模板并发（14 次里只有 2 次严格先读旧文件）；读序对了也挡不住把模板值说成旧文件（8 次里 1 次）；
 // 写成「第一步单独一条消息读旧文件、重跑不读模板」后累计 26 次里 20 次没读模板、0 次错描，读序 12 次里 12 次对（有的会话
 // 读了模板却在收尾自称没读，所以 §4 不要求 PM 汇报读没读模板）。拒绝的判据长什么样：CI 里起
-// 真会话，核自检之后第一个调用是单独一条 Read .agent-team/project.json、重跑全程不 Read 模板——CI 没有模型与密钥。
+// 真会话，核自检之后第一个调用是单独一条 Read .poundlock/project.json、重跑全程不 Read 模板——CI 没有模型与密钥。
 // 什么会让答案改变：出现一次没读模板、却仍把模板值说成旧文件的重跑——那就改成门禁侧给旧文件留底、回传改了哪些键。
 test('at-init §1：第一步单独一条消息读旧 project.json；重跑不读模板、以旧文件为底，并说清两者不是一个文件', () => {
   const s = flat(sectionOf(INIT, '## 1.'))
-  const first = s.indexOf('**第一步只做一件事**：用 `Read` 读用户项目里的 `.agent-team/project.json`')
+  const first = s.indexOf('**第一步只做一件事**：用 `Read` 读用户项目里的 `.poundlock/project.json`')
   assert.ok(first >= 0, s.slice(0, 200))
   // 「这一步」必须紧跟第一步——挪到别处，它指的就是勘察那一步了。
-  assert.ok(s.includes('读用户项目里的 `.agent-team/project.json`。这一步单独一条消息，不和任何别的工具调用并发。'), s.slice(0, 300))
+  assert.ok(s.includes('读用户项目里的 `.poundlock/project.json`。这一步单独一条消息，不和任何别的工具调用并发。'), s.slice(0, 300))
   for (const k of ['读不到（文件不存在）就是首跑', '要有哪些键第 2 节列全了，角色名在花名册里', '它不是合法的 JSON，就照实说']) {
     assert.ok(s.includes(k), k)
   }
@@ -97,10 +97,10 @@ test('at-init §3：先处理【project.json】——阻断与要改改到没有
   const plugin = s.indexOf('**里面要是有【插件】（roster.json 读不出来），先停下**')
   assert.ok(plugin >= 0 && plugin < s.indexOf('**里面要是有【project.json】，先处理它**'), s.slice(0, 300))
   for (const k of [
-    '**改它修不好**。不要写 `.agent-team/reach.json`',
+    '**改它修不好**。不要写 `.poundlock/reach.json`',
     // 插件更新只对新会话生效：同一会话里重跑，hook 多半还读旧目录下那份坏的 roster.json。
-    '告诉用户重装或更新 agent-team 插件，装好之后新开一个会话，再重跑这条命令',
-    '`.agent-team/reach.json` 这时还是上一份配置算的',
+    '告诉用户重装或更新 poundlock 插件，装好之后新开一个会话，再重跑这条命令',
+    '`.poundlock/reach.json` 这时还是上一份配置算的',
   ]) {
     assert.ok(s.includes(k), k)
   }
@@ -120,19 +120,19 @@ test('at-init §3：先处理【project.json】——阻断与要改改到没有
   }
 })
 
-test('/agent-team:at-resume §3：【插件】是「先修它」的例外——改 project.json 修不好，停下让用户重装', () => {
+test('/poundlock:at-resume §3：【插件】是「先修它」的例外——改 project.json 修不好，停下让用户重装', () => {
   const s = flat(sectionOf(RESUME, '## 3.'))
-  assert.ok(s.includes('【插件】（roster.json 读不出来）是例外') && s.includes('修不好它——停下，告诉用户重装或更新 agent-team 插件'), s)
+  assert.ok(s.includes('【插件】（roster.json 读不出来）是例外') && s.includes('修不好它——停下，告诉用户重装或更新 poundlock 插件'), s)
 })
 
 // M4f（docs/41，审查第 34 条）：没有键的 at-qa、at-acceptance 在 run 目录外也被拒，§0 不再把它们说成例外。
-test('/agent-team:at §0：project.json 不在时，执行角色写 run 目录之外一律被拒——不再把按设计不认领路径的那几个说成例外', () => {
+test('/poundlock:at §0：project.json 不在时，执行角色写 run 目录之外一律被拒——不再把按设计不认领路径的那几个说成例外', () => {
   const s = flat(sectionOf(AT, '## 0.'))
   assert.ok(s.includes('执行角色写 run 目录之外的任何地方都会被拒'), s)
   for (const role of NO_PATHS_ROLES) assert.ok(!s.includes(role), role)
 })
 
-test('/agent-team:at §1：写完 current-run 收到【project.json】就先改完阻断与要改，再进 S2；「会被拒」只挂在阻断上', () => {
+test('/poundlock:at §1：写完 current-run 收到【project.json】就先改完阻断与要改，再进 S2；「会被拒」只挂在阻断上', () => {
   const s = flat(sectionOf(AT, '## 1.'))
   assert.ok(s.includes('【project.json】') && s.includes('再进 S2'), s.slice(0, 200))
   // 「要改」里有一半不拒任何人（available_roles 的问题、给 at-pm 建的键……），不能拿「会被拒」当它的理由。
@@ -140,10 +140,10 @@ test('/agent-team:at §1：写完 current-run 收到【project.json】就先改�
   assert.ok(!s.includes('那些问题会让执行角色'), s)
   assert.ok(s.includes('**先改好它再写契约**'), s)
   // at 流程第一次收到【插件】就在写 current-run 这里。
-  assert.ok(s.includes('要是收到【插件】（roster.json 读不出来）') && s.includes('修不好它——停下，告诉用户重装或更新 agent-team 插件') && s.includes('新开一个会话'), s)
+  assert.ok(s.includes('要是收到【插件】（roster.json 读不出来）') && s.includes('修不好它——停下，告诉用户重装或更新 poundlock 插件') && s.includes('新开一个会话'), s)
 })
 
-test('/agent-team:at §2：没收到契约回传时，先排除 project.json 读不出来这一种，再判门禁没在跑', () => {
+test('/poundlock:at §2：没收到契约回传时，先排除 project.json 读不出来这一种，再判门禁没在跑', () => {
   const s = flat(sectionOf(AT, '## 2.'))
   const cfg = s.indexOf('不是门禁掉线')
   const down = s.indexOf('那说明门禁没在跑')

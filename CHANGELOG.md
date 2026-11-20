@@ -3,6 +3,7 @@
 每一版一行，最新的在最上面。只改文档、测试的版本挪最后一位，改到插件会加载的文件挪中间一位，任何一位不长到 10（满了进到上一位）。
 每一版都打了对应的 tag（`v` 加版本号）；3.3.1 起每一版还在 GitHub 上发一条 Release，正文就是这里那一行。2.9.0 及更早的各版，照它第一次合进 `main` 的那一次提交的标题整理。
 
+- 9.0.0：插件改名为 poundlock，不兼容——插件名和市场名都是 `poundlock`，安装改成 `claude plugin install poundlock@poundlock --scope local`；命令前缀变成 `/poundlock:`（例如 `/poundlock:at`），角色全名变成 `poundlock:at-*`；项目里的工作目录从 `.agent-team/` 改成 `.poundlock/`，环境变量 `AGENT_TEAM_*` 改成 `POUNDLOCK_*`。装过旧名字的要卸掉旧的再照新名字装，旧的 `.agent-team/` 不再认。
 - 8.3.0：清单跟上仓库搬家——市场的 owner 从个人账号换成 `poundlock` 组织，插件清单补上仓库地址（`homepage`、`repository`）；发布判据里的夹具仓库名换成 `poundlock/poundlock-skills`。门禁与角色没变。
 - 8.2.3：CI 的每个作业都设了超时——全量判据偶发卡住时到点红掉，不再挂到平台默认的 6 小时上限；只动了 CI 与判据，插件本身没变。
 - 8.2.2：仓库改名为 `poundlock/poundlock-skills`，README 里的安装命令与徽章跟着换；开发说明里记下全量判据偶发卡住的成因。插件本身没变。

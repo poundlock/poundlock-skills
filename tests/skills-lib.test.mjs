@@ -81,7 +81,7 @@ test('readSkillMeta 读出用途、认出附带脚本与越出自己目录的 ${
   assert.equal(readSkillMeta(withScript).has_scripts, true)
 })
 
-test('discoverSkills 找全四类、跳过 agent-team 自己', () => {
+test('discoverSkills 找全四类、跳过 poundlock 自己', () => {
   const { home, projectRoot } = world()
   const { installed, errors } = discoverSkills({ home, projectRoot })
   assert.deepEqual(errors, [])
@@ -206,7 +206,7 @@ test('removeSkills 删副本与清单那一条，不碰原件', () => {
   assert.ok(existsSync(join(home, '.claude', 'skills', 'plain', 'SKILL.md')))
 })
 
-test('清单里被改过的 dir 与名字走不出 .agent-team/skills', () => {
+test('清单里被改过的 dir 与名字走不出 .poundlock/skills', () => {
   const { root, home, projectRoot, agentTeamDir } = world()
   const { installed } = discoverSkills({ home, projectRoot })
   syncSkills({ agentTeamDir, installed, names: ['plain'], roles: ['at-ui'], now: NOW })
@@ -337,13 +337,13 @@ test('skill 里会被平台自动加载的位置不复制、不进指纹，并�
   put(join(dir, 'CLAUDE.md'), '开发用的说明')
   put(join(dir, 'claude.local.md'), '本地说明')
   put(join(dir, '.claude', 'skills', 'inner', 'SKILL.md'), skillMd('嵌套的'))
-  put(join(dir, '.agent-team', 'current-run'), 'x')
+  put(join(dir, '.poundlock', 'current-run'), 'x')
   put(join(dir, '.git'), 'gitdir: ../somewhere\n')
   put(join(dir, 'docs', 'CLAUDE.md'), '子目录里的')
   assert.equal(hashSkillDir(dir), before)
-  assert.deepEqual(readSkillMeta(dir).skipped, ['.agent-team', '.claude', '.git', 'CLAUDE.md', 'claude.local.md', 'docs/CLAUDE.md'])
+  assert.deepEqual(readSkillMeta(dir).skipped, ['.claude', '.git', '.poundlock', 'CLAUDE.md', 'claude.local.md', 'docs/CLAUDE.md'])
   syncSkills({ agentTeamDir, installed: discoverSkills({ home, projectRoot }).installed, names: ['plain'], roles: ['at-ui'], now: NOW })
-  for (const rel of ['CLAUDE.md', 'claude.local.md', '.claude', '.agent-team', '.git', 'docs/CLAUDE.md']) {
+  for (const rel of ['CLAUDE.md', 'claude.local.md', '.claude', '.poundlock', '.git', 'docs/CLAUDE.md']) {
     assert.equal(existsSync(join(agentTeamDir, SKILLS_DIR, 'plain', ...rel.split('/'))), false, rel)
   }
 })
@@ -354,11 +354,11 @@ test('同步写下占位符的对应关系：自己目录指项目里的副本�
   const reg = readRegistry(agentTeamDir).skills
   const slash = (p) => p.split('\\').join('/')
   assert.deepEqual(reg['ui-kit:polish'].placeholders, {
-    '${CLAUDE_PLUGIN_ROOT}/skills/polish': '.agent-team/skills/ui-kit__polish',
-    '${CLAUDE_SKILL_DIR}': '.agent-team/skills/ui-kit__polish',
+    '${CLAUDE_PLUGIN_ROOT}/skills/polish': '.poundlock/skills/ui-kit__polish',
+    '${CLAUDE_SKILL_DIR}': '.poundlock/skills/ui-kit__polish',
     '${CLAUDE_PLUGIN_ROOT}': slash(dirname(dirname(pluginSkillDir))),
   })
-  assert.deepEqual(reg.plain.placeholders, { '${CLAUDE_SKILL_DIR}': '.agent-team/skills/plain' })
+  assert.deepEqual(reg.plain.placeholders, { '${CLAUDE_SKILL_DIR}': '.poundlock/skills/plain' })
 })
 
 test('skills 目录、副本目录、清单被换成链接时不跟着写、不跟着删', () => {

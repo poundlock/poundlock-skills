@@ -20,7 +20,7 @@ const OTHER = 'sha256:' + 'c'.repeat(64)
 function inS1({ recorded = 'PENDING', contract = true } = {}, body) {
   const dirs = makeRun({ runId: 'r1', stage: 'S1', artifacts: contract ? ['00-contract.md'] : [] })
   try {
-    const runDir = join(dirs.projectDir, '.agent-team', 'runs', 'r1')
+    const runDir = join(dirs.projectDir, '.poundlock', 'runs', 'r1')
     const statePath = join(runDir, 'state.json')
     const state = { ...JSON.parse(readFileSync(statePath, 'utf8')), contract_sha: recorded, history: H('S1'), rework: {} }
     writeFileSync(statePath, JSON.stringify(state))
@@ -34,7 +34,7 @@ function inS1({ recorded = 'PENDING', contract = true } = {}, body) {
 // 项目经理推进到 S2 的那一次写入；sha 是这次写入里的 contract_sha。
 const advance = (fx, sha) => {
   const after = { ...fx.state, stage: 'S2', contract_sha: sha, history: H('S1', 'S2'), rework: reworkFromHistory(H('S1', 'S2')) }
-  return { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'agent-team:at-pm', tool_input: { file_path: fx.statePath, content: JSON.stringify(after, null, 2) } }
+  return { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'poundlock:at-pm', tool_input: { file_path: fx.statePath, content: JSON.stringify(after, null, 2) } }
 }
 const decide = (fx, sha) => {
   const r = run('rework', advance(fx, sha), undefined, fx.projectDir)
@@ -75,7 +75,7 @@ test('H6（docs/63）：推进出 S1 时 contract_sha 记的是别的合法值�
 test('H6（docs/63）：不是推进出 S1 的写入（S1 里原地重写、记 PENDING）不核——S1 里写契约之前、记账之前照常写 state.json', () => {
   inS1({}, (fx) => {
     const same = { ...fx.state, contract_sha: 'PENDING' }
-    const r = run('rework', { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'agent-team:at-pm', tool_input: { file_path: fx.statePath, content: JSON.stringify(same, null, 2) } }, undefined, fx.projectDir)
+    const r = run('rework', { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'poundlock:at-pm', tool_input: { file_path: fx.statePath, content: JSON.stringify(same, null, 2) } }, undefined, fx.projectDir)
     assert.equal(decisionOf(r.stdout), null, r.stdout)
   })
 })
@@ -85,7 +85,7 @@ test('H6（docs/63）：不是推进出 S1 的写入（S1 里原地重写、记 
 const INJECT = fileURLToPath(new URL('./helpers/inject-throw.cjs', import.meta.url))
 test('H6（docs/63）：推进出 S1 时契约在却读不出——不按这一条拦，stderr 留痕', () => {
   inS1({}, (fx) => {
-    const r = run('rework', advance(fx, 'PENDING'), undefined, fx.projectDir, { ...hermeticEnv(), AGENT_TEAM_TEST_THROW: 'read:00-contract.md' }, { nodeArgs: ['-r', INJECT] })
+    const r = run('rework', advance(fx, 'PENDING'), undefined, fx.projectDir, { ...hermeticEnv(), POUNDLOCK_TEST_THROW: 'read:00-contract.md' }, { nodeArgs: ['-r', INJECT] })
     const d = decisionOf(r.stdout)
     assert.ok(d === null || !d.permissionDecisionReason.includes('推进出 S1 之前'), JSON.stringify(d))
     assert.ok(r.stderr.includes('推进出 S1 之前没核契约的账'), r.stderr)
@@ -99,7 +99,7 @@ test('H6（复核 docs/63 §8）：一次写入里先回到 S1、再推进出来
     writeFileSync(fx.statePath, JSON.stringify(atS2))
     const hist = H('S1', 'S2', 'S1', 'S2')
     const both = { ...atS2, contract_sha: 'PENDING', history: hist, rework: reworkFromHistory(hist), rework_base: { '00-contract.md': 'accepted' } }
-    const input = { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'agent-team:at-pm', tool_input: { file_path: fx.statePath, content: JSON.stringify(both, null, 2) } }
+    const input = { hook_event_name: 'PreToolUse', tool_name: 'Write', agent_type: 'poundlock:at-pm', tool_input: { file_path: fx.statePath, content: JSON.stringify(both, null, 2) } }
     const d = decisionOf(run('rework', input, undefined, fx.projectDir).stdout)
     assert.equal(d?.permissionDecision, 'deny', JSON.stringify(d))
     assert.ok(d.permissionDecisionReason.includes('推进出 S1 之前'), d.permissionDecisionReason)
@@ -112,12 +112,12 @@ test('H6（复核 docs/63 §8）：第 1 节对不上原话、契约的账也没
     const d = decide(fx, 'PENDING').d
     assert.equal(d?.permissionDecision, 'deny')
     const why = d.permissionDecisionReason
-    assert.ok(why.includes('对不上用户在 /agent-team:at 后面写的原话') && !why.includes('推进出 S1 之前'), why)
+    assert.ok(why.includes('对不上用户在 /poundlock:at 后面写的原话') && !why.includes('推进出 S1 之前'), why)
     assert.ok(why.includes('改好之后把那一次写契约收到的【契约】回传给的 sha 记进 contract_sha'), why)
   })
 })
 
-test('正文（docs/63）：/agent-team:at 说推进出 S1 那一次门禁也对一遍契约的账、对不上不放行——门禁真的拒（上面几条）', () => {
+test('正文（docs/63）：/poundlock:at 说推进出 S1 那一次门禁也对一遍契约的账、对不上不放行——门禁真的拒（上面几条）', () => {
   const at = readFileSync(new URL('../commands/at.md', import.meta.url), 'utf8').split(String.fromCharCode(13)).join('').split('\n').join('')
   assert.ok(at.includes('推进出 `S1` 那一次、派验证段的产者（`at-qa`、`at-acceptance`）之前也对一遍，对不上不放行'), 'commands/at.md')
 })

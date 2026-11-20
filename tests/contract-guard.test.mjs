@@ -3,16 +3,16 @@ import assert from 'node:assert/strict'
 import { resolve } from 'node:path'
 import { decideContractGuard } from '../hooks/lib/contract-guard.mjs'
 
-const RUN = '/proj/.agent-team/runs/r1'
+const RUN = '/proj/.poundlock/runs/r1'
 const CONTRACT = `${RUN}/00-contract.md`
 
 test('subagent 写契约一律拒绝', () => {
-  const r = decideContractGuard({ agentType: 'agent-team:at-product', filePath: CONTRACT, runDir: RUN })
+  const r = decideContractGuard({ agentType: 'poundlock:at-product', filePath: CONTRACT, runDir: RUN })
   assert.equal(r.decision, 'deny')
 })
 
 test('拒绝理由说明契约的唯一写者是用户', () => {
-  const r = decideContractGuard({ agentType: 'agent-team:at-product', filePath: CONTRACT, runDir: RUN })
+  const r = decideContractGuard({ agentType: 'poundlock:at-product', filePath: CONTRACT, runDir: RUN })
   assert.match(r.reason, /用户|PM/)
 })
 
@@ -22,13 +22,13 @@ test('主线程（无 agent_type）写契约放行——那是 PM 代用户转�
 })
 
 test('subagent 写别的产物放行', () => {
-  const r = decideContractGuard({ agentType: 'agent-team:at-product', filePath: `${RUN}/01-prd.md`, runDir: RUN })
+  const r = decideContractGuard({ agentType: 'poundlock:at-product', filePath: `${RUN}/01-prd.md`, runDir: RUN })
   assert.equal(r.decision, 'allow')
 })
 
 test('绕路径写契约也拒绝', () => {
   const r = decideContractGuard({
-    agentType: 'agent-team:at-product',
+    agentType: 'poundlock:at-product',
     filePath: `${RUN}/05-impl/../00-contract.md`,
     runDir: RUN,
   })
@@ -36,7 +36,7 @@ test('绕路径写契约也拒绝', () => {
 })
 
 test('runDir 为空时不表态——无法判定哪个是契约', () => {
-  const r = decideContractGuard({ agentType: 'agent-team:at-product', filePath: CONTRACT, runDir: null })
+  const r = decideContractGuard({ agentType: 'poundlock:at-product', filePath: CONTRACT, runDir: null })
   assert.equal(r.decision, 'allow')
 })
 
@@ -52,7 +52,7 @@ test('runDir 为空时不表态——无法判定哪个是契约', () => {
 // 这个仓库能不能自举的问题。H3 已经认了同一个事实（tests/gate-writepath.
 // test.mjs「被 settings.json 钉成主线程的 at-pm...写...00-contract.md
 // 不受阻」），H4 不能不认。
-// ⚠️ 订正（M4b，docs/36）：settings.json 现在写全名 {"agent": "agent-team:at-pm"}；钉住的 PM 在 hook 输入里的原始
+// ⚠️ 订正（M4b，docs/36）：settings.json 现在写全名 {"agent": "poundlock:at-pm"}；钉住的 PM 在 hook 输入里的原始
 // agent_type 一直是全名（docs/22），裸 'at-pm' 是剥前缀之后的值。原始值是裸名的只有一种：项目或用户层另有一份非插件的
 // at-pm.md，用户经 --agent at-pm 或自己设置里的 agent 键选中了它（只有插件的 at-pm 时，--agent at-pm 按后缀解析成全名）。
 // 两种都按 PM 放行。
@@ -67,32 +67,32 @@ test('被 settings.json 钉成主线程的 at-pm（裸 agent_type "at-pm"）写�
   assert.equal(r.decision, 'allow')
 })
 
-test('agent_type 带插件前缀 "agent-team:at-pm" 同样按 at-pm 处理——剥前缀口径与 H1/H3 一致', () => {
-  const r = decideContractGuard({ agentType: 'agent-team:at-pm', filePath: CONTRACT, runDir: RUN })
+test('agent_type 带插件前缀 "poundlock:at-pm" 同样按 at-pm 处理——剥前缀口径与 H1/H3 一致', () => {
+  const r = decideContractGuard({ agentType: 'poundlock:at-pm', filePath: CONTRACT, runDir: RUN })
   assert.equal(r.decision, 'allow')
 })
 
 // ── 拒绝理由要说明"为什么"，不能只说"不许" ──────────────────────────
 
 test('拒绝理由要说明后果（查不出来/制造假象），不能只是一句禁止', () => {
-  const r = decideContractGuard({ agentType: 'agent-team:at-product', filePath: CONTRACT, runDir: RUN })
+  const r = decideContractGuard({ agentType: 'poundlock:at-product', filePath: CONTRACT, runDir: RUN })
   assert.match(r.reason, /查不出|验收|假象/)
 })
 
 // ── filePath 退化输入：没有可判定的目标路径就不表态 ──────────────────
 
 test('filePath 缺失（undefined）时放行——没有可判定的目标路径', () => {
-  const r = decideContractGuard({ agentType: 'agent-team:at-product', filePath: undefined, runDir: RUN })
+  const r = decideContractGuard({ agentType: 'poundlock:at-product', filePath: undefined, runDir: RUN })
   assert.equal(r.decision, 'allow')
 })
 
 test('filePath 不是字符串（数字）时放行——没有可判定的目标路径', () => {
-  const r = decideContractGuard({ agentType: 'agent-team:at-product', filePath: 42, runDir: RUN })
+  const r = decideContractGuard({ agentType: 'poundlock:at-product', filePath: 42, runDir: RUN })
   assert.equal(r.decision, 'allow')
 })
 
 test('filePath 是空字符串时放行——没有可判定的目标路径', () => {
-  const r = decideContractGuard({ agentType: 'agent-team:at-product', filePath: '', runDir: RUN })
+  const r = decideContractGuard({ agentType: 'poundlock:at-product', filePath: '', runDir: RUN })
   assert.equal(r.decision, 'allow')
 })
 
@@ -123,7 +123,7 @@ test(
   { skip: process.platform !== 'win32' },
   () => {
     const r = decideContractGuard({
-      agentType: 'agent-team:at-product',
+      agentType: 'poundlock:at-product',
       filePath: `${RUN.toUpperCase()}/00-CONTRACT.MD`,
       runDir: RUN,
     })
@@ -139,7 +139,7 @@ test(
   { skip: process.platform !== 'win32' },
   () => {
     const filePath = withFlippedDriveLetter(`${resolve(RUN)}\\00-contract.md`)
-    const r = decideContractGuard({ agentType: 'agent-team:at-product', filePath, runDir: RUN })
+    const r = decideContractGuard({ agentType: 'poundlock:at-product', filePath, runDir: RUN })
     assert.equal(r.decision, 'deny')
   },
 )
@@ -149,7 +149,7 @@ test(
   { skip: process.platform !== 'win32' },
   () => {
     const r = decideContractGuard({
-      agentType: 'agent-team:at-product',
+      agentType: 'poundlock:at-product',
       filePath: `${RUN.replace(/\//g, '\\')}\\00-contract.md`,
       runDir: RUN,
     })
@@ -162,7 +162,7 @@ test(
 // 排除"用 filePath.endsWith(CONTRACT) 之类的字符串比较代替真实路径解析"
 // 这一类实现。
 test('相对路径按 cwd 解析，不会因为文件名"看起来像"契约就被误判', () => {
-  const r = decideContractGuard({ agentType: 'agent-team:at-product', filePath: '00-contract.md', runDir: RUN })
+  const r = decideContractGuard({ agentType: 'poundlock:at-product', filePath: '00-contract.md', runDir: RUN })
   assert.equal(r.decision, 'allow')
 })
 
@@ -172,12 +172,12 @@ test('相对路径按 cwd 解析，不会因为文件名"看起来像"契约就�
 // 顶部的 RUN 常量（它是虚构前缀，不跟真实 cwd 对应），改用从真实
 // process.cwd() 派生出来的 runDir——相对路径就是要靠真实 cwd 解析，用
 // 虚构前缀凑不出这个场景。不涉及真实文件系统：path.resolve 是纯词法
-// 计算，不要求 .agent-team/runs/r1 真的存在于磁盘上。
+// 计算，不要求 .poundlock/runs/r1 真的存在于磁盘上。
 test('相对路径真的解析到契约文件时——一样拒绝，不是"相对路径天然放行"', () => {
-  const runDirFromCwd = resolve('.agent-team/runs/r1')
+  const runDirFromCwd = resolve('.poundlock/runs/r1')
   const r = decideContractGuard({
-    agentType: 'agent-team:at-product',
-    filePath: '.agent-team/runs/r1/00-contract.md',
+    agentType: 'poundlock:at-product',
+    filePath: '.poundlock/runs/r1/00-contract.md',
     runDir: runDirFromCwd,
   })
   assert.equal(r.decision, 'deny')

@@ -35,14 +35,14 @@ test('duplicateKeys：顶层与嵌套对象里重复的键都认，路径带上�
 test('账本（docs/74）：项目经理写的 state.json 里重复了键——【state.json】里报它、说 JSON 只认最后一个；没有重复的不说', () => {
   const dirs = makeRun({ runId: 'r1', stage: 'S2', roster: ['at-product'] })
   try {
-    const statePath = join(dirs.projectDir, '.agent-team', 'runs', 'r1', 'state.json')
+    const statePath = join(dirs.projectDir, '.poundlock', 'runs', 'r1', 'state.json')
     const now = readFileSync(statePath, 'utf8')
     const obj = JSON.parse(now)
     // 手写一份带重复键的原文：stage 写了两次（第二次盖掉第一次）。
     assert.ok(Object.hasOwn(obj, 'stage'))
     const raw = JSON.stringify(obj).replace(/^\{/, '{"stage":"S1","trimed":{},"备注":{"说明":1,"说明":2},')
     writeFileSync(statePath, raw)
-    const posted = { hook_event_name: 'PostToolUse', tool_name: 'Write', agent_type: 'agent-team:at-pm', tool_input: { file_path: statePath } }
+    const posted = { hook_event_name: 'PostToolUse', tool_name: 'Write', agent_type: 'poundlock:at-pm', tool_input: { file_path: statePath } }
     const out = run('ledger', posted, GATE, dirs.projectDir).stdout
     const ctx = out.trim() ? JSON.parse(out).hookSpecificOutput?.additionalContext ?? '' : ''
     assert.ok(ctx.includes('键 "stage" 写了不止一次') && ctx.includes('JSON 只认最后一个——门禁读到的是最后写的那个值'), ctx)

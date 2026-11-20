@@ -76,12 +76,12 @@ function pmOnlyNotice(action, reportWhat) {
 export function projectNotice(report) {
   const sections = [
     ['阻断（按角色生效：一个角色的条目里只要有一条，它写 run 目录之外的任何地方都会被拒，连它其余合法的前缀也一样）', report?.block],
-    ['要改（/agent-team:at-init 明令不许这样写，或者按字面比较一定落空）', report?.fix],
+    ['要改（/poundlock:at-init 明令不许这样写，或者按字面比较一定落空）', report?.fix],
     ['请确认（可能是有意的：读一遍，是想要的就不动）', report?.confirm],
   ].filter(([, items]) => Array.isArray(items) && items.length)
   if (!sections.length) return null
   return (
-    '【project.json】.agent-team/project.json 有问题，逐条如下——只有 PM 该改它：你是 PM 就用 Write 整份重写；' +
+    '【project.json】.poundlock/project.json 有问题，逐条如下——只有 PM 该改它：你是 PM 就用 Write 整份重写；' +
     '不是的话把这些问题回报给上级，不要自己写 project.json：\n' +
     sections.map(([title, items]) => `  ${title}：\n` + items.map((s) => `  - ${s}`).join('\n')).join('\n') +
     '\n' +
@@ -102,7 +102,7 @@ export function pluginNotice(report) {
   return items.length ? items.map((s) => `【插件】${s}。`).join('\n') : null
 }
 
-// M4g（docs/42，审查第 28 条）：PM 照【触达表】把 JSON 手抄进 .agent-team/reach.json，原来没有任何东西核它（/agent-team:at-status 照它报，
+// M4g（docs/42，审查第 28 条）：PM 照【触达表】把 JSON 手抄进 .poundlock/reach.json，原来没有任何东西核它（/poundlock:at-status 照它报，
 // 抄错了就报错）。写完之后门禁按当前 project.json 与花名册重算、与写进去的比：语义上相同（键序、BOM、CRLF 不算不同）不吭声；不同、或者
 // 写进去的不是合法 JSON，给出正确的那一份。expected 是门禁算的，原样落盘的 JSON 走 safeJson（docs/27 §2.1）。
 // reach.json 的原文与门禁算的那一份比：null 是对得上（语义相同，键序、BOM、CRLF 不算不同）；invalid、dup、differ 是三种对不上。
@@ -124,18 +124,18 @@ export function reachCheckNotice({ writtenText, expected }) {
   const diff = reachDiff(writtenText, expected)
   if (diff === null) return null
   return (
-    '【触达表】刚写进 .agent-team/reach.json 的' +
+    '【触达表】刚写进 .poundlock/reach.json 的' +
     (diff === 'invalid'
       ? '不是一份合法的 JSON（写坏了，或者被截断了）。'
       : diff === 'dup'
         ? '里有写了不止一次的键（JSON 只认最后一个，照原文读的人可能读到前一遍）。'
         : '与门禁按当前 project.json 与花名册算出来的不一样（手抄出错，或者是照旧的 project.json 算的）。') +
-    `把下面这份 JSON 原样重写进 .agent-team/reach.json：\n${safeJson(expected)}`
+    `把下面这份 JSON 原样重写进 .poundlock/reach.json：\n${safeJson(expected)}`
   )
 }
 
 // docs/79（docs/42 §4、docs/29 §5「reach.json 写完之后会落后」）：每趟开头写 current-run 时，磁盘上的 reach.json 与门禁按当前 project.json 与花名册
-// 算的那一份比——project.json 在它之后被改过（两趟之间手改）、写坏了、被删了，/agent-team:at-status 照它报会报错。text 是 reach.json 的原文，不在为 null。
+// 算的那一份比——project.json 在它之后被改过（两趟之间手改）、写坏了、被删了，/poundlock:at-status 照它报会报错。text 是 reach.json 的原文，不在为 null。
 // unreadable：reach.json 在、却读不出来（被占用、它是个目录……）——这一次没有核，照样给出正确的那一份（docs/88；原来一声不吭，at-status 照它报时也读不出）。
 export function reachStaleNotice({ text, expected, unreadable = false }) {
   const diff = unreadable ? 'unreadable' : text === null ? 'missing' : reachDiff(text, expected)
@@ -148,15 +148,15 @@ export function reachStaleNotice({ text, expected, unreadable = false }) {
     unreadable: '在、却读不出来（多半是被别的程序短暂占用，或者它不是一个文件），这一次没有核',
   }[diff]
   return (
-    `【触达表】.agent-team/reach.json ${why}——/agent-team:at-status 报各角色实际能写到哪里时读的就是它。` +
-    `把下面这份 JSON 原样重写进 .agent-team/reach.json${diff === 'unreadable' ? '（写不进去就告诉用户，不要自己删它或改名）' : ''}：\n${safeJson(expected)}`
+    `【触达表】.poundlock/reach.json ${why}——/poundlock:at-status 报各角色实际能写到哪里时读的就是它。` +
+    `把下面这份 JSON 原样重写进 .poundlock/reach.json${diff === 'unreadable' ? '（写不进去就告诉用户，不要自己删它或改名）' : ''}：\n${safeJson(expected)}`
   )
 }
 
 /**
  * project.json 解析不出、或者不是对象。不回显文件内容（docs/27）。
  * - justWritten：这次写的正是它（写 project.json 那条缝）；否则是它在别处被弄坏（用户在两趟 run 之间手改，加了
- *   注释或尾逗号），PM 写 .agent-team 下别的文件时撞上。run 进行中时，那一刻契约与产物的哈希也回传不了，改好之后
+ *   注释或尾逗号），PM 写 .poundlock 下别的文件时撞上。run 进行中时，那一刻契约与产物的哈希也回传不了，改好之后
  *   要原样重写一次刚才那个文件才拿得到（契约这一格 commands/at.md §2 另有兜底，这句管的是其余产物与记账）；没有
  *   run 时没有哈希可拿，改好 project.json 本身就会收到报告与【触达表】那一段。
  * - utf16：门禁认出它是 UTF-16 编码（Windows PowerShell 5.1 的 Out-File、> 的默认编码；gate.mjs 的 looksUtf16）。只说
@@ -183,7 +183,7 @@ export function brokenProjectNotice({ runInProgress, justWritten = true, utf16 =
       : '只有 PM 该改它：你是 PM 就用 Write 写回一份合法的完整 project.json——改好就会收到报告与【触达表】那一段，再继续；' +
         '不是的话回报上级，不要自己写。'
   return (
-    `【project.json】${justWritten ? '刚写进去的 ' : ''}.agent-team/project.json 不是一个合法的 JSON 对象${why}，门禁读不出它。` +
+    `【project.json】${justWritten ? '刚写进去的 ' : ''}.poundlock/project.json 不是一个合法的 JSON 对象${why}，门禁读不出它。` +
     (runInProgress ? 'run 进行中：执行角色写任何地方都会被拒，前置就绪与交付物校验按读不出运行上下文放行。' : '') +
     (utf16
       ? '用 Write 整份重写 project.json（Read 看到的可能是一字一隔的乱码）。第一次写完 project.json，文件多半仍是 UTF-16、' +
@@ -246,9 +246,9 @@ export function buildLedgerNotices({
   if (kind === 'project' && (pl || blocked)) {
     out.push(
       pl
-        ? '【触达表】这次算不出来：花名册读不出，照它算的触达表是空的、不对。不要写 .agent-team/reach.json，保持原样；' +
-            '插件重装（或有新版本时更新）之后，新开一个会话再跑 /agent-team:at-init 落盘。'
-        : '【触达表】这次不发：上面有阻断，改完阻断、重写 project.json 之后才会收到；在那之前不要写 .agent-team/reach.json。',
+        ? '【触达表】这次算不出来：花名册读不出，照它算的触达表是空的、不对。不要写 .poundlock/reach.json，保持原样；' +
+            '插件重装（或有新版本时更新）之后，新开一个会话再跑 /poundlock:at-init 落盘。'
+        : '【触达表】这次不发：上面有阻断，改完阻断、重写 project.json 之后才会收到；在那之前不要写 .poundlock/reach.json。',
     )
   } else if (kind === 'project' && reach && typeof reach === 'object') {
     const lines = []
@@ -291,7 +291,7 @@ export function buildLedgerNotices({
           : '当前配置下，没有角色的触达超出它自己认领的路径。')
     out.push(
       `【触达表】${body}\n` +
-        `把下面这份 JSON 原样写进 .agent-team/reach.json：\n` +
+        `把下面这份 JSON 原样写进 .poundlock/reach.json：\n` +
         `${safeJson(reach)}`,
     )
   }
@@ -446,14 +446,14 @@ export function buildLedgerNotices({
           (implStage ? implRecordNote({ stage: stages?.[st.stage], writerIsPm, writer, tweak }) : '') +
           `${who}${tail}${over}` +
           (acceptanceNote ? `\n${acceptanceNote}` : '') +
-          // M4o（docs/50）：第一段的产物齐了、契约第 1 节对不上用户在 /agent-team:at 后面写的原话——推进出第一段会被 H6 拒（同一句）。
+          // M4o（docs/50）：第一段的产物齐了、契约第 1 节对不上用户在 /poundlock:at 后面写的原话——推进出第一段会被 H6 拒（同一句）。
           (wordsNote ? `\n${wordsNote}` : '')
         : Array.isArray(closeBlockers) && closeBlockers.length
           ? `【阶段】${st.stage} 的产物已经写了，它是阶段链的最后一段，但还收不了口——收口要最后一段的前置与产物都在、不是空文件、` +
             `而且是这一轮的：\n` +
             closeBlockers.map((b) => `  - ${blockerLine(stages, b, st, undefined, dispatched)}`).join('\n') +
-            `\n补齐之后照 /agent-team:at 第 6 节从第一步重走一遍再收口（补交的验收结论要读，交付文档要照它改）。${who}${tail}`
-          : `【阶段】${st.stage} 的产物已经齐了，而它是阶段链的最后一段——该收口了：照 /agent-team:at 第 6 节，用同一次 Write ` +
+            `\n补齐之后照 /poundlock:at 第 6 节从第一步重走一遍再收口（补交的验收结论要读，交付文档要照它改）。${who}${tail}`
+          : `【阶段】${st.stage} 的产物已经齐了，而它是阶段链的最后一段——该收口了：照 /poundlock:at 第 6 节，用同一次 Write ` +
             `记 never_invoked 与 closed_at（closed_at 写门禁此刻的时间 ${gateClock(now)}，不要估；history 原样带着，连时间也不改；收口那一次 H6 核最后一段的前置与产物；没被拒就是收好了，收口成功不另发回传），再向用户汇报。` +
             `收口之后，交付之后的新改动另起一趟。${who}${tail}`,
     )
@@ -472,7 +472,7 @@ function chainIds(stages) {
 // （H5b），被拒还没解决的那一份在门禁看来就是交了；门禁不读它写了什么，这一句把 PM 引到那一节上。H5a「全部齐备」那句同用。
 export const IMPL_RECORD_NOTE =
   '这一段的产物是各执行角色的实现记录：推进之前逐份读，有「被写路径隔离拒绝」一节、里面还有没标「已解决」的条目的，那一份不算交齐；' +
-  '「测试」一节缺了、或者有新行为没有测试又不属于那两种情形的，同样不算（门禁看不出这两点；做法与那两种情形见 /agent-team:at 第 3 节' +
+  '「测试」一节缺了、或者有新行为没有测试又不属于那两种情形的，同样不算（门禁看不出这两点；做法与那两种情形见 /poundlock:at 第 3 节' +
   '「各段的具体做法」里这一段那一条）。'
 
 // 微调里给项目经理的那一句：做法在 at-tweak 第 3 节（at.md 第 3 节那几条讲的是完整的一趟），推进出这一段还要「可以了，收尾」（decideTweakDone）。
@@ -481,7 +481,7 @@ export const IMPL_RECORD_TWEAK_NOTE =
   '「测试」一节缺了、或者改了行为却没有测试又不属于那两种情形的，同样不算（门禁看不出这两点；做法见 /' + TWEAK_COMMAND + ' 第 3 节）。' +
   '推进出这一段还要用户对现在这份契约说过「' + DONE_LABEL + '」——没问过、或者问过之后又改了契约的，先照那一节问，门禁没记到这一句 H6 会拒这次推进。'
 
-// 第二轮复核：同一条回传发给执行角色时用这一句——上面那句叫读者去逐份读、去照 /agent-team:at 做，它都做不了。
+// 第二轮复核：同一条回传发给执行角色时用这一句——上面那句叫读者去逐份读、去照 /poundlock:at 做，它都做不了。
 // M4f 复核（docs/41 §8，审查低-12）：三句都带「测试」一节——只给 PM 那句带，产者与架构师照旧只报被拒那一条，PM 多绕一轮。
 export const IMPL_RECORD_ROLE_NOTE =
   '你自己的实现记录里「被写路径隔离拒绝」一节还有没标「已解决」的条目、「测试」一节缺了、或者有新行为没有测试又不属于你正文' +
@@ -534,7 +534,7 @@ export function contractCheckNotice(cmp, recorded) {
   // 复核（docs/37 §3）：格式对、值不等，门禁分不出成因——不断言「契约被改过」，几种可能都列出来，各给各的出路。
   return (
     `【契约】磁盘上的 00-contract.md 与 state.json 记的 contract_sha（${shaOrNote(recorded)}）对不上。门禁分不出是哪一种，可能是：` +
-    '照 /agent-team:at 第 4 节修订之后没记新值——把那一次写契约收到的【契约】回传给的 sha 记进 contract_sha；记的是自己算的值——' +
+    '照 /poundlock:at 第 4 节修订之后没记新值——把那一次写契约收到的【契约】回传给的 sha 记进 contract_sha；记的是自己算的值——' +
     '原样重写一次契约，从这一次的回传里拿；契约被人改过、不是第 4 节的修订——把契约恢复原样，告诉用户。不要自己算 sha——这一段也' +
     '不报磁盘上算出来的值。'
   )

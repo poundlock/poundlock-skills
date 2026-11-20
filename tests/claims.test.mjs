@@ -32,7 +32,7 @@ test('claimBlock：别的一趟认领了这个键回那一趟，没有回 null',
 
 test('claimDenyReason：说清是哪一趟在改、叫它冒泡不绕开；磁盘上的值过引号', () => {
   const r = claimDenyReason({ path: 'web/a.ts', other: { id: 't1', startedAt: '2026-11-06T10:00:00Z', wordsHead: '标题改大' } })
-  assert.match(r, /^agent-team 认领：/)
+  assert.match(r, /^poundlock 认领：/)
   assert.match(r, /"t1"/)
   assert.match(r, /"2026-11-06T10:00:00Z"/)
   assert.match(r, /"标题改大"/)

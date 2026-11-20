@@ -19,10 +19,10 @@ import { SECOND_WRITE_NOTE } from '../../hooks/lib/fail-open.mjs'
 export const GATE = fileURLToPath(new URL('../../hooks/boot.mjs', import.meta.url))
 
 // M3t（docs/28，全量审查第 4 条）：门禁子进程用哪个 node。缺省是跑测试的这个 node；CI 的最低版本
-// 作业把 AGENT_TEAM_GATE_NODE 设成 hooks/boot.mjs 的 MIN_NODE 那个版本——测试框架本身仍跑在新版本
+// 作业把 POUNDLOCK_GATE_NODE 设成 hooks/boot.mjs 的 MIN_NODE 那个版本——测试框架本身仍跑在新版本
 // 上（它自己要 Node 22 起的行为），只有门禁子进程换成用户最旧可能用的那个。所有门禁子进程都经
 // 下面的 run / runAsync 起，tests/gate-runner.test.mjs 钉着别处不许自己 spawn node。
-export const GATE_NODE = process.env.AGENT_TEAM_GATE_NODE || process.execPath
+export const GATE_NODE = process.env.POUNDLOCK_GATE_NODE || process.execPath
 
 // M3l：子进程的环境**默认剥掉门禁留痕那个开关**（hooks/lib/trace.mjs 的 TRACE_ENV）。
 // 这一整套测试断言的是「开关关着时」的门禁——许多用例逐字比 stderr 是不是空的。
@@ -44,10 +44,10 @@ export function hermeticEnv(base = process.env) {
 }
 
 // cwd 是可选的第四个参数（默认继承调用方进程的 cwd，与此前行为一致）。
-// 门禁在没有 CLAUDE_PROJECT_DIR 时用 process.cwd() 当「用户项目根」去找 .agent-team
+// 门禁在没有 CLAUDE_PROJECT_DIR 时用 process.cwd() 当「用户项目根」去找 .poundlock
 // （缺省 env 把那个变量剥掉了，所以这里的 cwd 就是夹具项目根）——
 // 要单测「项目根没有进行中的 run」这条分支，必须能把子进程的 cwd 钉在一个
-// 干净的临时目录上，不能依赖仓库根此刻恰好有没有 .agent-team（那是环境
+// 干净的临时目录上，不能依赖仓库根此刻恰好有没有 .poundlock（那是环境
 // 状态，不是这条分支的契约）。
 // env 是可选的第五个参数，缺省是「当前环境去掉留痕开关与 CLAUDE_PROJECT_DIR」（见上面 hermeticEnv）。
 // 第六个参数：nodeArgs 放在入口之前，用来预加载（-r 一个 .cjs：--import 要 Node 18.18 起才有，
@@ -158,7 +158,7 @@ export function outputContractViolations(check, { stdout, stderr, status }) {
   if (event === 'UserPromptSubmit' && status === 2) out.push('UserPromptSubmit 上 exit 2（会把用户的话或完成通知吞掉）')
   // M4o（docs/50）：UserPromptExpansion 上 exit 2 会把用户的命令拦掉——原话记录器永不拒；stdout 非空由上面那条「不是 Pre/Post、不是 speaks」管。
   if (event === 'UserPromptExpansion' && status === 2) out.push('UserPromptExpansion 上 exit 2（会把用户的命令拦掉）')
-  if (stderr.includes('agent-team BUG:')) out.push('stderr 里有 BUG 行')
+  if (stderr.includes('poundlock BUG:')) out.push('stderr 里有 BUG 行')
   if (stderr.includes(SECOND_WRITE_NOTE)) out.push('stderr 里有「已经写过一份」那句')
   return out
 }

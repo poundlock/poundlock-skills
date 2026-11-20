@@ -32,7 +32,7 @@ const AT_PRODUCE =
   '门禁先剥 BOM、把 CRLF 折成 LF 再算，自己算的会对不上。回报里没带的：之后还有派发的，派发返回时的【账本比对】会报它「没记」、带着门禁算出来的值，' +
   '照那一条的收尾记；最后一次派发交的（例如验收结论），之后没有派发了，只能靠回报——派的时候在完成定义里写上「回报里带上【产物】给的 sha」。'
 
-test('M4g 第 28 条：/agent-team:at 不再说「写完一段产物你会收到【产物】」——下级写的回传发给写它的人、协调者转报；值照抄，不自己算；最后一次派发的只能靠回报', () => {
+test('M4g 第 28 条：/poundlock:at 不再说「写完一段产物你会收到【产物】」——下级写的回传发给写它的人、协调者转报；值照抄，不自己算；最后一次派发的只能靠回报', () => {
   assert.ok(has(AT, AT_PRODUCE), 'commands/at.md 第 3 节记 artifacts 那一句变了')
   assert.ok(!AT.includes('写完一段产物之后，你会收到一条【产物】回传'), '旧说法还在：对下级写的产物不成立')
 })
@@ -96,7 +96,7 @@ test('M4g 复核：【阶段】说「分两次写」时分清漏记与漏派', (
 
 const AT_ASK_FIRST =
   '**问之前先记**：往 `state.json` 的 `escalations` 追加一条 `{ stage, kind, question, answer, at }`，`kind` 用上表里的取值，' +
-  '`answer` 先写空串——会话断在等答复的时候，续跑与 `/agent-team:at-status`（「待办升级」）靠它看得见这一问还没答。'
+  '`answer` 先写空串——会话断在等答复的时候，续跑与 `/poundlock:at-status`（「待办升级」）靠它看得见这一问还没答。'
 const AT_AFTER = '1. 把那一条的 `answer` 补成用户的答复（用户原话）；问之前没记的，照上面补一条完整的。'
 const BUDGET_YES =
   '- 用户选了「再返工一轮」：门禁自己记下这条批准，回传里说记下了哪一段、覆盖哪几段——批准由门禁记，`state.json` 里不用为它多写任何字段。' +
@@ -104,9 +104,9 @@ const BUDGET_YES =
   '一起重写——同一次 Write，别让重写把记着的 escalation 覆盖掉。没有被拒的写入、是回传叫你问的，就把 escalation 的 `answer` 与 `contract_sha` 记上，' +
   '照常往下走这一轮，不要为它再记一次回退。回传说没记下，照它说的原因重问。'
 const BUDGET_STOP =
-  '- 用户选了「停在这里」：不回退也不推进。问之前记的那一条，`answer` 写用户原话；把现状、run id 与续跑的办法（`/agent-team:at-resume`）' +
+  '- 用户选了「停在这里」：不回退也不推进。问之前记的那一条，`answer` 写用户原话；把现状、run id 与续跑的办法（`/poundlock:at-resume`）' +
   '告诉用户，停下等用户。'
-test('M4g 第 41 条：/agent-team:at 第 4 节——问之前先记一条 answer 为空串的 escalation，答复之后补上；返工预算那两条照这个口径', () => {
+test('M4g 第 41 条：/poundlock:at 第 4 节——问之前先记一条 answer 为空串的 escalation，答复之后补上；返工预算那两条照这个口径', () => {
   assert.ok(has(section4, AT_ASK_FIRST), '第 4 节缺「问之前先记」')
   assert.ok(has(section4, AT_AFTER), '第 4 节「答复之后」第 1 件事变了')
   assert.ok(section4.indexOf('**问之前先记**') < section4.indexOf('用户答复之后**两件事都要做**'), '「问之前先记」要排在「答复之后」之前')
@@ -183,7 +183,7 @@ test('M4g 第 41 条：at-status 引插件里的文件都带 ${CLAUDE_PLUGIN_ROO
 const RESUME_PENDING =
   '**问了没答的**（`escalations` 里有 `answer` 是空串的：上一个会话问了用户、还没等到答复）：先照 `${CLAUDE_PLUGIN_ROOT}/commands/at.md` ' +
   '第 4 节把那一问重新问一遍——不要再追加一条，答复补进那一条的 `answer`，再往下走。`budget-exhausted` 那一条、门禁已经记下了批准的' +
-  '（`/agent-team:at-status` 的「返工批准」一行列得出），不用重问：把批准的那个规范标签补进 `answer`。'
+  '（`/poundlock:at-status` 的「返工批准」一行列得出），不用重问：把批准的那个规范标签补进 `answer`。'
 test('M4g 第 41 条：at-resume 认得出问了没答的 escalation——重问时不再追加一条；门禁已记下批准的不用重问', () => {
   assert.ok(has(RESUME, RESUME_PENDING))
 })

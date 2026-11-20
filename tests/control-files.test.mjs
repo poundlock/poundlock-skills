@@ -2,48 +2,48 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { CONTROL_FILES, isControlFile } from '../hooks/lib/control-files.mjs'
 
-const AT = '/proj/.agent-team'
+const AT = '/proj/.poundlock'
 
 test('四个控制文件都认得出来', () => {
-  assert.equal(isControlFile('/proj/.agent-team/current-run', AT), true)
-  assert.equal(isControlFile('/proj/.agent-team/project.json', AT), true)
-  assert.equal(isControlFile('/proj/.agent-team/reach.json', AT), true)
-  assert.equal(isControlFile('/proj/.agent-team/runs/r1/state.json', AT), true)
+  assert.equal(isControlFile('/proj/.poundlock/current-run', AT), true)
+  assert.equal(isControlFile('/proj/.poundlock/project.json', AT), true)
+  assert.equal(isControlFile('/proj/.poundlock/reach.json', AT), true)
+  assert.equal(isControlFile('/proj/.poundlock/runs/r1/state.json', AT), true)
 })
 
 test('任意 run 的 state.json 都算控制文件，不只是当前那个', () => {
-  assert.equal(isControlFile('/proj/.agent-team/runs/other-run/state.json', AT), true)
+  assert.equal(isControlFile('/proj/.poundlock/runs/other-run/state.json', AT), true)
 })
 
 test('阶段产物不是控制文件', () => {
-  assert.equal(isControlFile('/proj/.agent-team/runs/r1/00-contract.md', AT), false)
-  assert.equal(isControlFile('/proj/.agent-team/runs/r1/05-impl/at-backend.md', AT), false)
+  assert.equal(isControlFile('/proj/.poundlock/runs/r1/00-contract.md', AT), false)
+  assert.equal(isControlFile('/proj/.poundlock/runs/r1/05-impl/at-backend.md', AT), false)
 })
 
 test('* 不跨路径段——多一层或少一层都不匹配', () => {
-  assert.equal(isControlFile('/proj/.agent-team/runs/state.json', AT), false)
-  assert.equal(isControlFile('/proj/.agent-team/runs/r1/x/state.json', AT), false)
+  assert.equal(isControlFile('/proj/.poundlock/runs/state.json', AT), false)
+  assert.equal(isControlFile('/proj/.poundlock/runs/r1/x/state.json', AT), false)
 })
 
-test('.agent-team 之外的同名文件不是控制文件', () => {
+test('.poundlock 之外的同名文件不是控制文件', () => {
   assert.equal(isControlFile('/proj/src/project.json', AT), false)
-  assert.equal(isControlFile('/proj/.agent-team-backup/project.json', AT), false)
+  assert.equal(isControlFile('/proj/.poundlock-backup/project.json', AT), false)
 })
 
-test('.agent-team 目录本身不是控制文件', () => {
+test('.poundlock 目录本身不是控制文件', () => {
   assert.equal(isControlFile(AT, AT), false)
 })
 
 test('路径穿越绕不过去——norm 会先 resolve', () => {
-  assert.equal(isControlFile('/proj/.agent-team/runs/r1/../../project.json', AT), true)
-  assert.equal(isControlFile('/proj/.agent-team/../outside.json', AT), false)
+  assert.equal(isControlFile('/proj/.poundlock/runs/r1/../../project.json', AT), true)
+  assert.equal(isControlFile('/proj/.poundlock/../outside.json', AT), false)
 })
 
 test('退化输入一律返回 false，不抛', () => {
   assert.equal(isControlFile(undefined, AT), false)
   assert.equal(isControlFile('', AT), false)
-  assert.equal(isControlFile('/proj/.agent-team/project.json', undefined), false)
-  assert.equal(isControlFile('/proj/.agent-team/project.json', ''), false)
+  assert.equal(isControlFile('/proj/.poundlock/project.json', undefined), false)
+  assert.equal(isControlFile('/proj/.poundlock/project.json', ''), false)
 })
 
 // docs/09 账一：控制文件之所以比「例外」准，靠的是它是一个闭集合且可枚举。
@@ -71,45 +71,45 @@ test('M3z 门禁专属文件清单是闭集合', () => {
 test('mayBeGateFile 认得清单里的每一个叶名（加一份门禁专属文件时预筛跟着认，带流后缀、结尾带点的写法才会被拒）', () => {
   const leaves = [...GATE_FILES.map((p) => p.split('/').pop()), ...PROJECT_GATE_FILES]
   for (const leaf of leaves) {
-    assert.equal(mayBeGateFile('/proj/.agent-team/runs/r1/' + leaf), true, leaf)
-    assert.equal(mayBeGateFile('/proj/.agent-team/runs/r1/' + leaf + '::$DATA'), true, leaf + '::$DATA')
+    assert.equal(mayBeGateFile('/proj/.poundlock/runs/r1/' + leaf), true, leaf)
+    assert.equal(mayBeGateFile('/proj/.poundlock/runs/r1/' + leaf + '::$DATA'), true, leaf + '::$DATA')
   }
 })
 
-test('M4o isGateFile：项目一级的原话记录 .agent-team/user-words.json 也是门禁专属；多一层、.agent-team 之外的同名文件不是', () => {
-  for (const p of ['/proj/.agent-team/user-words.json', '/elsewhere/.AGENT-TEAM/USER-WORDS.JSON', '/proj/.agent-team/runs/r1/user-words.json']) {
+test('M4o isGateFile：项目一级的原话记录 .poundlock/user-words.json 也是门禁专属；多一层、.poundlock 之外的同名文件不是', () => {
+  for (const p of ['/proj/.poundlock/user-words.json', '/elsewhere/.POUNDLOCK/USER-WORDS.JSON', '/proj/.poundlock/runs/r1/user-words.json']) {
     assert.equal(isGateFile(p), true, p)
     assert.equal(mayBeGateFile(p), true, p)
   }
-  for (const p of ['/proj/user-words.json', '/proj/src/user-words.json', '/proj/.agent-team/x/user-words.json', '/proj/.agent-team/runs/user-words.json']) {
+  for (const p of ['/proj/user-words.json', '/proj/src/user-words.json', '/proj/.poundlock/x/user-words.json', '/proj/.poundlock/runs/user-words.json']) {
     assert.equal(isGateFile(p), false, p)
   }
 })
 
 test('M3z isGateFile：任意项目、任意 run 下的 approvals.jsonl、delivered.json；它们不是控制文件（PM 也写不了）', () => {
-  for (const p of ['/proj/.agent-team/runs/r1/approvals.jsonl', '/proj/.agent-team/runs/other/delivered.json', '/elsewhere/.agent-team/runs/r9/APPROVALS.JSONL']) {
+  for (const p of ['/proj/.poundlock/runs/r1/approvals.jsonl', '/proj/.poundlock/runs/other/delivered.json', '/elsewhere/.poundlock/runs/r9/APPROVALS.JSONL']) {
     assert.equal(isGateFile(p), true, p)
     assert.equal(isControlFile(p, AT), false, p)
   }
 })
 
-test('M3z isGateFile：多一层、少一层、.agent-team 之外、退化输入都不算', () => {
-  for (const p of ['/proj/.agent-team/approvals.jsonl', '/proj/.agent-team/runs/r1/x/delivered.json', '/proj/src/delivered.json', '/proj/runs/r1/delivered.json', '', undefined]) {
+test('M3z isGateFile：多一层、少一层、.poundlock 之外、退化输入都不算', () => {
+  for (const p of ['/proj/.poundlock/approvals.jsonl', '/proj/.poundlock/runs/r1/x/delivered.json', '/proj/src/delivered.json', '/proj/runs/r1/delivered.json', '', undefined]) {
     assert.equal(isGateFile(p), false, String(p))
   }
-  assert.equal(isGateFile('/proj/.agent-team/runs/r1/../r2/approvals.jsonl'), true)
-  assert.equal(isGateFile('/proj/.agent-team/runs/r1/approvals.jsonl/../x'), false)
+  assert.equal(isGateFile('/proj/.poundlock/runs/r1/../r2/approvals.jsonl'), true)
+  assert.equal(isGateFile('/proj/.poundlock/runs/r1/approvals.jsonl/../x'), false)
 })
 
 test('M3z leafName：剥流后缀、结尾的点与空格，转小写', () => {
-  assert.equal(leafName('C:\\p\\.agent-team\\runs\\r1\\APPROVALS.JSONL::$DATA'), 'approvals.jsonl')
+  assert.equal(leafName('C:\\p\\.poundlock\\runs\\r1\\APPROVALS.JSONL::$DATA'), 'approvals.jsonl')
   assert.equal(leafName('/p/runs/r1/delivered.json. '), 'delivered.json')
   assert.equal(leafName('/p/runs/r1/state.json:x'), 'state.json')
   assert.equal(leafName(''), '')
 })
 
 test('M3z mayBeGateFile：按规范化之后的末段认，写法认不出时也认；别的名字、8.3 短名不认', () => {
-  for (const p of ['C:\\p\\.agent-team\\runs\\r1\\approvals.jsonl::$DATA', '/p/runs/r1/APPROVALS.JSONL.', '/p/delivered.json']) {
+  for (const p of ['C:\\p\\.poundlock\\runs\\r1\\approvals.jsonl::$DATA', '/p/runs/r1/APPROVALS.JSONL.', '/p/delivered.json']) {
     assert.equal(mayBeGateFile(p), true, p)
   }
   for (const p of ['/p/runs/r1/state.json', '/p/runs/r1/approvals.jsonl.bak', '/p/runs/r1/APPROV~1.JSO', '', null]) {
@@ -125,6 +125,6 @@ test('M3z mayBeStateFile 与 mayBeGateFile 共用一份末段规范化（行为�
 
 // 变异 C07：isGateFile 的末段不过 leafName 时，Windows 上照样全绿（norm 折小写）；流后缀那一种两个平台都靠它。
 test('变异 C07：isGateFile 认带流后缀、结尾带点的末段', () => {
-  assert.equal(isGateFile('/proj/.agent-team/runs/r1/approvals.jsonl::$DATA'), true)
-  assert.equal(isGateFile('/proj/.agent-team/runs/r1/delivered.json:x'), true)
+  assert.equal(isGateFile('/proj/.poundlock/runs/r1/approvals.jsonl::$DATA'), true)
+  assert.equal(isGateFile('/proj/.poundlock/runs/r1/delivered.json:x'), true)
 })

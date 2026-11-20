@@ -134,7 +134,7 @@ test('ownerDenyReason：说归另一个会话（接手过的说被接手），�
   const a = ownerDenyReason({ runId: 'r1', kind: 'run', via: 'create' })
   assert.match(a, /归另一个会话/)
   assert.match(a, /别的会话的一趟/)
-  assert.match(a, /\/agent-team:at-resume/)
+  assert.match(a, /\/poundlock:at-resume/)
   assert.match(a, /"r1"/)
   assert.match(ownerDenyReason({ runId: 'r1', kind: 'run', via: 'takeover' }), /被另一个会话接手/)
   assert.match(ownerDenyReason({ runId: 'r1', kind: 'create', via: 'create' }), /不能另建一趟/)
@@ -184,10 +184,10 @@ test('mentionsRunId：题面里原样写着 run id 才算；紧挨着 run id 里
 
 test('sessionNotice：三条命令各自的出路；交付了只差收口的另说；磁盘上的值带引号', () => {
   const base = { runId: 'r1', startedAt: '2026-11-05T10:00:00Z', wordsHead: '做一个记账应用', delivered: false, via: 'create' }
-  assert.match(sessionNotice({ ...base, command: 'at' }), /^【会话】[\s\S]*归另一个会话[\s\S]*\/agent-team:at 第 1 节「别的会话的一趟」/)
+  assert.match(sessionNotice({ ...base, command: 'at' }), /^【会话】[\s\S]*归另一个会话[\s\S]*\/poundlock:at 第 1 节「别的会话的一趟」/)
   assert.match(sessionNotice({ ...base, command: 'at', delivered: true }), /只差收口/)
   assert.doesNotMatch(sessionNotice({ ...base, command: 'at' }), /只差收口/)
-  assert.match(sessionNotice({ ...base, command: 'at-resume' }), /\/agent-team:at-resume 第 1 节「别的会话的一趟」/)
+  assert.match(sessionNotice({ ...base, command: 'at-resume' }), /\/poundlock:at-resume 第 1 节「别的会话的一趟」/)
   assert.doesNotMatch(sessionNotice({ ...base, command: 'at-status' }), /问用户/)
   assert.match(sessionNotice({ ...base, command: 'at-status' }), /归另一个会话/)
   const n = sessionNotice({ ...base, command: 'at' })

@@ -15,7 +15,7 @@ import { CONTRACT_BASE_FILE } from '../hooks/lib/control-files.mjs'
 
 const S7_READY = ['00-contract.md', '01-prd.md', '03-arch.md', '04-dispatch.md', '06-test.md']
 const REVISED_AT = '2026-10-10T12:00:00Z'
-const dispatch = (target, caller = 'agent-team:at-pm') => ({
+const dispatch = (target, caller = 'poundlock:at-pm') => ({
   hook_event_name: 'PreToolUse',
   tool_name: 'Agent',
   agent_type: caller,
@@ -27,7 +27,7 @@ const shaOf = (runDir, name) => sha256OfContract(readFileSync(join(runDir, name)
 function withRun({ stage, artifacts, base = () => null }, body) {
   const dirs = makeRun({ runId: 'r1', stage, artifacts })
   try {
-    const runDir = join(dirs.projectDir, '.agent-team', 'runs', 'r1')
+    const runDir = join(dirs.projectDir, '.poundlock', 'runs', 'r1')
     const statePath = join(runDir, 'state.json')
     const state = JSON.parse(readFileSync(statePath, 'utf8'))
     state.contract_sha = shaOf(runDir, '00-contract.md')
@@ -45,7 +45,7 @@ const decide = (dirs, target, caller) => decisionOf(run('readiness', dispatch(ta
 
 test('H2（docs/61）：改了需求之后 06-test.md 没有重出——派 at-acceptance 拒，理由说它是对着上一版契约的结论、出路是回退到 S6', () => {
   withRun({ stage: 'S7', artifacts: S7_READY, base: revisedAfter('06-test.md') }, (dirs) => {
-    const d = decide(dirs, 'agent-team:at-acceptance')
+    const d = decide(dirs, 'poundlock:at-acceptance')
     assert.equal(d?.permissionDecision, 'deny')
     const why = d.permissionDecisionReason
     assert.ok(why.includes('06-test.md') && why.includes('上一版契约'), why)
@@ -61,19 +61,19 @@ test('H2（docs/61）：改了需求之后 06-test.md 没有重出——派 at-a
 test('H2（docs/61）：06-test.md 在修订之后重写过（内容与修订那一刻不同）——放行', () => {
   withRun({ stage: 'S7', artifacts: S7_READY, base: revisedAfter('06-test.md') }, (dirs) => {
     writeFileSync(join(dirs.runDir, '06-test.md'), '对着这一版契约重测过的报告\n')
-    assert.equal(decide(dirs, 'agent-team:at-acceptance'), null)
+    assert.equal(decide(dirs, 'poundlock:at-acceptance'), null)
   })
 })
 
 test('H2（docs/61）：没有契约基线、没改过需求、改过需求却没碰到它（verify_base 里没有、也没有派发记录）——照常放行', () => {
   withRun({ stage: 'S7', artifacts: S7_READY }, (dirs) => {
-    assert.equal(decide(dirs, 'agent-team:at-acceptance'), null)
+    assert.equal(decide(dirs, 'poundlock:at-acceptance'), null)
   })
   withRun({ stage: 'S7', artifacts: S7_READY, base: () => ({ revisions: [], verify_base: {}, revised_at: null }) }, (dirs) => {
-    assert.equal(decide(dirs, 'agent-team:at-acceptance'), null)
+    assert.equal(decide(dirs, 'poundlock:at-acceptance'), null)
   })
   withRun({ stage: 'S7', artifacts: S7_READY, base: () => ({ revisions: ['### 2026-10-10 用户主动提出'], verify_base: {}, revised_at: REVISED_AT }) }, (dirs) => {
-    assert.equal(decide(dirs, 'agent-team:at-acceptance'), null)
+    assert.equal(decide(dirs, 'poundlock:at-acceptance'), null)
   })
 })
 
@@ -84,18 +84,18 @@ test('H2（复核 docs/61 §8）：at-qa 在修订之前派出去、之后才交
     const line = (at, id) => JSON.stringify({ kind: 'dispatch', agent_id: id, role: 'at-qa', stage: 'S6', caller: 'at-pm', at })
     const log = join(dirs.runDir, 'dispatches.jsonl')
     writeFileSync(log, line('2026-10-10T11:00:00Z', 'a0000000000000901') + '\n')
-    const d = decide(dirs, 'agent-team:at-acceptance')
+    const d = decide(dirs, 'poundlock:at-acceptance')
     assert.equal(d?.permissionDecision, 'deny')
     assert.ok(d.permissionDecisionReason.includes('在 S6 里同段重派它的产者重出') && d.permissionDecisionReason.includes('到了 S7 再派'), d.permissionDecisionReason)
     writeFileSync(log, line('2026-10-10T11:00:00Z', 'a0000000000000901') + '\n' + line('2026-10-10T13:00:00Z', 'a0000000000000902') + '\n')
-    assert.equal(decide(dirs, 'agent-team:at-acceptance'), null)
+    assert.equal(decide(dirs, 'poundlock:at-acceptance'), null)
   })
 })
 
 test('H2（复核 docs/61 §8）：契约基线在却读不出来——不认过期、放行，stderr 留痕', () => {
   withRun({ stage: 'S7', artifacts: S7_READY }, (dirs) => {
     writeFileSync(join(dirs.runDir, CONTRACT_BASE_FILE), '{"verify_base": {')
-    const r = run('readiness', dispatch('agent-team:at-acceptance'), undefined, dirs.projectDir)
+    const r = run('readiness', dispatch('poundlock:at-acceptance'), undefined, dirs.projectDir)
     assert.equal(decisionOf(r.stdout), null)
     assert.ok(r.stderr.includes('契约基线在却读不出来'), r.stderr)
   })
@@ -103,7 +103,7 @@ test('H2（复核 docs/61 §8）：契约基线在却读不出来——不认过
 
 test('H2（docs/61）：S7 自己那份结论也在、也是对着上一版的——这一段不算齐，照样查前置、照样拒（原来「产物都在就跳过前置」）', () => {
   withRun({ stage: 'S7', artifacts: [...S7_READY, '07-acceptance.md'], base: revisedAfter('06-test.md', '07-acceptance.md') }, (dirs) => {
-    const d = decide(dirs, 'agent-team:at-acceptance')
+    const d = decide(dirs, 'poundlock:at-acceptance')
     assert.equal(d?.permissionDecision, 'deny')
     assert.ok(d.permissionDecisionReason.includes('06-test.md'), d.permissionDecisionReason)
   })
@@ -138,7 +138,7 @@ test('decideReadiness（docs/61）：对着上一版契约的前置——项目�
   assert.equal(decideReadiness({ ...base, callerCanWriteState: true }).decision, 'allow')
 })
 
-test('正文（docs/61）：/agent-team:at 说对着上一版契约的结论重出之前不算交了的前置——门禁真的拒（上面几条）', () => {
+test('正文（docs/61）：/poundlock:at 说对着上一版契约的结论重出之前不算交了的前置——门禁真的拒（上面几条）', () => {
   const at = readFileSync(new URL('../commands/at.md', import.meta.url), 'utf8').split(String.fromCharCode(13)).join('').split('\n').join('')
   assert.ok(at.includes('重出之前它们也不算交了的前置：拿它们当前置的段派不出人。'), 'commands/at.md')
 })

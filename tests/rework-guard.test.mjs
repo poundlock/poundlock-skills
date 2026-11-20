@@ -490,7 +490,7 @@ test('M3z stage 不变量：收口往 history 里写 DONE → 拒，理由说收
   const ids = [...FIRST6, 'S7', 'S8']
   const r = decide(ids, [...ids, 'DONE'])
   assert.equal(r.ok, false)
-  assert.match(r.reason, /在最后一段（S8）用同一次 Write 记 never_invoked 与 closed_at（\/agent-team:at 第 6 节）/)
+  assert.match(r.reason, /在最后一段（S8）用同一次 Write 记 never_invoked 与 closed_at（\/poundlock:at 第 6 节）/)
 })
 
 test('M3z stage 不变量：写入前读不出来（修坏文件）时只核 stage 在链上，原样保留的旧链外条目不核', () => {

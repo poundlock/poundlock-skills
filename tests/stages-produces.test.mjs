@@ -1,4 +1,4 @@
-// 第 46 条（docs/48，M4m）：stages.produces.md 是 /agent-team:at-resume 与 /agent-team:at-status 运行时让模型读的那一份（一段的产物怎么展开）。
+// 第 46 条（docs/48，M4m）：stages.produces.md 是 /poundlock:at-resume 与 /poundlock:at-status 运行时让模型读的那一份（一段的产物怎么展开）。
 // 它举的例子要与 stages.json 一致、举的展开结果要与 expandProduces 一致——正文写错了，模型就照错的展开去核盘。
 // 复核（docs/48 §8）：例子与写法名按表格逐行对（只比集合时，两行的例子对调、写法名改掉都照绿）；「例：」要出自它那一行那一段；规则那几句按原话钉。
 // 给维护者的那一份（理由、消费方表、开发史）留在 stages.README.md；运行时的正文不指向它，由 tests/runtime-prose.test.mjs 钉。
@@ -72,7 +72,7 @@ test('第 46 条：stages.produces.md 里展开与按段取产者的规则句都
   for (const k of RULES) assert.ok(squash(DOC).includes(squash(k)), `stages.produces.md 缺「${k}」`)
 })
 
-test('第 46 条：/agent-team:at-resume 与 /agent-team:at-status 指向 stages.produces.md', () => {
+test('第 46 条：/poundlock:at-resume 与 /poundlock:at-status 指向 stages.produces.md', () => {
   for (const f of ['commands/at-resume.md', 'commands/at-status.md']) {
     assert.ok(read(f).includes('`${CLAUDE_PLUGIN_ROOT}/stages.produces.md`'), `${f} 没指向 stages.produces.md`)
   }

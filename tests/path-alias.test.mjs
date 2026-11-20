@@ -51,7 +51,7 @@ function tempDir(prefix) {
 // ---- norm()：同一个物理文件的不同写法得到同一个字符串 ----
 
 test('norm：经目录链接访问与直接访问得到同一个结果——已存在的文件', () => {
-  const d = tempDir('agent-team-alias-')
+  const d = tempDir('poundlock-alias-')
   try {
     mkdirSync(join(d, 'real', 'sub'), { recursive: true })
     writeFileSync(join(d, 'real', 'sub', 'x.txt'), 'x')
@@ -63,7 +63,7 @@ test('norm：经目录链接访问与直接访问得到同一个结果——已�
 })
 
 test('norm：经目录链接访问一个还不存在的文件，同样解析到链接的目标——新建文件走的就是这条', () => {
-  const d = tempDir('agent-team-alias-')
+  const d = tempDir('poundlock-alias-')
   try {
     mkdirSync(join(d, 'real'), { recursive: true })
     linkDir(join(d, 'real'), join(d, 'lnk'))
@@ -74,7 +74,7 @@ test('norm：经目录链接访问一个还不存在的文件，同样解析到�
 })
 
 test('norm：悬空的目录链接（目标还不存在）也跟着链接走——往里写会把目标建出来', () => {
-  const d = tempDir('agent-team-alias-')
+  const d = tempDir('poundlock-alias-')
   try {
     mkdirSync(join(d, 'real'), { recursive: true })
     linkDir(join(d, 'real', 'later'), join(d, 'lnk'))
@@ -85,7 +85,7 @@ test('norm：悬空的目录链接（目标还不存在）也跟着链接走—�
 })
 
 test('norm：系统临时目录的未解析写法与 realpath 写法得到同一个结果（macOS 的 /var → /private/var）', () => {
-  const raw = mkdtempSync(join(tmpdir(), 'agent-team-alias-'))
+  const raw = mkdtempSync(join(tmpdir(), 'poundlock-alias-'))
   try {
     assert.equal(norm(join(raw, 'a.md')), norm(join(realpathSync(raw), 'a.md')))
   } finally {
@@ -94,9 +94,9 @@ test('norm：系统临时目录的未解析写法与 realpath 写法得到同一
 })
 
 test('norm：Windows 8.3 短名与长名得到同一个结果', { skip: !WIN }, (t) => {
-  const d = tempDir('agent-team-alias-')
+  const d = tempDir('poundlock-alias-')
   try {
-    const long = join(d, '.agent-team-longname')
+    const long = join(d, '.poundlock-longname')
     mkdirSync(long)
     const short = shortPathOf(long)
     if (short.toLowerCase() === long.toLowerCase()) {
@@ -110,7 +110,7 @@ test('norm：Windows 8.3 短名与长名得到同一个结果', { skip: !WIN }, 
 })
 
 test('norm：Windows \\\\?\\ 设备前缀与普通写法得到同一个结果', { skip: !WIN }, () => {
-  const d = tempDir('agent-team-alias-')
+  const d = tempDir('poundlock-alias-')
   try {
     assert.equal(norm(`\\\\?\\${join(d, 'x.md')}`), norm(join(d, 'x.md')))
   } finally {
@@ -119,10 +119,10 @@ test('norm：Windows \\\\?\\ 设备前缀与普通写法得到同一个结果', 
 })
 
 test('norm：macOS 默认卷上大小写变体得到同一个结果', { skip: !MAC }, () => {
-  const d = tempDir('agent-team-alias-')
+  const d = tempDir('poundlock-alias-')
   try {
-    mkdirSync(join(d, '.agent-team'))
-    assert.equal(norm(join(d, '.AGENT-TEAM', 'x.md')), norm(join(d, '.agent-team', 'x.md')))
+    mkdirSync(join(d, '.poundlock'))
+    assert.equal(norm(join(d, '.POUNDLOCK', 'x.md')), norm(join(d, '.poundlock', 'x.md')))
   } finally {
     rmSync(d, { recursive: true, force: true })
   }
@@ -139,17 +139,17 @@ test('foldsCase（探测不了时的平台默认）：win32 与 darwin 折叠大
 const W = { platform: 'win32' }
 
 test('exoticPath：流后缀（::$DATA 或 :名字）认得出来', () => {
-  assert.ok(exoticPath('C:\\p\\.agent-team\\current-run::$DATA', 'C:\\p', W))
+  assert.ok(exoticPath('C:\\p\\.poundlock\\current-run::$DATA', 'C:\\p', W))
   assert.ok(exoticPath('C:\\p\\state.json:s', 'C:\\p', W))
 })
 
 test('exoticPath：路径段结尾带点或空格认得出来', () => {
-  assert.ok(exoticPath('C:\\p\\.agent-team\\runs\\r1\\state.json.', 'C:\\p', W))
-  assert.ok(exoticPath('C:\\p\\.agent-team \\project.json', 'C:\\p', W))
+  assert.ok(exoticPath('C:\\p\\.poundlock\\runs\\r1\\state.json.', 'C:\\p', W))
+  assert.ok(exoticPath('C:\\p\\.poundlock \\project.json', 'C:\\p', W))
 })
 
 test('exoticPath：项目在本地盘上时，网络路径（含本机管理共享）认得出来', () => {
-  assert.ok(exoticPath('\\\\localhost\\C$\\p\\.agent-team\\project.json', 'C:\\p', W))
+  assert.ok(exoticPath('\\\\localhost\\C$\\p\\.poundlock\\project.json', 'C:\\p', W))
   assert.ok(exoticPath('\\\\?\\UNC\\localhost\\C$\\p\\x', 'C:\\p', W))
 })
 
@@ -197,7 +197,7 @@ function withRun(body) {
     mkdirSync(join(p, 'src', 'server'), { recursive: true })
     mkdirSync(join(p, 'src', 'web'), { recursive: true })
     const gate = (check, input) => run(check, input, GATE, p, hermeticEnv())
-    body({ p, gate, runDir: join(p, '.agent-team', 'runs', 'r1') })
+    body({ p, gate, runDir: join(p, '.poundlock', 'runs', 'r1') })
   } finally {
     rmSync(dirs.projectDir, { recursive: true, force: true })
     rmSync(dirs.pluginDir, { recursive: true, force: true })
@@ -218,10 +218,10 @@ function shrunkState(runDir) {
   return JSON.stringify({ ...before, stage: 'S2', history: HISTORY.slice(0, 2) })
 }
 
-test('门禁：at-acceptance 经指向 .agent-team 的链接写契约——H3 与 H4 都拒', () => {
+test('门禁：at-acceptance 经指向 .poundlock 的链接写契约——H3 与 H4 都拒', () => {
   withRun(({ p, gate }) => {
-    linkDir(join(p, '.agent-team'), join(p, 'lnk'))
-    const input = write('agent-team:at-acceptance', join(p, 'lnk', 'runs', 'r1', '00-contract.md'))
+    linkDir(join(p, '.poundlock'), join(p, 'lnk'))
+    const input = write('poundlock:at-acceptance', join(p, 'lnk', 'runs', 'r1', '00-contract.md'))
     assert.ok(denied(gate('writepath', input)), 'writepath')
     assert.ok(denied(gate('contract', input)), 'contract')
   })
@@ -229,15 +229,15 @@ test('门禁：at-acceptance 经指向 .agent-team 的链接写契约——H3 �
 
 test('门禁：at-acceptance 经链接写 state.json 与 current-run——H3 拒', () => {
   withRun(({ p, gate }) => {
-    linkDir(join(p, '.agent-team'), join(p, 'lnk'))
-    assert.ok(denied(gate('writepath', write('agent-team:at-acceptance', join(p, 'lnk', 'runs', 'r1', 'state.json')))))
-    assert.ok(denied(gate('writepath', write('agent-team:at-acceptance', join(p, 'lnk', 'current-run')))))
+    linkDir(join(p, '.poundlock'), join(p, 'lnk'))
+    assert.ok(denied(gate('writepath', write('poundlock:at-acceptance', join(p, 'lnk', 'runs', 'r1', 'state.json')))))
+    assert.ok(denied(gate('writepath', write('poundlock:at-acceptance', join(p, 'lnk', 'current-run')))))
   })
 })
 
 test('门禁：PM 经链接把 history 删短——H6 拒', () => {
   withRun(({ p, gate, runDir }) => {
-    linkDir(join(p, '.agent-team'), join(p, 'lnk'))
+    linkDir(join(p, '.poundlock'), join(p, 'lnk'))
     const input = write('at-pm', join(p, 'lnk', 'runs', 'r1', 'state.json'), shrunkState(runDir))
     assert.ok(denied(gate('rework', input)))
   })
@@ -246,25 +246,25 @@ test('门禁：PM 经链接把 history 删短——H6 拒', () => {
 test('门禁：at-frontend 经自己地盘里一个指向 src/server 的链接写后端代码——H3 拒', () => {
   withRun(({ p, gate }) => {
     linkDir(join(p, 'src', 'server'), join(p, 'src', 'web', 'lnk'))
-    assert.ok(denied(gate('writepath', write('agent-team:at-frontend', join(p, 'src', 'web', 'lnk', 'api.ts')))))
+    assert.ok(denied(gate('writepath', write('poundlock:at-frontend', join(p, 'src', 'web', 'lnk', 'api.ts')))))
   })
 })
 
 test('对照：at-backend 经一个指向自己地盘的链接写自己的代码——放行，不多拦', () => {
   withRun(({ p, gate }) => {
     linkDir(join(p, 'src', 'server'), join(p, 'srv'))
-    assert.equal(gate('writepath', write('agent-team:at-backend', join(p, 'srv', 'api.ts'))).stdout, '')
+    assert.equal(gate('writepath', write('poundlock:at-backend', join(p, 'srv', 'api.ts'))).stdout, '')
   })
 })
 
-test('门禁：at-acceptance 用 .agent-team 的 8.3 短名写契约——H3 与 H4 都拒', { skip: !WIN }, (t) => {
+test('门禁：at-acceptance 用 .poundlock 的 8.3 短名写契约——H3 与 H4 都拒', { skip: !WIN }, (t) => {
   withRun(({ p, gate }) => {
-    const short = shortPathOf(join(p, '.agent-team'))
-    if (short.toLowerCase().endsWith('.agent-team')) {
+    const short = shortPathOf(join(p, '.poundlock'))
+    if (short.toLowerCase().endsWith('.poundlock')) {
       t.skip('这个卷没开 8.3 短名')
       return
     }
-    const input = write('agent-team:at-acceptance', join(short, 'runs', 'r1', '00-contract.md'))
+    const input = write('poundlock:at-acceptance', join(short, 'runs', 'r1', '00-contract.md'))
     assert.ok(denied(gate('writepath', input)), 'writepath')
     assert.ok(denied(gate('contract', input)), 'contract')
   })
@@ -272,7 +272,7 @@ test('门禁：at-acceptance 用 .agent-team 的 8.3 短名写契约——H3 与
 
 test('门禁：at-acceptance 用 \\\\?\\ 前缀写契约——H3 与 H4 都拒', { skip: !WIN }, () => {
   withRun(({ gate, runDir }) => {
-    const input = write('agent-team:at-acceptance', `\\\\?\\${join(runDir, '00-contract.md')}`)
+    const input = write('poundlock:at-acceptance', `\\\\?\\${join(runDir, '00-contract.md')}`)
     assert.ok(denied(gate('writepath', input)), 'writepath')
     assert.ok(denied(gate('contract', input)), 'contract')
   })
@@ -282,28 +282,28 @@ test('门禁：at-acceptance 用 \\\\?\\ 前缀写契约——H3 与 H4 都拒',
 // 测不到 H6 里那段 exoticPath。
 test('门禁：at-acceptance 写 current-run::$DATA——H3 拒；PM 写 state.json.（结尾带点）——H6 拒', { skip: !WIN }, () => {
   withRun(({ p, gate, runDir }) => {
-    assert.ok(denied(gate('writepath', write('agent-team:at-acceptance', `${join(p, '.agent-team', 'current-run')}::$DATA`))))
+    assert.ok(denied(gate('writepath', write('poundlock:at-acceptance', `${join(p, '.poundlock', 'current-run')}::$DATA`))))
     assert.ok(denied(gate('rework', write('at-pm', `${join(runDir, 'state.json')}.`, shrunkState(runDir)))))
   })
 })
 
 test('门禁：at-acceptance 经本机管理共享写 project.json——H3 拒', { skip: !WIN }, () => {
   withRun(({ p, gate }) => {
-    const unc = `\\\\localhost\\${p[0]}$${p.slice(2)}\\.agent-team\\project.json`
-    assert.ok(denied(gate('writepath', write('agent-team:at-acceptance', unc))))
+    const unc = `\\\\localhost\\${p[0]}$${p.slice(2)}\\.poundlock\\project.json`
+    assert.ok(denied(gate('writepath', write('poundlock:at-acceptance', unc))))
   })
 })
 
 test('门禁：macOS 上 at-acceptance 用大小写变体写契约——H3 与 H4 都拒', { skip: !MAC }, () => {
   withRun(({ p, gate }) => {
-    const input = write('agent-team:at-acceptance', join(p, '.AGENT-TEAM', 'runs', 'r1', '00-contract.md'))
+    const input = write('poundlock:at-acceptance', join(p, '.POUNDLOCK', 'runs', 'r1', '00-contract.md'))
     assert.ok(denied(gate('writepath', input)), 'writepath')
     assert.ok(denied(gate('contract', input)), 'contract')
   })
 })
 
-test('对照：项目里没有 .agent-team 时，H6 不因为流后缀之类的写法拦主线程——那不是它的地盘', { skip: !WIN }, () => {
-  const d = tempDir('agent-team-alias-norun-')
+test('对照：项目里没有 .poundlock 时，H6 不因为流后缀之类的写法拦主线程——那不是它的地盘', { skip: !WIN }, () => {
+  const d = tempDir('poundlock-alias-norun-')
   try {
     const r = run('rework', write(undefined, `${join(d, 'notes.txt')}::$DATA`), GATE, d, hermeticEnv())
     assert.equal(r.stdout, '')
@@ -317,7 +317,7 @@ test('对照：项目里没有 .agent-team 时，H6 不因为流后缀之类的�
 function ctxWithPointer(pointer, { makeDir = true } = {}) {
   const dirs = makeRun({ project: PROJECT })
   try {
-    const base = join(dirs.projectDir, '.agent-team')
+    const base = join(dirs.projectDir, '.poundlock')
     if (makeDir) mkdirSync(join(base, 'runs', pointer.replace(/[:]/g, '_')), { recursive: true })
     writeFileSync(join(base, 'current-run'), pointer)
     return readRunContext(dirs.projectDir, PLUGIN_ROOT)
@@ -355,7 +355,7 @@ test('run id：命令正文规定的形状（日期-时刻-slug）照样合法',
 test('runs/ 下只有 .DS_Store 这类杂项文件、指针不在：判 no-run，不是「有人建过 run」', () => {
   const dirs = makeRun({ project: PROJECT })
   try {
-    const base = join(dirs.projectDir, '.agent-team')
+    const base = join(dirs.projectDir, '.poundlock')
     rmSync(join(base, 'current-run'))
     rmSync(join(base, 'runs'), { recursive: true, force: true })
     mkdirSync(join(base, 'runs'))
@@ -372,7 +372,7 @@ test('runs/ 下只有 .DS_Store 这类杂项文件、指针不在：判 no-run�
 // 这一条只有 H4 里那段 exoticPath 拦得住（::$DATA 不行：realpath 已经把它解析回契约）。
 test('门禁：at-acceptance 写 00-contract.md.（结尾带点）——H4 自己就拒（不靠 H3 先拦）', { skip: !WIN }, () => {
   withRun(({ gate, runDir }) => {
-    assert.ok(denied(gate('contract', write('agent-team:at-acceptance', `${join(runDir, '00-contract.md')}.`))))
+    assert.ok(denied(gate('contract', write('poundlock:at-acceptance', `${join(runDir, '00-contract.md')}.`))))
   })
 })
 
@@ -409,7 +409,7 @@ test('probeFoldsCase：路径里没有字母可翻（如盘根）→ null，交�
 })
 
 test('norm：在真实临时目录上，大小写变体是否得到同一个结果，与这个卷实际区不区分大小写一致', () => {
-  const d = tempDir('agent-team-case-')
+  const d = tempDir('poundlock-case-')
   try {
     mkdirSync(join(d, 'CaseDir'))
     let insensitive
@@ -433,7 +433,7 @@ test('exoticPath：单反斜杠的 NT 名字空间前缀 \\??\\ 认得出来', (
 })
 
 test('exoticPath：项目在网络共享上，却写本地盘路径——可能经本机共享绕回项目里的任何文件', () => {
-  assert.ok(exoticPath('C:\\Users\\u\\p\\.agent-team\\project.json', '\\\\localhost\\C$\\Users\\u\\p', W))
+  assert.ok(exoticPath('C:\\Users\\u\\p\\.poundlock\\project.json', '\\\\localhost\\C$\\Users\\u\\p', W))
 })
 
 test('exoticPath：正斜杠写法的网络路径同样认得出来', () => {
@@ -455,7 +455,7 @@ test('exoticPath：同一个共享的大小写变体、\\\\?\\UNC\\ 写法、正
 // ---- H4：PM 的豁免排在 exoticPath 之前 ----
 
 test('decideContractGuard：PM 写一个认不出的写法照样放行——PM 本来就能写契约', () => {
-  const r = decideContractGuard({ agentType: 'at-pm', filePath: 'C:\\p\\x.md.', runDir: 'C:\\p\\.agent-team\\runs\\r1' })
+  const r = decideContractGuard({ agentType: 'at-pm', filePath: 'C:\\p\\x.md.', runDir: 'C:\\p\\.poundlock\\runs\\r1' })
   assert.equal(r.decision, 'allow')
 })
 
@@ -482,8 +482,8 @@ test('门禁：有 run 的项目里，H3/H4/H6/ledger 对网络路径一次 fs �
   withRun(({ p }) => {
     for (const fp of NET_PATHS) {
       for (const [check, agent, event] of [
-        ['writepath', 'agent-team:at-acceptance', 'PreToolUse'],
-        ['contract', 'agent-team:at-acceptance', 'PreToolUse'],
+        ['writepath', 'poundlock:at-acceptance', 'PreToolUse'],
+        ['contract', 'poundlock:at-acceptance', 'PreToolUse'],
         ['rework', 'at-pm', 'PreToolUse'],
         ['rework', undefined, 'PreToolUse'],
         ['ledger', 'at-pm', 'PostToolUse'],
@@ -495,8 +495,8 @@ test('门禁：有 run 的项目里，H3/H4/H6/ledger 对网络路径一次 fs �
   })
 })
 
-test('门禁：没有 .agent-team 的项目里，H6 与 ledger 对网络路径一次 fs 都不调', { skip: !WIN }, () => {
-  const d = tempDir('agent-team-nonet-')
+test('门禁：没有 .poundlock 的项目里，H6 与 ledger 对网络路径一次 fs 都不调', { skip: !WIN }, () => {
+  const d = tempDir('poundlock-nonet-')
   try {
     for (const fp of NET_PATHS) {
       for (const [check, event] of [['rework', 'PreToolUse'], ['ledger', 'PostToolUse']]) {
@@ -558,12 +558,12 @@ test('门禁：项目在网络共享上时，同一个共享下的合法写入�
       `\\\\?\\UNC\\localhost\\${p[0]}$${p.slice(2)}\\src\\server\\api.ts`,
       `${root.toUpperCase()}\\src\\server\\api.ts`,
     ]) {
-      assert.equal(g('writepath', write('agent-team:at-backend', fp)).stdout, '', fp)
+      assert.equal(g('writepath', write('poundlock:at-backend', fp)).stdout, '', fp)
     }
-    assert.ok(denied(g('writepath', write('agent-team:at-frontend', `${root}\\src\\server\\api.ts`))))
-    assert.ok(denied(g('contract', write('agent-team:at-acceptance', `${root}\\.agent-team\\runs\\r1\\00-contract.md`))))
+    assert.ok(denied(g('writepath', write('poundlock:at-frontend', `${root}\\src\\server\\api.ts`))))
+    assert.ok(denied(g('contract', write('poundlock:at-acceptance', `${root}\\.poundlock\\runs\\r1\\00-contract.md`))))
     // 反方向的别名：项目经共享打开，却用本地盘写法写契约。
-    const local = write('agent-team:at-acceptance', join(p, '.agent-team', 'runs', 'r1', '00-contract.md'))
+    const local = write('poundlock:at-acceptance', join(p, '.poundlock', 'runs', 'r1', '00-contract.md'))
     assert.ok(denied(g('writepath', local)), 'writepath')
     assert.ok(denied(g('contract', local)), 'contract')
   })
@@ -574,11 +574,11 @@ test('门禁：项目在网络共享上时，同一个共享下的合法写入�
 test('runs/ 下只有一个链接（可能指向真的 run）、指针不在：从严判 unreadable', () => {
   const dirs = makeRun({ project: PROJECT })
   try {
-    const base = join(dirs.projectDir, '.agent-team')
+    const base = join(dirs.projectDir, '.poundlock')
     rmSync(join(base, 'current-run'))
     rmSync(join(base, 'runs'), { recursive: true, force: true })
     mkdirSync(join(base, 'runs'))
-    const elsewhere = tempDir('agent-team-runlink-')
+    const elsewhere = tempDir('poundlock-runlink-')
     try {
       linkDir(elsewhere, join(base, 'runs', 'r1'))
       assert.equal(readRunContext(dirs.projectDir, PLUGIN_ROOT).kind, 'unreadable')
@@ -593,7 +593,7 @@ test('runs/ 下只有一个链接（可能指向真的 run）、指针不在：�
 })
 
 test('norm：悬空的相对软链接按链接所在目录解析目标', { skip: WIN }, () => {
-  const d = tempDir('agent-team-alias-')
+  const d = tempDir('poundlock-alias-')
   try {
     mkdirSync(join(d, 'a', 'real'), { recursive: true })
     symlinkSync(join('real', 'later'), join(d, 'a', 'lnk'), 'dir')
@@ -606,7 +606,7 @@ test('norm：悬空的相对软链接按链接所在目录解析目标', { skip:
 // 探测那条接线：在 Windows 上把一个目录设成区分大小写（fsutil，WSL 常用），Ab 与 ab 是两个名字，
 // norm() 不能折叠——按平台写死「win32 折叠」时这条红。设不上（没有这个功能或权限）就跳过。
 test('norm：Windows 上开了按目录区分大小写的目录里，大小写变体不折叠', { skip: !WIN }, (t) => {
-  const d = tempDir('agent-team-cs-')
+  const d = tempDir('poundlock-cs-')
   try {
     try {
       execFileSync('fsutil.exe', ['file', 'setCaseSensitiveInfo', d, 'enable'], { stdio: 'ignore' })

@@ -37,9 +37,9 @@ function writeJson(p, obj) {
 test('rework：正常推进的 Write（history 追加一条）→ 放行，stdout 为空', () => {
   const dirs = makeRun({ runId: 'r1', stage: 'S2' })
   try {
-    const p = join(dirs.projectDir, '.agent-team', 'runs', 'r1', 'state.json')
+    const p = join(dirs.projectDir, '.poundlock', 'runs', 'r1', 'state.json')
     // docs/89：离开 S2 要它的前置产物（01-prd.md 是 S3 的前置）——夹具照真实顺序先有它。
-    writeFileSync(join(dirs.projectDir, '.agent-team', 'runs', 'r1', '01-prd.md'), 'prd')
+    writeFileSync(join(dirs.projectDir, '.poundlock', 'runs', 'r1', '01-prd.md'), 'prd')
     const before = JSON.parse(readFileSync(p, 'utf8'))
     const after = {
       ...before,
@@ -62,7 +62,7 @@ test('rework：正常推进的 Write（history 追加一条）→ 放行，stdou
 // 直接 writeFileSync 造"before"，不经过门禁——这份夹具的职责只是把磁盘状态摆到位，
 // 跟 tests/gate-ledger.test.mjs「写了坏的 state.json」那条同一个手法。
 function historyShrinkFixture(dirs) {
-  const p = join(dirs.projectDir, '.agent-team', 'runs', 'r1', 'state.json')
+  const p = join(dirs.projectDir, '.poundlock', 'runs', 'r1', 'state.json')
   const before = {
     run_id: '20260917-1430-fixture',
     stage: 'S3',
@@ -119,7 +119,7 @@ test('rework：把 history 整体删短的 Write → deny 理由说"只许追加
 test('rework：把 history 整体删短的 Edit → deny——对称覆盖，另一半已经在上面测过 Write', () => {
   const dirs = makeRun({ runId: 'r1', stage: 'S3' })
   try {
-    const p = join(dirs.projectDir, '.agent-team', 'runs', 'r1', 'state.json')
+    const p = join(dirs.projectDir, '.poundlock', 'runs', 'r1', 'state.json')
     const before = {
       run_id: '20260917-1430-fixture',
       stage: 'S3',
@@ -159,7 +159,7 @@ test('rework：把 history 整体删短的 Edit → deny——对称覆盖，另
 // "before" 用 JSON.stringify（不带缩进）写盘，是为了让 old_string 是一个已知、唯一、
 // 逐字确定的子串——`"rework":{"S5":1}`，不是猜出来的格式。
 function editReworkShrinkFixture(dirs) {
-  const p = join(dirs.projectDir, '.agent-team', 'runs', 'r1', 'state.json')
+  const p = join(dirs.projectDir, '.poundlock', 'runs', 'r1', 'state.json')
   const before = {
     run_id: '20260917-1430-fixture',
     stage: 'S5',
@@ -223,7 +223,7 @@ test('rework：把 rework 改小的 Edit → deny 理由点名 S5', () => {
 test('rework：Edit 的 replace_all:true 对多处出现全部生效，两个阶段都改小 → deny', () => {
   const dirs = makeRun({ runId: 'r1', stage: 'S2' })
   try {
-    const p = join(dirs.projectDir, '.agent-team', 'runs', 'r1', 'state.json')
+    const p = join(dirs.projectDir, '.poundlock', 'runs', 'r1', 'state.json')
     const before = {
       run_id: '20260917-1430-fixture',
       stage: 'S2',
@@ -269,7 +269,7 @@ test('rework：Edit 的 replace_all:true 对多处出现全部生效，两个阶
 test('rework：磁盘上还没有这份 state.json（本趟第一次建）→ 放行，不因为读文件异常被 fail-closed 兜底拒绝', () => {
   const dirs = makeRun({ runId: 'r1', stage: 'S1' })
   try {
-    const p = join(dirs.projectDir, '.agent-team', 'runs', 'r1', 'state.json')
+    const p = join(dirs.projectDir, '.poundlock', 'runs', 'r1', 'state.json')
     rmSync(p, { force: true })
     // docs/78：建 run 的那一次要带着 stage_roles（照模板写成 {}），不带的 H6 拒（tests/stage-roles-key.test.mjs）。
     const fresh = { stage: 'S1', history: [{ stage: 'S1', at: 't' }], rework: {}, stage_roles: {} }
@@ -290,7 +290,7 @@ test('rework：磁盘上还没有这份 state.json（本趟第一次建）→ �
 test('rework：这次 Write 的新内容不是合法 JSON → 拒，理由说清要写合法的 JSON 对象', () => {
   const dirs = makeRun({ runId: 'r1', stage: 'S2' })
   try {
-    const p = join(dirs.projectDir, '.agent-team', 'runs', 'r1', 'state.json')
+    const p = join(dirs.projectDir, '.poundlock', 'runs', 'r1', 'state.json')
     const { stdout } = run(
       'rework',
       { tool_name: 'Write', agent_type: 'at-pm', tool_input: { file_path: p, content: '{not valid json' } },
@@ -318,7 +318,7 @@ test('rework：这次 Write 的新内容不是合法 JSON → 拒，理由说清
 test('rework：写的不是 state.json（比如 01-prd.md）→ 放行', () => {
   const dirs = makeRun({ runId: 'r1', stage: 'S2' })
   try {
-    const p = join(dirs.projectDir, '.agent-team', 'runs', 'r1', '01-prd.md')
+    const p = join(dirs.projectDir, '.poundlock', 'runs', 'r1', '01-prd.md')
     const { stdout } = run(
       'rework',
       { tool_name: 'Write', agent_type: 'at-product', tool_input: { file_path: p, content: '# PRD\n' } },
@@ -339,13 +339,13 @@ test('rework：写的不是 state.json（比如 01-prd.md）→ 放行', () => {
 // 才是一句能立住的话，而不是"它对谁都放行"。
 //
 // 锚点①：比 runs/*/state.json 深一层的路径（runs/r1/extra/state.json）。它的文件名
-// 以 state.json 结尾（endsWith 判据会放它通过），但相对 .agent-team 的段数是 4 段，
+// 以 state.json 结尾（endsWith 判据会放它通过），但相对 .poundlock 的段数是 4 段，
 // isControlFile 的 CONTROL_FILES 模式没有一条是 4 段的，判它不是控制文件——这条只在
 // `isControlFile(...) &&` 那半被删掉时才会变红。
 test('rework：路径判据锚点①——比 runs/*/state.json 深一层的 state.json 不算控制文件，放行', () => {
   const dirs = makeRun({ runId: 'r1', stage: 'S2' })
   try {
-    const p = join(dirs.projectDir, '.agent-team', 'runs', 'r1', 'extra', 'state.json')
+    const p = join(dirs.projectDir, '.poundlock', 'runs', 'r1', 'extra', 'state.json')
     const before = { stage: 'S5', history: [{ stage: 'S1', at: 't' }, { stage: 'S2', at: 't' }, { stage: 'S3', at: 't' }], rework: {} }
     const after = { stage: 'S5', history: [{ stage: 'S1', at: 't' }, { stage: 'S2', at: 't' }], rework: {} }
     writeJson(p, before)
@@ -361,7 +361,7 @@ test('rework：路径判据锚点①——比 runs/*/state.json 深一层的 sta
   }
 })
 
-// 锚点②：`.agent-team/project.json`——它是 CONTROL_FILES 里登记的另一个模式
+// 锚点②：`.poundlock/project.json`——它是 CONTROL_FILES 里登记的另一个模式
 // （isControlFile 判它是控制文件），但文件名不是 state.json（endsWith 判据会挡住它）。
 // 内容碰巧是合法的 state 形状 JSON 并且这次 Write 是一次 shrink，纯粹是测试夹具、不是
 // 在断言 project.json 真的会长这样——这条只在 `target.endsWith('/state.json')` 那半被
@@ -369,7 +369,7 @@ test('rework：路径判据锚点①——比 runs/*/state.json 深一层的 sta
 test('rework：路径判据锚点②——project.json 不是 state.json，即使内容长得像也放行', () => {
   const dirs = makeRun({ runId: 'r1', stage: 'S2' })
   try {
-    const p = join(dirs.projectDir, '.agent-team', 'project.json')
+    const p = join(dirs.projectDir, '.poundlock', 'project.json')
     const before = { stage: 'S5', history: [{ stage: 'S1', at: 't' }, { stage: 'S2', at: 't' }, { stage: 'S3', at: 't' }], rework: {} }
     const after = { stage: 'S5', history: [{ stage: 'S1', at: 't' }, { stage: 'S2', at: 't' }], rework: {} }
     writeJson(p, before)
@@ -409,7 +409,7 @@ const SPENT = {
 const WASHED = { ...SPENT, rework: {}, history: SPENT.history.slice(0, 2) }
 
 function statePath(dirs) {
-  return join(dirs.projectDir, '.agent-team', 'runs', 'r1', 'state.json')
+  return join(dirs.projectDir, '.poundlock', 'runs', 'r1', 'state.json')
 }
 function gateWrite(dirs, content) {
   return run(
@@ -572,7 +572,7 @@ test('ledger：写坏的是 reach.json 而不是 state.json——不回传【sta
   const dirs = makeRun({ runId: 'r1', stage: 'S5' })
   try {
     writeFileSync(statePath(dirs), '{ oops', 'utf8')
-    const reach = join(dirs.projectDir, '.agent-team', 'reach.json')
+    const reach = join(dirs.projectDir, '.poundlock', 'reach.json')
     writeFileSync(reach, '{ oops', 'utf8')
     const { stdout } = run(
       'ledger',
@@ -625,7 +625,7 @@ test('ledger：run 因为别的原因读不出来（current-run 不在），刚�
   const dirs = makeRun({ runId: 'r1', stage: 'S5' })
   try {
     writeFileSync(statePath(dirs), JSON.stringify(SPENT), 'utf8')
-    rmSync(join(dirs.projectDir, '.agent-team', 'current-run'))
+    rmSync(join(dirs.projectDir, '.poundlock', 'current-run'))
     const { stdout } = run(
       'ledger',
       { hook_event_name: 'PostToolUse', tool_name: 'Write', agent_type: 'at-pm', tool_input: { file_path: statePath(dirs) } },
@@ -641,8 +641,8 @@ test('ledger：run 因为别的原因读不出来（current-run 不在），刚�
 test('ledger：没有 run 时写业务目录里一个叫 state.json 的文件——不回传【state.json】，那不是控制文件', () => {
   const dirs = makeRun({ runId: 'r1', stage: 'S5' })
   try {
-    rmSync(join(dirs.projectDir, '.agent-team', 'current-run'))
-    rmSync(join(dirs.projectDir, '.agent-team', 'runs'), { recursive: true, force: true })
+    rmSync(join(dirs.projectDir, '.poundlock', 'current-run'))
+    rmSync(join(dirs.projectDir, '.poundlock', 'runs'), { recursive: true, force: true })
     const p = join(dirs.projectDir, 'src', 'state.json')
     mkdirSync(dirname(p), { recursive: true })
     writeFileSync(p, '[]', 'utf8')

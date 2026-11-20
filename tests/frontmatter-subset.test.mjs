@@ -78,9 +78,9 @@ function frontmatterProblems(text) {
   return problems
 }
 
-const GOOD = ['---', 'name: at-x', 'description: 一个角色：做某件事', 'tools: Agent(agent-team:at-y), Read', 'model: sonnet', '---', '正文'].join('\n')
+const GOOD = ['---', 'name: at-x', 'description: 一个角色：做某件事', 'tools: Agent(poundlock:at-y), Read', 'model: sonnet', '---', '正文'].join('\n')
 
-test('自检：受限写法的判据认得出合规的样本（含全角冒号与 agent-team: 前缀），CRLF 的签出照样判', () => {
+test('自检：受限写法的判据认得出合规的样本（含全角冒号与 poundlock: 前缀），CRLF 的签出照样判', () => {
   assert.deepEqual(frontmatterProblems(GOOD), [])
   assert.deepEqual(frontmatterProblems(GOOD.split('\n').join('\r\n')), [])
 })
@@ -103,7 +103,7 @@ test('自检：受限写法的判据认得出复核补的几种——值以「:�
 test('自检：受限写法的判据认得出三种已知违规——值里的「: 」、以引号开头、折行续上的工具名；CRLF 上一样', () => {
   const colon = GOOD.replace('description: 一个角色：做某件事', 'description: 项目经理: 主会话角色')
   const quote = GOOD.replace('description: 一个角色：做某件事', "description: '项目经理'。主会话角色")
-  const fold = GOOD.replace('tools: Agent(agent-team:at-y), Read', 'tools: Agent(agent-team:at-y), Read,\n  Skill')
+  const fold = GOOD.replace('tools: Agent(poundlock:at-y), Read', 'tools: Agent(poundlock:at-y), Read,\n  Skill')
   for (const bad of [colon, quote, fold]) {
     assert.ok(frontmatterProblems(bad).length > 0, bad)
     assert.ok(frontmatterProblems(bad.split('\n').join('\r\n')).length > 0, bad)

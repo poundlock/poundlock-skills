@@ -1,6 +1,6 @@
 // 单个微调。纯函数，I/O 由 gate.mjs、runctx.mjs 注入。
 //
-// 微调是一趟 state.json 里 mode 为 tweak 的 run（/agent-team:at-tweak 起）：门禁按插件根的 stages.tweak.json 判（S1 记原话 → S4 派发 → S5 来回改 →
+// 微调是一趟 state.json 里 mode 为 tweak 的 run（/poundlock:at-tweak 起）：门禁按插件根的 stages.tweak.json 判（S1 记原话 → S4 派发 → S5 来回改 →
 // S6 跑测试 → S8 交付；段号与产物名沿用正常链），项目经理在这一趟里直接派实现段的产者（派发白名单只换项目经理两行，由短链现算），用户点「可以了，收尾」
 // 才推得出实现段（批准记录器记进 approvals.jsonl，绑在那一刻的契约 sha 上）。没有 mode 或 mode 为 full 的一趟一切照旧。
 // 键名叫 mode 不叫 kind：state.json 的已知键两两至少差四步（拼错时只指向一个），kind 与 run_id 太像。
@@ -133,8 +133,8 @@ export function decideTweakDone({ before, after, stages, contractSha, doneShas =
   return {
     ok: false,
     reason:
-      `agent-team H6 微调：推出 ${impl} 要用户先说满意——门禁没有记到用户对现在这份契约说过「${DONE_LABEL}」（没问过，或者之后又改了契约、又提了一轮）。` +
-      `照 /agent-team:at-tweak 第 3 节：这一轮改完，用 AskUserQuestion 单独问一道单选题，标签逐字写「${DONE_LABEL}」与「再改」；用户选了它，门禁记下，再推进。` +
+      `poundlock H6 微调：推出 ${impl} 要用户先说满意——门禁没有记到用户对现在这份契约说过「${DONE_LABEL}」（没问过，或者之后又改了契约、又提了一轮）。` +
+      `照 /poundlock:at-tweak 第 3 节：这一轮改完，用 AskUserQuestion 单独问一道单选题，标签逐字写「${DONE_LABEL}」与「再改」；用户选了它，门禁记下，再推进。` +
       `问不了用户的（工具面里没有 AskUserQuestion），请用户在对话里单独发一条只写「${DONE_LABEL}」的消息。`,
   }
 }
@@ -160,8 +160,8 @@ const DONE_WHY = {
 /** 「可以了，收尾」记录器的回传。why 为 null 是记下了。 */
 export function doneNotice({ why = null }) {
   if (why === null) {
-    return `【微调】已记下：用户对现在这份契约说了「${DONE_LABEL}」。照 /agent-team:at-tweak 第 3 节推进出实现那一段、去跑测试；之后要是又改了契约（用户又提了一轮），这条就不算了，要重新问。`
+    return `【微调】已记下：用户对现在这份契约说了「${DONE_LABEL}」。照 /poundlock:at-tweak 第 3 节推进出实现那一段、去跑测试；之后要是又改了契约（用户又提了一轮），这条就不算了，要重新问。`
   }
   const reason = Object.hasOwn(DONE_WHY, why) ? DONE_WHY[why] : '门禁认不出原因'
-  return `【微调】这次的回答没有记成「${DONE_LABEL}」：${reason}。照 /agent-team:at-tweak 第 3 节办：用户还有要改的就照改；要收尾时单独再问一次这一道单选题（标签逐字）。`
+  return `【微调】这次的回答没有记成「${DONE_LABEL}」：${reason}。照 /poundlock:at-tweak 第 3 节办：用户还有要改的就照改；要收尾时单独再问一次这一道单选题（标签逐字）。`
 }

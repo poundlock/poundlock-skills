@@ -43,7 +43,7 @@ function inRun(opts, body) {
 
 // S3：at-architect 该交 03-arch.md、03-alignment.md，两份都没写。
 const S3 = { stage: 'S3' }
-const ARCH = 'agent-team:at-architect'
+const ARCH = 'poundlock:at-architect'
 
 test('M4c 前置：标记是一个非空的固定串，以全角冒号收尾', () => {
   assert.equal(typeof BUBBLE_MARK, 'string')
@@ -143,7 +143,7 @@ test('M4c H5b：产物齐了时带不带标记都放行（冒泡只在要拦的�
 // 返工轮：产物还是上一轮的（磁盘内容与 rework_base 记的 sha 相同）。这一支的拒绝文案原来也许诺「不要写，把理由写进你的回报」。
 function staleRun(body) {
   return inRun({ stage: 'S6', roster: ['at-qa'] }, (dirs) => {
-    const runDir = join(dirs.projectDir, '.agent-team', 'runs', 'r1')
+    const runDir = join(dirs.projectDir, '.poundlock', 'runs', 'r1')
     const text = 'test r1\n'
     mkdirSync(dirname(join(runDir, '06-test.md')), { recursive: true })
     writeFileSync(join(runDir, '06-test.md'), text, 'utf8')
@@ -170,7 +170,7 @@ function staleRun(body) {
 
 test('M4c H5b 返工轮：产物还是上一轮的，冒泡（被拦过一回、第一行是标记）→ 放行', () => {
   staleRun((dirs) => {
-    const r = run('stop-gate', stop('agent-team:at-qa', { active: true, message: `${BUBBLE_MARK}没开跑——S5 没交齐` }), GATE, dirs.projectDir)
+    const r = run('stop-gate', stop('poundlock:at-qa', { active: true, message: `${BUBBLE_MARK}没开跑——S5 没交齐` }), GATE, dirs.projectDir)
     assert.equal(r.status, 0, r.stderr)
     assert.equal(r.stderr, '')
   })
@@ -178,7 +178,7 @@ test('M4c H5b 返工轮：产物还是上一轮的，冒泡（被拦过一回、
 
 test('M4c H5b 返工轮：产物还是上一轮的，不带标记 → 照拦，文案同样教标记', () => {
   staleRun((dirs) => {
-    const r = run('stop-gate', stop('agent-team:at-qa', { active: true, message: '核过了，不用改。' }), GATE, dirs.projectDir)
+    const r = run('stop-gate', stop('poundlock:at-qa', { active: true, message: '核过了，不用改。' }), GATE, dirs.projectDir)
     assert.equal(r.status, 2)
     assert.match(r.stderr, /06-test\.md 还是上一轮的/)
     assert.ok(r.stderr.includes(BUBBLE_MARK), r.stderr)

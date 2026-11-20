@@ -12,7 +12,7 @@ import { makeRun } from './fixtures/make-run.mjs'
 import { BUBBLE_MARK } from '../hooks/lib/deliverable.mjs'
 import { VERDICT_LINES } from '../hooks/lib/verdict.mjs'
 
-const ACC = 'agent-team:at-acceptance'
+const ACC = 'poundlock:at-acceptance'
 const S7_FILES = ['00-contract.md', '01-prd.md', '03-arch.md', '04-dispatch.md', '06-test.md']
 const stop = (agent, { active, message } = {}) => ({
   hook_event_name: 'SubagentStop',
@@ -26,7 +26,7 @@ const stop = (agent, { active, message } = {}) => ({
 function inRun({ stage = 'S7', verdict, files = S7_FILES, extra = {} }, body) {
   const dirs = makeRun({ runId: 'r1', stage, artifacts: files, roster: ['at-qa', 'at-acceptance'] })
   try {
-    const runDir = join(dirs.projectDir, '.agent-team', 'runs', 'r1')
+    const runDir = join(dirs.projectDir, '.poundlock', 'runs', 'r1')
     if (verdict !== null && verdict !== undefined) writeFileSync(join(runDir, '07-acceptance.md'), verdict)
     if (Object.keys(extra).length) {
       const p = join(runDir, 'state.json')
@@ -83,10 +83,10 @@ test('H5b（docs/62）：被拦过一回、最后一条回复第一行是「冒�
 test('H5b（docs/62）：验收结论那一条只管验收角色在验收那一段——at-qa 在 S6 停下不说验收结论（它自己的测试报告另有一条，docs/66）、at-qa 在 S7 停下不核；at-acceptance 不在验收那一段（S6、收了口停在 S8）停下不核', () => {
   inRun({ stage: 'S6', verdict: null, files: ['00-contract.md', '01-prd.md', '03-arch.md', '04-dispatch.md', '06-test.md'] }, (dirs) => {
     writeFileSync(join(dirs.runDir, '06-test.md'), '# 测试报告\n')
-    assert.ok(!run('stop-gate', stop('agent-team:at-qa'), GATE, dirs.projectDir).stderr.includes('第一行读不出验收结论'))
+    assert.ok(!run('stop-gate', stop('poundlock:at-qa'), GATE, dirs.projectDir).stderr.includes('第一行读不出验收结论'))
   })
   inRun({ verdict: '# 验收报告\n' }, (dirs) => {
-    const r = run('stop-gate', stop('agent-team:at-qa'), GATE, dirs.projectDir)
+    const r = run('stop-gate', stop('poundlock:at-qa'), GATE, dirs.projectDir)
     assert.ok(!r.stderr.includes('第一行读不出验收结论'), 'at-qa 在 S7 停下：' + r.stderr)
   })
   inRun({ stage: 'S6', verdict: '# 验收报告\n' }, (dirs) => {

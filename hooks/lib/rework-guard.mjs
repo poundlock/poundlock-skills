@@ -200,7 +200,7 @@ function decideCounts({ before, after, stages, grants }) {
           return {
             ok: false,
             budget: true,
-            reason: `${head}阶段链读不出来，门禁这次既记不下也认不出返工批准：停下，告诉用户插件可能装坏了（重装或更新 agent-team 插件）。`,
+            reason: `${head}阶段链读不出来，门禁这次既记不下也认不出返工批准：停下，告诉用户插件可能装坏了（重装或更新 poundlock 插件）。`,
           }
         }
         if (!Object.hasOwn(stages, stage)) {
@@ -225,8 +225,8 @@ function decideChainInvariant({ before, after, stages }) {
   const tail =
     // M4a（docs/35）：收口有了自己的标记，理由指过去（原来只说「最后一段就是终点」，PM 不知道收口该怎么记）。
     `收口不往 stage 或 history 里写「DONE」之类的标记：在最后一段（${ids[ids.length - 1]}）用同一次 Write 记 never_invoked 与 ` +
-    'closed_at（/agent-team:at 第 6 节）；' +
-    '返工是回到链上的某一段（照 /agent-team:at 第 3 节的「回退」）。'
+    'closed_at（/poundlock:at 第 6 节）；' +
+    '返工是回到链上的某一段（照 /poundlock:at 第 3 节的「回退」）。'
   if (typeof after.stage !== 'string' || !Object.hasOwn(stages, after.stage)) {
     return { ok: false, reason: `state.json 的 stage 写成 ${quote(after.stage)}，它不是阶段链上的段（${ids.join('、')}）。${tail}` }
   }
@@ -250,7 +250,7 @@ function decideChainInvariant({ before, after, stages }) {
       ok: false,
       reason:
         `stage 写成 ${quote(after.stage)}，history 的最后一条却是 ${quote(last.stage)}。推进与回退都是同一次 Write 改 stage、` +
-        '往 history 追加同一段（回退还要记 rework 与 rework_base，照 /agent-team:at 第 3 节）；只改 stage 不记 history，' +
+        '往 history 追加同一段（回退还要记 rework 与 rework_base，照 /poundlock:at 第 3 节）；只改 stage 不记 history，' +
         '返工计数就漏记了。',
     }
   }
@@ -263,10 +263,10 @@ function decideChainInvariant({ before, after, stages }) {
 // 那一次（creating，认法在 gate.mjs 的 H6 那一处），这一次照现行模板写，stage_roles 不是对象就拒；写入之前它是对象、这次写入不是了（去掉、改成别的），拒。
 // 复核（docs/78 §8）：认值不只认键——值写坏了消费方同样退回整趟口径；写入之前的值本来就坏了的不拦（消费方早已把它当旧 run，【state.json】叫改成对象）。
 export const STAGE_ROLES_CREATE =
-  'agent-team H6 返工预算：这次写入建的是一趟新 run，state.json 里要有 stage_roles、值是对象（先写成 {}，推进出一段时把那一段叫到的人记进去）。' +
-  '少了它或者值不是对象，按段判齐、判交没交齐的门禁会把这一趟当成更早的 run、按整趟 roster 判，不再提醒。照 /agent-team:at 第 1 节的模板把顶层键写全，再写一次。'
+  'poundlock H6 返工预算：这次写入建的是一趟新 run，state.json 里要有 stage_roles、值是对象（先写成 {}，推进出一段时把那一段叫到的人记进去）。' +
+  '少了它或者值不是对象，按段判齐、判交没交齐的门禁会把这一趟当成更早的 run、按整趟 roster 判，不再提醒。照 /poundlock:at 第 1 节的模板把顶层键写全，再写一次。'
 export const STAGE_ROLES_DROP =
-  'agent-team H6 返工预算：写入之前的 state.json 里 stage_roles 是对象，这次写入把它去掉了、或者改成了别的。它按段记这一趟叫到了谁，不是对象之后按段判的门禁会' +
+  'poundlock H6 返工预算：写入之前的 state.json 里 stage_roles 是对象，这次写入把它去掉了、或者改成了别的。它按段记这一趟叫到了谁，不是对象之后按段判的门禁会' +
   '退回整趟 roster。把写入之前的 stage_roles 原样带上（这一次要记的人并进对应的那一段），再写一次。'
 export function decideStageRolesKey({ before, after, creating = false }) {
   if (!isPlainObject(after) || isPlainObject(after.stage_roles)) return { ok: true }
@@ -287,20 +287,20 @@ export function decideModeKey({ before, after, creating = false, tweakIntent = f
     return {
       ok: false,
       reason:
-        `agent-team H6：建微调那一次 stage 要写第一段 ${firstStage}（这次写的是 ${quote(after.stage)}）——原话记录只在第一段绑进 run 目录，` +
-        `从别的段建出来的一趟派不出开发角色。照 /agent-team:at-tweak 第 1 节从 ${firstStage} 建，再逐段推进。`,
+        `poundlock H6：建微调那一次 stage 要写第一段 ${firstStage}（这次写的是 ${quote(after.stage)}）——原话记录只在第一段绑进 run 目录，` +
+        `从别的段建出来的一趟派不出开发角色。照 /poundlock:at-tweak 第 1 节从 ${firstStage} 建，再逐段推进。`,
     }
   }
   if (!isPlainObject(before)) {
-    // 写之前读不出 state.json：写成完整的一趟（更严的链）照放；写成微调要有门禁记下的 /agent-team:at-tweak——建 run 那一次看这个会话挂着的原话记录
+    // 写之前读不出 state.json：写成完整的一趟（更严的链）照放；写成微调要有门禁记下的 /poundlock:at-tweak——建 run 那一次看这个会话挂着的原话记录
     // （tweakIntent），之后（state.json 坏了在修）看 run 目录里绑上的那一份（runTweak）。
     if (now !== TWEAK_MODE || (creating ? tweakIntent : runTweak)) return { ok: true }
     return {
       ok: false,
       reason:
-        'agent-team H6：mode 写 "tweak" 的一趟只能由用户发 /agent-team:at-tweak 起——门禁' +
+        'poundlock H6：mode 写 "tweak" 的一趟只能由用户发 /poundlock:at-tweak 起——门禁' +
         (creating ? '在这个会话里没有记到用户发过它（带着要改什么）' : '在这一趟的 run 目录里没有它的原话记录') +
-        '。用户发的是 /agent-team:at 的，照完整的一趟建（mode 写 "full"）；要按微调走，请用户发 /agent-team:at-tweak <要改什么>。',
+        '。用户发的是 /poundlock:at 的，照完整的一趟建（mode 写 "full"）；要按微调走，请用户发 /poundlock:at-tweak <要改什么>。',
     }
   }
   const was = modeOf(before)
@@ -308,9 +308,9 @@ export function decideModeKey({ before, after, creating = false, tweakIntent = f
   return {
     ok: false,
     reason:
-      `agent-team H6：state.json 的 mode 建好之后不许改（这一趟是 ${was === TWEAK_MODE ? '微调（"tweak"）' : '完整的一趟（"full"）'}，这次写成了 ` +
+      `poundlock H6：state.json 的 mode 建好之后不许改（这一趟是 ${was === TWEAK_MODE ? '微调（"tweak"）' : '完整的一趟（"full"）'}，这次写成了 ` +
       `${now === TWEAK_MODE ? '"tweak"' : '"full" 或去掉了它'}）——门禁按它选阶段链，改了就换一条链判同一份磁盘状态。照原样带着它重写；要换成另一种，` +
-      '另起一趟（完整的用 /agent-team:at，微调用 /agent-team:at-tweak）。',
+      '另起一趟（完整的用 /poundlock:at，微调用 /poundlock:at-tweak）。',
   }
 }
 

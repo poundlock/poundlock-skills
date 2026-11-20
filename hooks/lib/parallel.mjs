@@ -13,7 +13,7 @@ import { isPlainObject } from './stages.mjs'
 import { TAKEOVER_LABEL } from './owner.mjs'
 
 const isSid = (v) => typeof v === 'string' && v !== ''
-const HEAD = 'agent-team H6 互斥：'
+const HEAD = 'poundlock H6 互斥：'
 
 /**
  * H6 建 run 那一次的互斥。pointerRun：current-run 指着的、不是这次建的那一趟 { id, open, tweak } 或 null；openTweaks：没收尾的微调 [{ id, owner }]（不含这次建的）。
@@ -24,14 +24,14 @@ export function decideExclusion({ creating, mode, sessionId, pointerRun = null, 
   const tweaks = Array.isArray(openTweaks) ? openTweaks.filter((t) => isPlainObject(t) && typeof t.id === 'string') : []
   if (mode === TWEAK_MODE) {
     if (!isSid(sessionId)) {
-      return { ok: false, reason: `${HEAD}hook 输入里读不到这个会话的 id，建不了微调（微调按会话认：之后的派发、写入都靠会话 id 认回这一趟）。告诉用户这次起不了微调，改走 /agent-team:at <需求>。` }
+      return { ok: false, reason: `${HEAD}hook 输入里读不到这个会话的 id，建不了微调（微调按会话认：之后的派发、写入都靠会话 id 认回这一趟）。告诉用户这次起不了微调，改走 /poundlock:at <需求>。` }
     }
     if (isPlainObject(pointerRun) && pointerRun.open === true && pointerRun.tweak !== true) {
       return {
         ok: false,
         reason:
-          `${HEAD}current-run 指着的 ${quote(pointerRun.id)} 是一趟还没收口的完整需求，开着它的时候不能起微调。照 /agent-team:at-tweak 第 1 节问用户：` +
-          '把这次的话作为补充交给那一趟，还是先放弃那一趟（/agent-team:at 第 1 节「放弃这一趟」）再起微调。',
+          `${HEAD}current-run 指着的 ${quote(pointerRun.id)} 是一趟还没收口的完整需求，开着它的时候不能起微调。照 /poundlock:at-tweak 第 1 节问用户：` +
+          '把这次的话作为补充交给那一趟，还是先放弃那一趟（/poundlock:at 第 1 节「放弃这一趟」）再起微调。',
       }
     }
     const mine = tweaks.find((t) => t.owner === sessionId)
@@ -39,7 +39,7 @@ export function decideExclusion({ creating, mode, sessionId, pointerRun = null, 
       return {
         ok: false,
         reason:
-          `${HEAD}这个会话已经有一趟没收口的微调 ${quote(mine.id)}：一个会话同一时刻只做一趟。照 /agent-team:at-tweak 第 1 节问用户：先收尾那一趟，` +
+          `${HEAD}这个会话已经有一趟没收口的微调 ${quote(mine.id)}：一个会话同一时刻只做一趟。照 /poundlock:at-tweak 第 1 节问用户：先收尾那一趟，` +
           '还是把这次的话当成那一趟的下一轮。',
       }
     }
@@ -50,7 +50,7 @@ export function decideExclusion({ creating, mode, sessionId, pointerRun = null, 
       ok: false,
       reason:
         `${HEAD}还有微调没收口（${tweaks.map((t) => quote(t.id)).join('、')}）：开着微调的时候不能起完整的一趟（完整一趟的执行角色认领整个目录，会撞上）。` +
-        '照 /agent-team:at 第 1 节「有微调开着」告诉用户，等它们收尾，或者在各自的会话里放弃。',
+        '照 /poundlock:at 第 1 节「有微调开着」告诉用户，等它们收尾，或者在各自的会话里放弃。',
     }
   }
   return { ok: true }
@@ -76,12 +76,12 @@ export function tweaksNotice({ command, mine = null, others = [] }) {
   if (!own && !rest.length) return null
   const all = [...(own ? [describe(own, true)] : []), ...rest.map((t) => describe(t))].join('、')
   if (command === 'at') {
-    return `【微调】这个项目里还有微调没收口：${all}。开着微调的时候不能起完整的一趟：照 /agent-team:at 第 1 节「有微调开着」办，不读别的、不写任何文件。`
+    return `【微调】这个项目里还有微调没收口：${all}。开着微调的时候不能起完整的一趟：照 /poundlock:at 第 1 节「有微调开着」办，不读别的、不写任何文件。`
   }
   if (command === 'at-tweak') {
     if (own) {
       return (
-        `【微调】这个会话已经有一趟没收口的微调 ${describe(own)}：一个会话同一时刻只做一趟。照 /agent-team:at-tweak 第 1 节问用户：先收尾那一趟，` +
+        `【微调】这个会话已经有一趟没收口的微调 ${describe(own)}：一个会话同一时刻只做一趟。照 /poundlock:at-tweak 第 1 节问用户：先收尾那一趟，` +
         '还是把这次的话当成那一趟的下一轮。'
       )
     }
@@ -89,11 +89,11 @@ export function tweaksNotice({ command, mine = null, others = [] }) {
   }
   if (command === 'at-resume') {
     const parts = []
-    if (own) parts.push(`这个会话的那一趟微调 ${describe(own)} 还没收口：照 /agent-team:at-tweak 接着走它（不看 current-run）。`)
+    if (own) parts.push(`这个会话的那一趟微调 ${describe(own)} 还没收口：照 /poundlock:at-tweak 接着走它（不看 current-run）。`)
     if (rest.length) {
       parts.push(
         `别的会话名下还开着这几趟微调：${rest.map((t) => describe(t)).join('、')}。原来的会话关了、要在这个会话接手其中一趟的，` +
-          `照 /agent-team:at-resume 第 1 节「别的会话的一趟」问用户，题面原样写那一趟的 run id，标签「${TAKEOVER_LABEL}」。`,
+          `照 /poundlock:at-resume 第 1 节「别的会话的一趟」问用户，题面原样写那一趟的 run id，标签「${TAKEOVER_LABEL}」。`,
       )
     }
     return `【微调】${parts.join('')}`
