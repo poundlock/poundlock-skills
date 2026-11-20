@@ -6,7 +6,7 @@
 
 项目经理就是你的主会话：分层派发任务，执行顺序由门禁强制，业务验收独立成线。
 
-[![version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fpoundlock%2Fagent-team%2Fmain%2F.claude-plugin%2Fplugin.json&query=%24.version&label=version&color=blue)](.claude-plugin/plugin.json) [![license](https://img.shields.io/github/license/poundlock/agent-team)](./LICENSE) ![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-D97757)
+[![version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fpoundlock%2Fpoundlock-skills%2Fmain%2F.claude-plugin%2Fplugin.json&query=%24.version&label=version&color=blue)](.claude-plugin/plugin.json) [![license](https://img.shields.io/github/license/poundlock/poundlock-skills)](./LICENSE) ![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-D97757)
 
 **简体中文** · [English](#english)
 
@@ -27,7 +27,7 @@
 在要让团队干活的**项目目录**下执行：
 
 ```sh
-claude plugin marketplace add poundlock/agent-team --scope local
+claude plugin marketplace add poundlock/poundlock-skills --scope local
 claude plugin install agent-team@agent-team-marketplace --scope local
 ```
 
@@ -251,7 +251,7 @@ The project manager is your main session: it dispatches work through a layered h
 Run these in the **project directory** you want the team to work in:
 
 ```sh
-claude plugin marketplace add poundlock/agent-team --scope local
+claude plugin marketplace add poundlock/poundlock-skills --scope local
 claude plugin install agent-team@agent-team-marketplace --scope local
 ```
 
