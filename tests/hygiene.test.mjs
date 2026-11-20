@@ -61,6 +61,57 @@ function textFiles(dir) {
   return out
 }
 
+// 工作流的每个作业都设 timeout-minutes：全量判据在测试运行器里偶发卡死（CLAUDE.md「坑」），不设就挂到平台默认的 6 小时上限。
+// 按行认：`jobs:` 之后缩进两格、以冒号结尾的一行是作业名；作业里缩进四格的 `timeout-minutes: <正整数>` 才算——写在步骤上的不算，
+// 步骤的超时拦不住别的步骤卡住。认不出的写法（作业名带引号、值写成表达式）照样报缺：宁可多报。
+const NL = String.fromCharCode(10)
+function jobsWithoutTimeout(text) {
+  const ls = text.split(NL).map((l) => l.replace(/\s+$/, ''))
+  const from = ls.indexOf('jobs:')
+  const jobs = []
+  if (from < 0) return { names: [], missing: [] }
+  for (const l of ls.slice(from + 1)) {
+    const head = /^ {2}([\w-]+):$/.exec(l)
+    if (head) jobs.push({ name: head[1], timed: false })
+    else if (jobs.length && /^ {4}timeout-minutes: [1-9][0-9]*$/.test(l)) jobs[jobs.length - 1].timed = true
+  }
+  return { names: jobs.map((j) => j.name), missing: jobs.filter((j) => !j.timed).map((j) => j.name) }
+}
+
+test('自检：jobsWithoutTimeout() 认得出作业名，写在步骤上的 timeout-minutes 不算作业的', () => {
+  const sample = [
+    'name: x',
+    'jobs:',
+    '  a:',
+    '    runs-on: u',
+    '    timeout-minutes: 5',
+    '    steps:',
+    '      - run: x',
+    '  b-c:',
+    '    runs-on: u',
+    '    steps:',
+    '      - run: y',
+    '        timeout-minutes: 3',
+    '  d:',
+    '    timeout-minutes: 0',
+  ].join(NL)
+  assert.deepEqual(jobsWithoutTimeout(sample), { names: ['a', 'b-c', 'd'], missing: ['b-c', 'd'] })
+  assert.deepEqual(jobsWithoutTimeout('name: x'), { names: [], missing: [] })
+})
+
+test('工作流的每个作业都设了 timeout-minutes（测试运行器卡死时不挂到平台的 6 小时上限）', () => {
+  const dir = join('.github', 'workflows')
+  const files = readdirSync(join(ROOT, dir)).filter((n) => /\.ya?ml$/.test(n))
+  assert.ok(files.length > 0, '前置：.github/workflows/ 下没有工作流文件')
+  const bad = []
+  for (const f of files) {
+    const { names, missing } = jobsWithoutTimeout(readFileSync(join(ROOT, dir, f), 'utf8'))
+    assert.ok(names.length > 0, `前置：${f} 里一个作业都没认出来`)
+    for (const name of missing) bad.push(`${f}：${name}`)
+  }
+  assert.deepEqual(bad, [])
+})
+
 test('第 46 条：docs/ 之外不写裁定编号（Ruling 后面跟数字），写裁定的名字', () => {
   const files = textFiles('.')
   assert.ok(files.some((f) => f.startsWith('hooks')) && files.some((f) => f.startsWith('tests')), '前置：扫描集合里没有 hooks/ 或 tests/')

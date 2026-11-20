@@ -29,6 +29,9 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
+    # 平时最慢的是 Windows，十几分钟。测试运行器偶发卡死（CLAUDE.md「坑」）时，不设就挂到平台默认的 6 小时上限；
+    # tests/hygiene.test.mjs 钉着「每个作业都有」。
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
 
@@ -58,5 +61,5 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-      # 裸跑，不带路径参数（HANDOFF.md「注意事项」）。
+      # 裸跑，不带路径参数（CLAUDE.md「测试」）。
       - run: node --test
