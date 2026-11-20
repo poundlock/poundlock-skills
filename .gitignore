@@ -15,3 +15,14 @@
 # 临时脚本与草稿不放进仓库；万一建了，也不进仓库（第 48 条，M4l）。⚠️ 忽略只管 git：node --test 照样递归收它下面的 *.test.mjs，
 # 所以仓库里还是不要建它（HANDOFF「注意事项」）。
 scratchpad/
+# wellyard:gitignore v2 sha256:241cb3f819c82f7840f4f103689cfbd5f5382aa71e5871253dc96b9d1746a57e
+# 密钥：.env 一律不进仓库，.env.example 除外
+.env
+.env.*
+!.env.example
+# 本机的 Claude Code 设置
+/.claude/settings.local.json
+# 系统生成的文件
+.DS_Store
+Thumbs.db
+# /wellyard:gitignore

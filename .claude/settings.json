@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [],
+    "ask": [
+      "Bash(sops *)",
+      "PowerShell(sops *)"
+    ],
+    "deny": [
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(!.env.example)"
+    ]
+  }
+}

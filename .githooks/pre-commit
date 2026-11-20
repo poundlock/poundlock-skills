@@ -1,0 +1,7 @@
+#!/bin/sh
+# wellyard-managed: pre-commit v3 sha256:4a85a8267fb55f858911fab079132d5d5b1a64a25cf97750699d147262b7c7a8
+# Commit check for a component repo: no single file over 20MB, and gitleaks scans for secrets. The checking logic is in check-commit.mjs in the same directory
+# Before leaving the workspace only shell built-ins are used. In the sh of Git for Windows, pwd -W gives a path like C:/... (turning MSYS path conversion off does not change that); on other systems it fails and the script falls back to $PWD
+repo=$(pwd -W 2>/dev/null) || repo=$PWD
+CDPATH= cd -- "${0%/*}" || exit 1
+exec node ./check-commit.mjs component "$repo"

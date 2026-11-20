@@ -1,3 +1,8 @@
+# wellyard:gitattributes v1 sha256:04401d9959676ad5700325859a056586cbc04444de787745faf124edc364d22f
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+# /wellyard:gitattributes
 # 换行符钉成 LF（docs/11 §5.28；第 48 条，M4l）：索引里本来就统一是 LF，这一行让每个系统签出来的工作区副本也是 LF——
 # 锚串替换不再因为「这个文件此刻是 CRLF」而落空，Windows 上装下来的插件副本也是 LF。
 * text=auto eol=lf
