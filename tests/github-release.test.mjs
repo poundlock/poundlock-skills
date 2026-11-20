@@ -19,7 +19,7 @@ const FAKE_FETCH = pathToFileURL(join(ROOT, 'tests', 'fixtures', 'fake-github-fe
 const runCli = (args, opts) => spawnSync(process.execPath, [...args, RELEASE_CLI], { encoding: 'utf8', ...opts })
 const read = (p) => readFileSync(join(ROOT, p), 'utf8').split(/\r?\n/).join('\n')
 const CHANGELOG = '# 更新记录\n\n- 3.3.10：第十个补丁\n- 3.3.1：推 main 之后发这一版的 GitHub Release\n- 3.3.0：漏切指针时回传【指针】\n'
-const REPO = 'hangwenlei/agent-team'
+const REPO = 'poundlock/poundlock-skills'
 const API = 'https://api.github.com'
 const SHA = 'a'.repeat(40)
 const OTHER = 'b'.repeat(40)
@@ -37,9 +37,9 @@ function fakeFetch(routes) {
   }
   return { fetch, calls }
 }
-const TAG_REF = 'GET /repos/hangwenlei/agent-team/git/ref/tags/v3.3.1'
+const TAG_REF = 'GET /repos/poundlock/poundlock-skills/git/ref/tags/v3.3.1'
 const TAG_OK = { [TAG_REF]: [200, { ref: 'refs/tags/v3.3.1', object: { sha: SHA, type: 'commit' } }] }
-const CREATE = { 'POST /repos/hangwenlei/agent-team/releases': [201, {}] }
+const CREATE = { 'POST /repos/poundlock/poundlock-skills/releases': [201, {}] }
 const run = (routes, over = {}) => {
   const f = fakeFetch(routes)
   return ensureRelease({ fetch: f.fetch, repo: REPO, token: 'T0KEN', version: '3.3.1', expectedSha: SHA, changelog: CHANGELOG, ...over }).then((r) => ({ ...r, calls: f.calls }))
@@ -75,7 +75,7 @@ test('ensureRelease：tag 在远端、指着认法要的提交、还没有 Relea
   assert.equal(r.ok, true, r.lines.join('\n'))
   const p = posts(r.calls)
   assert.equal(p.length, 1)
-  assert.equal(p[0].path, '/repos/hangwenlei/agent-team/releases')
+  assert.equal(p[0].path, '/repos/poundlock/poundlock-skills/releases')
   // 请求体整份核：不带 target_commitish（tag 已经在远端，Release 跟着它；带上就可能指向别处）。
   assert.deepEqual(p[0].body, { tag_name: 'v3.3.1', name: 'v3.3.1', body: '推 main 之后发这一版的 GitHub Release', draft: false, prerelease: false, make_latest: 'true' })
   for (const c of r.calls) {
@@ -88,7 +88,7 @@ test('ensureRelease：tag 在远端、指着认法要的提交、还没有 Relea
 })
 
 test('ensureRelease：这一版的 Release 已经有了——不动，算成功（作业重跑时不重复建）', async () => {
-  const r = await run({ ...TAG_OK, 'GET /repos/hangwenlei/agent-team/releases/tags/v3.3.1': [200, { id: 1 }] })
+  const r = await run({ ...TAG_OK, 'GET /repos/poundlock/poundlock-skills/releases/tags/v3.3.1': [200, { id: 1 }] })
   assert.equal(r.ok, true)
   assert.equal(posts(r.calls).length, 0)
 })
@@ -97,7 +97,7 @@ test('ensureRelease：tag 不在远端——不建（GitHub 会在默认分支�
   const r = await run({})
   assert.equal(r.ok, false)
   assert.equal(posts(r.calls).length, 0)
-  assert.deepEqual(r.calls.map((c) => c.path), ['/repos/hangwenlei/agent-team/git/ref/tags/v3.3.1'])
+  assert.deepEqual(r.calls.map((c) => c.path), ['/repos/poundlock/poundlock-skills/git/ref/tags/v3.3.1'])
   assert.ok(r.lines.join('\n').includes('tag'), r.lines.join('\n'))
 })
 
@@ -108,10 +108,10 @@ test('ensureRelease（复核 docs/52 §8，中 1）：tag 在远端却指向别�
   assert.ok(wrong.lines.join('\n').includes(OTHER) && wrong.lines.join('\n').includes(SHA), wrong.lines.join('\n'))
   const TAGOBJ = 'c'.repeat(40)
   const annotated = { [TAG_REF]: [200, { object: { sha: TAGOBJ, type: 'tag' } }], ...CREATE }
-  const ok = await run({ ...annotated, [`GET /repos/hangwenlei/agent-team/git/tags/${TAGOBJ}`]: [200, { object: { sha: SHA, type: 'commit' } }] })
+  const ok = await run({ ...annotated, [`GET /repos/poundlock/poundlock-skills/git/tags/${TAGOBJ}`]: [200, { object: { sha: SHA, type: 'commit' } }] })
   assert.equal(ok.ok, true, ok.lines.join('\n'))
   assert.equal(posts(ok.calls).length, 1)
-  const elsewhere = await run({ ...annotated, [`GET /repos/hangwenlei/agent-team/git/tags/${TAGOBJ}`]: [200, { object: { sha: OTHER, type: 'commit' } }] })
+  const elsewhere = await run({ ...annotated, [`GET /repos/poundlock/poundlock-skills/git/tags/${TAGOBJ}`]: [200, { object: { sha: OTHER, type: 'commit' } }] })
   assert.equal(elsewhere.ok, false)
   assert.equal(posts(elsewhere.calls).length, 0)
   const peelFails = await run(annotated)
@@ -124,7 +124,7 @@ test('ensureRelease（复核 docs/52 §8，中 1）：tag 在远端却指向别�
 })
 
 test('ensureRelease：远端标着的最新一条版本更高——这一条建出来不抢「最新」；更低、或者认不出版本号的，照常标最新', async () => {
-  const latest = (tagName) => ({ 'GET /repos/hangwenlei/agent-team/releases/latest': [200, { tag_name: tagName }] })
+  const latest = (tagName) => ({ 'GET /repos/poundlock/poundlock-skills/releases/latest': [200, { tag_name: tagName }] })
   const newer = await run({ ...TAG_OK, ...CREATE, ...latest('v3.4.0') })
   assert.equal(posts(newer.calls)[0].body.make_latest, 'false')
   const patchNewer = await run({ ...TAG_OK, ...CREATE, ...latest('v3.3.10') })
@@ -137,7 +137,7 @@ test('ensureRelease：远端标着的最新一条版本更高——这一条建�
   }
   // 按字符串比时 "v3.3.9" 排在 "v3.3.10" 后面——这一格只有按数比才对。
   const tens = await run(
-    { 'GET /repos/hangwenlei/agent-team/git/ref/tags/v3.3.10': [200, { object: { sha: SHA, type: 'commit' } }], ...CREATE, ...latest('v3.3.9') },
+    { 'GET /repos/poundlock/poundlock-skills/git/ref/tags/v3.3.10': [200, { object: { sha: SHA, type: 'commit' } }], ...CREATE, ...latest('v3.3.9') },
     { version: '3.3.10' },
   )
   assert.equal(posts(tens.calls)[0].body.make_latest, 'true')
@@ -154,9 +154,9 @@ test('ensureRelease：CHANGELOG 里没有这一版、版本号不是 x.y.z、不
 test('ensureRelease：API 出错——查 tag、查 Release、查最新、建，哪一步回的不是预期的状态都算失败、不往下走；fetch 抛异常也一样', async () => {
   const cases = [
     { [TAG_REF]: [500, {}] },
-    { ...TAG_OK, 'GET /repos/hangwenlei/agent-team/releases/tags/v3.3.1': [500, {}] },
-    { ...TAG_OK, 'GET /repos/hangwenlei/agent-team/releases/latest': [403, {}] },
-    { ...TAG_OK, 'POST /repos/hangwenlei/agent-team/releases': [422, { message: 'Validation Failed' }] },
+    { ...TAG_OK, 'GET /repos/poundlock/poundlock-skills/releases/tags/v3.3.1': [500, {}] },
+    { ...TAG_OK, 'GET /repos/poundlock/poundlock-skills/releases/latest': [403, {}] },
+    { ...TAG_OK, 'POST /repos/poundlock/poundlock-skills/releases': [422, { message: 'Validation Failed' }] },
   ]
   for (const routes of cases) {
     const r = await run(routes)
