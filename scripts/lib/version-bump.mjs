@@ -1,7 +1,7 @@
 // 发布纪律的判定核心（M3p，docs/24 §2.3）。纯函数，不读 git、不读文件——CLI 外壳
 // scripts/check-version-bump.mjs 负责把两个提交的 version 与改动清单喂进来。
 //
-// 纪律原文在 HANDOFF.md「长期决策」：每次推 main 都挪 version——碰插件会加载的东西挪中间
+// 纪律原文在 CLAUDE.md「部署」：每次推 main 都挪 version——碰插件会加载的东西挪中间
 // 一位，只碰散文/docs/tests 挪最后一位，任何一位不长到 10。理由：`claude plugin update`
 // 比的是 version 字符串，不是 commit；不挪，用户就拿不到这次改动。
 
