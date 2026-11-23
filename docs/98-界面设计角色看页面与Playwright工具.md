@@ -33,7 +33,7 @@
 照 `docs/13` §3.6 路径 A、`docs/97` §3：CLI 2.1.301，`claude --bg --plugin-dir <本工作树>`，工作目录是本工作树下的临时子目录 `probe-98/`，`--settings`
 里只带 `worktree.bgIsolation: "none"`（git 仓库里的后台会话，`docs/24` §4.2），各带一份 `--debug-file`。临时把 `agents/at-ui.md` 的 `tools:` 加上六个
 Playwright 工具与一个不存在的 `mcp__nonexistent__x`。项目经理派不了 `at-ui`，经 `at-architect` 嵌套派，两层都是后台派发（子代理元数据
-`spawnDepth: 2`、`requestShape: background`）。目录里没有 `.agent-team`，门禁按没有 run 放行，项目经理照回传说了。
+`spawnDepth: 2`、`requestShape: background`）。目录里没有 `.poundlock`，门禁按没有 run 放行，项目经理照回传说了。
 
 页面：一份静态 HTML，由驱动起的本机服务给出（只听 `127.0.0.1:47391`，收尾按 PID 停）。中间一块 240×240 的 canvas，字由 `String.fromCharCode` 拼出、
 画在 canvas 上——页面文字与无障碍快照里都没有它，只有截图看得见：默认红底「XJ-42」，宽度不超过 480 时蓝底「KP-17」，`prefers-reduced-motion: reduce`
@@ -50,7 +50,7 @@ Playwright 工具与一个不存在的 `mcp__nonexistent__x`。项目经理派�
 |---|---|---|
 | (a) 子代理拿不拿得到 | 拿得到：A 里六个都调通；B 里 `at-ui` 列出十二个工具（六个内建、六个 Playwright） | 子代理转录的 `tool_use`；调试日志的 `Calling MCP tool` |
 | (b) 截图看不看得见 | 看得见：三张依次说出红底「XJ-42」、蓝底「KP-17」、绿底「RM-93」；快照只有 `heading "Probe"`；`at-ui` 没有任何读页面源码的调用 | 工具结果里是 `image/png`；`SubagentHandback` 原文；`tool_use` 只有 Playwright 那几个与交回 |
-| (c) 文件落在哪 | 会话启动目录下的 `.playwright-mcp/`——MCP 客户端报的第一个根，这两场就是工作目录 `probe-98/`；门禁的项目根按 `.agent-team` 往上找，两者通常是同一个，不保证。每次打开页面自动存一份快照 `page-<时间>.yml`，每次截图（不带 `filename`）存一份 `page-<时间>.png`；不带 `filename` 的快照内联回来、不落盘；页面的控制台输出（`.log`）与页面触发的下载也写进这个目录（源码里的 `LogFile`、`_downloadStarted`，这两场没触发）。带 `filename` 时截图不再以图像回传，文件按启动目录解析，只核在不在启动目录或输出目录之下——项目里哪儿都写得进，`CLAUDE.md`、`.claude/`、`.git/` 与门禁专属文件也挡不住（0.0.83 源码的 `checkFile`、截图工具的 `registerImageResult`）。这些都是 MCP 服务那个进程写的，写路径隔离与账本看不见。另有：浏览器配置目录 `%LOCALAPPDATA%\ms-playwright-mcp\mcp-chrome-<哈希>`（按启动目录分，跨会话保留登录态与本地存储）；Claude Code 把工具结果里的图另存在 `~/.claude/projects/…/tool-results/` 下 | 磁盘清单；工具结果里的路径；0.0.83 的源码 |
+| (c) 文件落在哪 | 会话启动目录下的 `.playwright-mcp/`——MCP 客户端报的第一个根，这两场就是工作目录 `probe-98/`；门禁的项目根按 `.poundlock` 往上找，两者通常是同一个，不保证。每次打开页面自动存一份快照 `page-<时间>.yml`，每次截图（不带 `filename`）存一份 `page-<时间>.png`；不带 `filename` 的快照内联回来、不落盘；页面的控制台输出（`.log`）与页面触发的下载也写进这个目录（源码里的 `LogFile`、`_downloadStarted`，这两场没触发）。带 `filename` 时截图不再以图像回传，文件按启动目录解析，只核在不在启动目录或输出目录之下——项目里哪儿都写得进，`CLAUDE.md`、`.claude/`、`.git/` 与门禁专属文件也挡不住（0.0.83 源码的 `checkFile`、截图工具的 `registerImageResult`）。这些都是 MCP 服务那个进程写的，写路径隔离与账本看不见。另有：浏览器配置目录 `%LOCALAPPDATA%\ms-playwright-mcp\mcp-chrome-<哈希>`（按启动目录分，跨会话保留登录态与本地存储）；Claude Code 把工具结果里的图另存在 `~/.claude/projects/…/tool-results/` 下 | 磁盘清单；工具结果里的路径；0.0.83 的源码 |
 | (d) 后台会不会卡在权限确认上 | auto：每次调用约 0.4 秒自动放行，没有一次停下。manual：放行了的 `navigate` 直接跑；没放行的截图在会话主界面弹出「plugin:playwright:playwright — Take a screenshot … Do you want to proceed?」，`claude agents --json` 报 `status: waiting`、`waitingFor: "permission prompt"`、`state: blocked`——等人答，不自动拒，也不是悄悄挂住 | 调试日志的 `permissionDecisionMs`、`executePermissionRequestHooks`；`claude logs`；`claude agents --json` |
 | (e) 写了不存在的工具名 | `at-ui` 照常起，其余工具都在（B 的完整清单里没有那个名字）；调试日志里没有任何告警 | B 的回复原文；调试日志 |
 | (f) 浏览器关没关、有没有残留 | A 关浏览器之后 Chrome 进程立刻没了；B 不关，有界面的 Chrome 窗口一直开着，`claude stop` 之后 MCP 服务那一串（cmd、npx、cli）与 Chrome 一起退出，没有残留 | 进程表（按命令行里的 `ms-playwright-mcp` 筛，与起会话之前的基线对照） |
@@ -71,7 +71,7 @@ Playwright 工具与一个不存在的 `mcp__nonexistent__x`。项目经理派�
 ### 2.4 收尾
 
 两场都 `claude stop`、`claude rm`；`~/.claude.json` 里没有这个临时目录的条目。驱动起的本机服务按 PID 停；临时目录、`at-ui` 的临时工具行、探针新建的浏览器
-配置目录删掉；工作树根下没有留下 `.agent-team/`（项目经理的门禁自检写入照常被拒）与 `.playwright-mcp/`。转录留着，是证据。
+配置目录删掉；工作树根下没有留下 `.poundlock/`（项目经理的门禁自检写入照常被拒）与 `.playwright-mcp/`。转录留着，是证据。
 
 ## 3. 裁定：收窄 `docs/36` §2.10
 

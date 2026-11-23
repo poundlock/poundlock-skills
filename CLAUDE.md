@@ -4,7 +4,7 @@
 这个仓库是产品 poundlock 的组件 plugin（类型 plugin），由 Wellyard 管理。产品层面的事（组件表、环境、决定）写在主仓库 poundlock 的 CLAUDE.md；IP、端口、登录用户名这类敏感的环境信息只写在那里，不写进这个仓库：它以后可能开源。
 <!-- /wellyard:component -->
 
-poundlock：一个 Claude Code 插件，十角色的软件开发 agent team。项目经理（`at-pm`）就是主会话，沿阶段链 `S1`→`S8` 分层派发，执行顺序由 hook 门禁强制，业务验收独立成线。默认分支 `main`。
+poundlock：一个 Claude Code 插件，十角色的软件开发团队。项目经理（`at-pm`）就是主会话，沿阶段链 `S1`→`S8` 分层派发，执行顺序由 hook 门禁强制，业务验收独立成线。默认分支 `main`。
 
 这份文件只记读代码和 git 历史推不出来的事。拿它当线索；与实时的 Git、测试或文件状态冲突时，以实时证据为准。
 
@@ -58,7 +58,7 @@ node --test
 - `docs/11-M1b-遗留与已知边界.md` 是已知边界登记簿；`docs/16-M2b-裁定记录.md` 是裁定记录，它的 §3 是方法论语料。
 - `docs/13` 往后是带日期的实测记录。`docs/24` §5 是 2026-09-28 那次全量审查的冻结表，之后的现状写在它前面那串「更新」里；`docs/39` 是 2026-10-05 对照 v2.2.0 的逐条核验与排序，它排的六轮到 `docs/48` 做完。
 - `stages.produces.md` 是 at-resume 与 at-status 运行时让模型读的；`stages.README.md` 只给维护者（理由、消费方表、开发史）。
-- 带日期的记录里出现的提交号、老仓库地址和安装命令说的是迁移之前的事，原样保留、不改；插件 9.0.0 之前叫 `agent-team`，记录里的 `/agent-team:*` 命令、`agent-team:at-*` 角色全名、`.agent-team/` 目录和 `AGENT_TEAM_*` 变量就是现在的 `/poundlock:*`、`poundlock:at-*`、`.poundlock/`、`POUNDLOCK_*`，同样不改。判据拿字面量去核带日期的记录时（例如 `tests/readme-sync.test.mjs` 钉的 `docs/19` 那条老安装命令），字面量跟着记录写旧名字。
+- 带日期的记录里出现的提交号说的是迁移之前的事，原样保留、不改（老仓库已经删了，对不上现在的任何仓库，按提交说明在历史里找）。插件以前的名字 2026-11-23 起从所有文件里去掉了（用户定的「都要改掉」，9.1.0）：带日期的记录、CHANGELOG 里的命令、角色全名、工作目录、环境变量、仓库地址和安装命令一律按现在的名字写，判据拿字面量核记录时也用现在的名字。别再写回以前的名字。没改的只有别人的东西：Claude Code 自带的 agent teams 功能（`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`、它的文档）和调研里引用的别人的项目。
 
 ## 决定
 

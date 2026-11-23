@@ -41,13 +41,13 @@ function matchesPattern(relSegments, pattern) {
   return pat.every((seg, i) => (seg === '*' ? relSegments[i].length > 0 : seg === relSegments[i]))
 }
 
-export function isControlFile(filePath, agentTeamDir) {
+export function isControlFile(filePath, poundlockDir) {
   if (typeof filePath !== 'string' || !filePath) return false
-  if (typeof agentTeamDir !== 'string' || !agentTeamDir) return false
+  if (typeof poundlockDir !== 'string' || !poundlockDir) return false
   // 两边都过 norm：它会先 resolve（所以 ../ 穿越不出去，比对的是解析后的绝对路径
   // 而不是原始字符串），并在 win32 上折成小写。上面 CONTROL_FILES 的字面量全部是
   // 小写，两个平台上都对得齐。
-  const base = norm(agentTeamDir)
+  const base = norm(poundlockDir)
   const target = norm(filePath)
   if (!target.startsWith(`${base}/`)) return false
   const rel = target.slice(base.length + 1).split('/')

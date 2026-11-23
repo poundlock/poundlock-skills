@@ -28,7 +28,7 @@ const PROJECT = {
   },
 }
 const call = (role, filePath, project = PROJECT) =>
-  decideWritePath({ roster: ROSTER, role, filePath, project, runDir: RUN, stages: STAGES, agentTeamDir: AT })
+  decideWritePath({ roster: ROSTER, role, filePath, project, runDir: RUN, stages: STAGES, poundlockDir: AT })
 const WAY = '冒泡给派你的上级，由 PM 先问用户、在 .poundlock/project.json 的 paths 里把这个文件或目录本身写进你名下（你写不了 project.json）'
 
 test('认领的目录下新建 CLAUDE.md、CLAUDE.local.md——拒，说清它会被当成指令加载、出路是 PM 问过用户把它本身写进 paths；不分大小写', () => {

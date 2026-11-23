@@ -1,4 +1,4 @@
-# agent-team 插件设计
+# poundlock 插件设计
 
 > 2026-09-15 · 状态：待评审
 > 依据：`docs/01`~`03`（三轮全网调研，126 个 agent）、`docs/04`（四项本机实测）
@@ -6,7 +6,7 @@
 
 ## 1. 目标与范围
 
-做一个可对外发布的 Claude Code 插件，提供一支十角色软件开发 agent team，
+做一个可对外发布的 Claude Code 插件，提供一支十角色软件开发团队，
 把一条业务需求从录入带到业务验收，过程分层且顺序受控。
 
 **运行环境（已实测）**：Windows 11 · Claude 桌面客户端 Code tab · 引擎 2.1.270。
@@ -46,7 +46,7 @@ v1 不做角色正文双语；不做 Web 控制台；不做多需求并行。
 | `AskUserQuestion` | PM 打断用户 | 官方：所有 subagent 被剥离 |
 | 嵌套 `Agent` 并发调用 | 阶段内并行（架构师同时派五个执行角色） | 实测：同一 `function_calls` 块内多个 invoke（04 §8） |
 | PreToolUse / PostToolUse hook | **「派发路径」的唯一强制手段**——派发不是获得 agent 的唯一路径，见 §3.3 与 §6.1；外加写路径隔离、就绪门禁 | 白名单表达不了边约束（§3.3）；`context: fork` 的 skill 不经 `Agent` 工具（§6.1、docs/06） |
-| `.agent-team/runs/<id>/state.json` | 跨压缩的位置记忆 | superpowers ledger 模式 |
+| `.poundlock/runs/<id>/state.json` | 跨压缩的位置记忆 | superpowers ledger 模式 |
 
 ### 3.2 组织图
 
@@ -90,8 +90,8 @@ v1 不做角色正文双语；不做 Web 控制台；不做多需求并行。
 `(at-product, at-architect)` 时，架构师派 `at-worker-a` 得到：
 
 ```
-Agent type 'agent-team:at-worker-a' not found.
-Available agents: agent-team:at-architect, agent-team:at-product
+Agent type 'poundlock:at-worker-a' not found.
+Available agents: poundlock:at-architect, poundlock:at-product
 ```
 
 可见集合恰好等于 `at-pm` 的白名单，而架构师自己的 frontmatter 是没有括号列表的
@@ -147,7 +147,7 @@ U4 与 U7 是同一个机制的两个观测面，只是分别撞在「agent 宇�
 
 | # | 阶段 | 执行者 | 产物 |
 |---|---|---|---|
-| S0 | 勘察（一次性） | at-pm | `.agent-team/project.json` |
+| S0 | 勘察（一次性） | at-pm | `.poundlock/project.json` |
 | S1 | 录入 | at-pm | `00-contract.md`（冻结原始需求） |
 | S2 | 产品设计 | at-product → at-ui | `01-prd.md`、`02-ui-spec.md`、`02-wireframe.html` |
 | S3 | 技术对齐 | at-architect + 并行拉通 | `03-arch.md`、`03-alignment.md` |
@@ -157,7 +157,7 @@ U4 与 U7 是同一个机制的两个观测面，只是分别撞在「agent 宇�
 | S7 | 业务验收 | at-acceptance | `07-acceptance.md` |
 | S8 | 收口 | at-pm | `08-delivery.md` |
 
-产物根：`.agent-team/runs/<run-id>/`。
+产物根：`.poundlock/runs/<run-id>/`。
 
 > **注记（M1b 终审补）：上表「执行者」一列记的是*派发路径*，不是 `stages.json` 的
 > `role` 字段。** 两者不冲突，但不是同一个东西，对着上表读 `stages.json` 会以为有矛盾。
@@ -423,7 +423,7 @@ sha 相同的产物就是上一轮的，H5a/H5b、H2、【阶段】与 H5a「停
 只给「记回退」；【阶段】对走完的 run 反复说「该收口了」；收口本身不经任何门禁。
 
 ⚠️ **`mode`、`trimmed`、`stage_roles`、`rework_base`、`closed_at` 与 `abandoned` 缺失不报错**，这是向后兼容：这几个字段是后加的（`mode` 是单个微调加的，缺了就是完整的一趟；`abandoned` 是放弃收尾加的，缺了就是没放弃），更早落盘的 `state.json`
-没有它们，而 `/agent-team:at-resume` 要去读那些 run（没有 `stage_roles` 的 run，按段的消费方退回 `roster`；没有 `rework_base`
+没有它们，而 `/poundlock:at-resume` 要去读那些 run（没有 `stage_roles` 的 run，按段的消费方退回 `roster`；没有 `rework_base`
 的 run 当作没回退过，回退时照样要写；没有 `closed_at` 的 run 当作没收口）。
 **其余每一个顶层键都是必须的**
 （判据：拿 `templates/state.json` 逐个删键跑 `validateState`，除 `mode`、`trimmed`、`stage_roles`、`rework_base`、`closed_at` 与 `abandoned` 外每一个都报
@@ -512,7 +512,7 @@ Edit/Write 都拒，排在主线程豁免之前。`Bash` 照样写得进（与 �
 - H5a（`PostToolUse` / Agent）：PM（含主线程）发起的派发、运行状态读不出来——回传一段【门禁】（受信回传，§6.5），给用户一行
   `systemMessage`；没有进行中的 run、目标是它派得动的团队角色——【门禁】说明这是有意的放行，给用户一行；`state.stage` 不在
   阶段链里——任何发起者都收到【门禁】（改不了 `state.json` 的带冒泡句），PM 收件时给用户一行。
-- ledger（`PostToolUse` / Edit、Write）：只在 PM 写 `.agent-team/runs/` 下的非控制文件、运行状态读不出来时发【门禁】并给一行；
+- ledger（`PostToolUse` / Edit、Write）：只在 PM 写 `.poundlock/runs/` 下的非控制文件、运行状态读不出来时发【门禁】并给一行；
   写 `state.json` 不发（第一趟建 run 的正路上那一刻指针还没写）。`state.stage` 不在阶段链里时照常回传，由【state.json】报。
 - 检查项中途出错：deliverable 与 ledger 对任何发起者回传【门禁】（非 PM 带冒泡句），PM 收件时给一行；readiness 只给一行；
   stop-gate 只留 stderr。
@@ -576,19 +576,19 @@ M2b 加 `at-pm → at-qa` 边第二次实做）。**每一次都是被扩链或�
 配置错误（条目缺 `can_delegate_to`）给出指名 `roster.json` 的拒绝理由，而不是抛异常。
 
 **第 4 条（M0 · U3 实测发现，补）：命名空间归一化。**
-插件提供的 agent 在平台上的注册名带插件前缀（`agent-team:at-architect`），裸名不解析。
+插件提供的 agent 在平台上的注册名带插件前缀（`poundlock:at-architect`），裸名不解析。
 而 **hook 先于名称解析生效**，所以 hook 拿到的 `subagent_type` 是全限定名。
 U3 实测撞出的死结：
 
 | 调用方写法 | 结果 |
 |---|---|
 | `at-architect`（裸名） | hook 放行 → 平台名称解析报 `not found` |
-| `agent-team:at-architect` | 名称解析通过 → hook 拒绝（花名册里是裸名） |
+| `poundlock:at-architect` | 名称解析通过 → hook 拒绝（花名册里是裸名） |
 
 两种写法都进不去，门禁对插件角色实际是「一律拒绝」。
 裁定：**在 `decide.mjs` 里剥前缀**，不把花名册改成全限定名。理由三条：
 调用者侧 `agent_type` 的形态尚未观测到（两次实验架构师都没启动），归一化对两种形态都成立；
-花名册保持裸名可读，闭包不变量测试才有意义；只剥 `agent-team:` 这一个前缀，
+花名册保持裸名可读，闭包不变量测试才有意义；只剥 `poundlock:` 这一个前缀，
 无差别剥会让别的插件的 `otherplugin:at-product` 被误认成自己人。
 
 **第 5 条（复审实测发现，补）：花名册形状校验。**
@@ -689,16 +689,16 @@ README 明示此边界，不将其表述为沙箱。
 
 ### 6.2.1 控制文件不走角色认领判据（M1b 入口决策补）
 
-`.agent-team/current-run`、`.agent-team/project.json`、`.agent-team/reach.json`、
-`.agent-team/runs/<id>/state.json` 是**控制文件**——编排层自己的账本，不是任何阶段的
+`.poundlock/current-run`、`.poundlock/project.json`、`.poundlock/reach.json`、
+`.poundlock/runs/<id>/state.json` 是**控制文件**——编排层自己的账本，不是任何阶段的
 `produces`，**只有 PM 能写**。（四项里的 `reach.json` 来自 `docs/09` **账二**，不在
 账一的决策表里——账一只列了三项，对着那张表对账的人会以为这份清单多了一项。）`stages[*].produces` 列出的**阶段产物**继续走 per-role
 认领（只有该阶段自己的角色能写），run 目录下其余一切一律 deny。
 
 `reach.json` 的落盘位置与 `docs/09` 账二 ③ 的原文有一处分叉，这里点破，免得按 `docs/09`
-对账的人困惑：账二 ③ 原文说触达表「落盘进 run」，这里实现的却是 `.agent-team/reach.json`
+对账的人困惑：账二 ③ 原文说触达表「落盘进 run」，这里实现的却是 `.poundlock/reach.json`
 ——run **之外**的控制文件层，不是任何一趟 run 目录下的文件。这是决策演进，不是实现漏看了
-账二：触达表的判据只有 `roster.json` 与 `.agent-team/project.json`（`computeReach` 是纯
+账二：触达表的判据只有 `roster.json` 与 `.poundlock/project.json`（`computeReach` 是纯
 数据推导，不看 `state`、不看 `runDir`），两者都与具体某一趟 run 无关；真落盘进 run，每一趟
 run 都会算出一份内容完全相同的拷贝，且这份拷贝会随那趟 run 一起「过期」，而触达表描述的是
 项目配置的性质，不是某一趟运行的性质。`docs/09` 是带日期的决策记录，记的是当时的事实与
@@ -707,7 +707,7 @@ run 都会算出一份内容完全相同的拷贝，且这份拷贝会随那趟 
 为什么要分这两类：被 `settings.json` 钉成主线程的 `at-pm` **不是** `callerOf` 判定的
 `MAIN`（M0 实测：钉住时主会话的 hook 输入带裸的 `agent_type: 'at-pm'`），所以稳态下它
 是一个受完整 per-role 隔离约束的普通角色，写不了 `state.json`——而 §4.2 ③ 的计数、
-`/at-resume` 的续跑、`/at-init` 的重跑都要它写。反过来，把整个 `.agent-team/` 放给 PM
+`/at-resume` 的续跑、`/at-init` 的重跑都要它写。反过来，把整个 `.poundlock/` 放给 PM
 又太宽：PM 会因此能在 run 目录下凭空造出 `01-prd.md`，`artifactExists` 在 `runDir` 下
 解析、H2 拿它当前置产物的判据，**H2 的判据就此可伪造**。分成两类之后，PM 的运维动作
 不走角色认领，而 H2 的判据对所有角色（含 PM）继续不可伪造。
@@ -727,7 +727,7 @@ run 都会算出一份内容完全相同的拷贝，且这份拷贝会随那趟 
 > ⚠️ **M4b 订正**（`docs/36`）：「§3.3.1 的上界模型意味着给执行角色就必须同时给 `at-pm`」不成立（§3.3.1 的订正）。降级照样成立，原因换成：
 > 执行角色自己持 `Bash`（§6.2），同样能 `echo > 01-prd.md`——「H2 的判据对所有角色继续不可伪造」从执行角色拿到 `Bash` 那一刻起就不完整成立，
 > 与 PM 有没有 `Bash` 无关。PM 现在持 `Bash` 的理由见 `docs/36` §2.9。另外，上面「M0 实测：钉住时主会话的 hook 输入带裸的
-> `agent_type: 'at-pm'`」：原始值是插件全名 `agent-team:at-pm`（`docs/07` §4、`docs/22` §3），`at-pm` 是 `callerOf` 剥掉前缀之后的值；
+> `agent_type: 'at-pm'`」：原始值是插件全名 `poundlock:at-pm`（`docs/07` §4、`docs/22` §3），`at-pm` 是 `callerOf` 剥掉前缀之后的值；
 > 结论（钉住的 PM 落不进 `MAIN`）不变。
 
 ### 6.3 提示注入防护
@@ -759,7 +759,7 @@ H3 的拒绝措辞本身在提示这条绕法——「跨角色的改动要经�
 - `hooks/lib/reach.mjs` 把触达做成纯函数（传递闭包，处理环与自引用）；
 - `tests/reach.test.mjs` 用夹具验**算法本身**（仓库不可能知道真实项目的 paths），
   并单独钉住 `roster.json` 的**派发边拓扑**——改边即变红，必须回来确认触达是否被放大；
-- 具体项目的触达表由 `/at-init` 生成、落在 `.agent-team/reach.json`、由 `/at-status`
+- 具体项目的触达表由 `/at-init` 生成、落在 `.poundlock/reach.json`、由 `/at-status`
   显示；凡「触达 ⊋ 自己认领的路径」要标出来并指明经哪条派发边扩大。
 
 **触达表是审计产物，不是安全边界。** 它不拦任何东西。文档与命令输出一律说「当前配置下
@@ -799,7 +799,7 @@ H3 的拒绝措辞本身在提示这条绕法——「跨角色的改动要经�
 **§6.1 与 §7 目录树多处写的「经角色 frontmatter 的 `skills:` 预加载」，M1c 在 CLI
 2.1.276 的 `-p` 非交互模式下实测发现它只对*子代理*成立，对*主会话*不成立；交互模式
 未验，不能当成一般结论。** 实测方法：主会话侧两条独立机制——`--agent` CLI 参数（试了
-裸名 `at-pm` 与全限定名 `agent-team:at-architect` 两种写法，其中全限定名那次同时也换
+裸名 `at-pm` 与全限定名 `poundlock:at-architect` 两种写法，其中全限定名那次同时也换
 了被钉的角色，不是纯粹的写法对照）、以及不带 `--agent` 单靠插件 `settings.json` 把
 主会话钉成 `at-pm`——三次调用分别要求原样复述自己 `skills:` 列出的正文，三次都答
 「没有拿到，只看到自己角色正文里提到的名字，不编」；同一个问题改成让 PM 用 `Agent`
@@ -819,7 +819,7 @@ H3 的拒绝措辞本身在提示这条绕法——「跨角色的改动要经�
 ## 7. 插件目录
 
 ```
-agent-team/
+poundlock/
 ├── .claude-plugin/
 │   ├── plugin.json
 │   └── marketplace.json          # source: "./"，自托管分发
@@ -846,18 +846,18 @@ agent-team/
 ├── LICENSE  README.md  README.zh-CN.md  CHANGELOG.md
 ```
 
-> ⚠️ **M4b 订正**（`docs/36`）：`settings.json` 现在是 `{"agent": "agent-team:at-pm"}`。写裸名时平台先找完全同名的 agent，项目或用户层
+> ⚠️ **M4b 订正**（`docs/36`）：`settings.json` 现在是 `{"agent": "poundlock:at-pm"}`。写裸名时平台先找完全同名的 agent，项目或用户层
 > 一份自己的 `at-pm.md` 会抢先当上主会话（`docs/36` P8）；markdown agent 的名字不许含冒号，写全名就没有谁撞得上。判据是
 > `tests/plugin-name-sync.test.mjs`。
 
 ### 7.1 项目配置
 
 per-role 写路径隔离要求插件知道用户项目的路径归属，对外发布不可写死。
-`/at-init` 探测技术栈与目录布局，生成 `.agent-team/project.json`：
+`/at-init` 探测技术栈与目录布局，生成 `.poundlock/project.json`：
 路径归属、可用班底、技术栈、构建与测试命令。用户改配置只改这一个文件。
 
-> **M4b 补**（`docs/36`）：`/agent-team:at` 在 S4 照架构方案的「落盘清单」、在 S5 照被拒的路径往 `paths` 里补前缀（只加不删，敏感位置先问
-> 用户，收尾告诉用户）；门禁报出的配置问题照 `/agent-team:at-init` 第 2、3 节修，删改的条目记进 `04-dispatch.md` 第 5 节；根级清单、构建配置、顶层测试目录共列给每个会改它们的 S5 产者，不加 `shared` 键。
+> **M4b 补**（`docs/36`）：`/poundlock:at` 在 S4 照架构方案的「落盘清单」、在 S5 照被拒的路径往 `paths` 里补前缀（只加不删，敏感位置先问
+> 用户，收尾告诉用户）；门禁报出的配置问题照 `/poundlock:at-init` 第 2、3 节修，删改的条目记进 `04-dispatch.md` 第 5 节；根级清单、构建配置、顶层测试目录共列给每个会改它们的 S5 产者，不加 `shared` 键。
 
 ## 8. 交接契约
 
@@ -879,7 +879,7 @@ Claude Code 无类型系统，派发提示里的 JSON 契约即全部类型系�
 
 | # | 项 | 状态 | 影响 |
 |---|---|---|---|
-| U1 | `agent` 键是否接受插件命名空间 id（`agent-team:at-pm`） | 是 | **实测通过，但验证的是裸名 `at-pm` 而非命名空间 id**——插件自己的 `settings.json` 没有理由写全限定名。原计划的 `{"agent":"at-pm"}` 不需换写法。详见 `docs/05-M0-结论.md` U1 |
+| U1 | `agent` 键是否接受插件命名空间 id（`poundlock:at-pm`） | 是 | **实测通过，但验证的是裸名 `at-pm` 而非命名空间 id**——插件自己的 `settings.json` 没有理由写全限定名。原计划的 `{"agent":"at-pm"}` 不需换写法。详见 `docs/05-M0-结论.md` U1 |
 | U2 | 插件提供的 agent 能否被主线程白名单按裸名引用 | 是 | **白名单硬强制，但语义不是「PM 能派谁」，而是整个会话的 agent 宇宙**，被所有子孙代理继承。`at-pm` 的 `tools:` 须写全限定名且覆盖团队全部角色；层级约束移交 H1 承担。§3.3 已整节重写。详见 `docs/05-M0-结论.md` U2 |
 | U3 | hook 在 Windows 下能否稳定拿到 `agent_type` 并 deny | 是 | **五个 hook 的共同地基成立。** 但撞出插件角色命名空间死结（裸名过 hook 被平台拒，全限定名过平台被花名册拒），已在 `decide.mjs` 加前缀归一化修复（§6.0 第 4 条）。详见 `docs/05-M0-结论.md` U3 |
 | U4 | subagent 能否在一条消息内并发 spawn 多个 subagent | 是 | **S3/S5 并行扇出的前提成立**，架构师可在一条消息内并发派发多个执行角色，维持原设计不必改串行。详见 `docs/05-M0-结论.md` U4 |

@@ -15,8 +15,8 @@ export function world() {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'at-skills-')))
   const home = join(root, 'home')
   const projectRoot = join(root, 'proj')
-  const agentTeamDir = join(projectRoot, '.poundlock')
-  mkdirSync(agentTeamDir, { recursive: true })
+  const poundlockDir = join(projectRoot, '.poundlock')
+  mkdirSync(poundlockDir, { recursive: true })
   put(join(home, '.claude', 'skills', 'plain', 'SKILL.md'), skillMd('普通的用户层 skill'))
   put(join(home, '.claude', 'skills', 'cloned', 'SKILL.md'), skillMd('从 GitHub 克隆的'))
   put(join(home, '.claude', 'skills', 'cloned', '.git', 'HEAD'), 'ref: refs/heads/main\n')
@@ -38,5 +38,5 @@ export function world() {
   })
   const writePlugins = (v) => put(join(home, '.claude', 'plugins', 'installed_plugins.json'), JSON.stringify(plugins(v)))
   writePlugins('1.0.0')
-  return { root, home, projectRoot, agentTeamDir, pluginRoot, pluginSkillDir, writePlugins }
+  return { root, home, projectRoot, poundlockDir, pluginRoot, pluginSkillDir, writePlugins }
 }

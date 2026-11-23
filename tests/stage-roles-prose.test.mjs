@@ -146,7 +146,7 @@ test('M3x：at-architect 的「不要指望后面有判据兜底」不再说那�
 })
 
 test('M3x：规格 §4.4 的示例带 stage_roles，例外句点名 trimmed 与 stage_roles（M3y 起还有 rework_base）', () => {
-  const spec = read('docs/superpowers/specs/2026-09-15-agent-team-plugin-design.md')
+  const spec = read('docs/superpowers/specs/2026-09-15-poundlock-plugin-design.md')
   const sec = section(spec, '### 4.4 状态文件', '## 5.')
   assert.match(sec, /"stage_roles": \{/)
   // M3y 把 rework_base 也加进了例外句（docs/33）；名单与模板的对应由 tests/templates.test.mjs 从模板派生着核。
@@ -179,7 +179,7 @@ test('M3x：stages.README 的 H5a 静默表 S5 那一行按 stage_roles 的 S5 �
 
 // 规格 §4.4 的示例要能当一份真的账照着写：各段的 stage_roles 合起来就是 roster（validateState 双向核它）。
 test('M3x：规格 §4.4 示例里 stage_roles 各段合起来恰好是 roster', () => {
-  const sec = section(read('docs/superpowers/specs/2026-09-15-agent-team-plugin-design.md'), '### 4.4 状态文件', '## 5.')
+  const sec = section(read('docs/superpowers/specs/2026-09-15-poundlock-plugin-design.md'), '### 4.4 状态文件', '## 5.')
   const m = sec.match(/```json\n([\s\S]*?)\n```/)
   assert.ok(m, '规格 §4.4 里找不到 json 示例')
   const ex = JSON.parse(m[1])
@@ -189,7 +189,7 @@ test('M3x：规格 §4.4 示例里 stage_roles 各段合起来恰好是 roster',
 })
 
 test('M3x：规格 §4 母表的按段那一行列着产者交代（decideCoverage）', () => {
-  const row = read('docs/superpowers/specs/2026-09-15-agent-team-plugin-design.md').split('\n').find((l) => l.includes('这一段叫到的人') && l.startsWith('> |'))
+  const row = read('docs/superpowers/specs/2026-09-15-poundlock-plugin-design.md').split('\n').find((l) => l.includes('这一段叫到的人') && l.startsWith('> |'))
   assert.ok(row, '规格 §4 母表里找不到按段的那一行')
   assert.match(row, /decideCoverage/)
 })

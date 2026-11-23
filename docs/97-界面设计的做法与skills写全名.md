@@ -13,7 +13,7 @@
   `at-android` 落地界面前先读这两份，交之前照 `references/self-check.md` 核。不改 `stages.json` 的 `requires`。
 - **`at-api-contract` 加「端点之外的接头」**：两个 S5 产者之间不走 HTTP 的接头（组件、共享类型、事件、本地存储格式）写清名字、所在文件、签名或字段、
   谁产出、谁使用、出错时怎样。
-- **`skills:` 一律写全名 `agent-team:at-*`**：实测裸名会被项目层的同名 skill 抢先，全名精确命中插件那一份（§3）。判据钉全名。
+- **`skills:` 一律写全名 `poundlock:at-*`**：实测裸名会被项目层的同名 skill 抢先，全名精确命中插件那一份（§3）。判据钉全名。
 
 ## 1. 起因：本轮调研的结论
 
@@ -66,14 +66,14 @@ pbakaus/impeccable（Apache-2.0，只取文字）、ehmo/platform-design-skills�
 ### 2.4 `skills:` 写全名
 
 CLI 2.1.301 解析 `skills:` 时先在全部 skill 里按名字精确匹配，用户或项目层有同名的 skill 会先命中——与插件 `settings.json` 的 `agent` 写全名同一个理由（`docs/36`）。
-十份带 `skills:` 的 frontmatter（九个子代理角色与项目经理）一律改写成 `agent-team:at-*`。项目经理是主会话，`skills:` 对它不生效（`docs/13` §5.2），照样写全名，
+十份带 `skills:` 的 frontmatter（九个子代理角色与项目经理）一律改写成 `poundlock:at-*`。项目经理是主会话，`skills:` 对它不生效（`docs/13` §5.2），照样写全名，
 免得两种写法并存。`tests/agents.test.mjs` 加一条「每一项都写全名」，存在性判据剥掉 `PLUGIN_PREFIX` 再查目录。
 
 ## 3. 实测：全名预加载
 
 照 `docs/13` §3.6 路径 A。CLI 2.1.301，`claude --bg --plugin-dir <本工作树>`，会话 `d37331cd`。工作目录是本工作树下的临时子目录（继承工作树的信任），
 里面放一份项目层的诱饵 skill `.claude/skills/at-handoff-package/SKILL.md`，「交接包」一节只有「诱饵甲、乙、丙」三项。此时 `at-architect` 已改成
-`skills: agent-team:at-handoff-package, agent-team:at-api-contract`，`at-product` 还是裸名 `skills: at-handoff-package`。
+`skills: poundlock:at-handoff-package, poundlock:at-api-contract`，`at-product` 还是裸名 `skills: at-handoff-package`。
 
 项目经理用 `Agent` 依次派两人，派发提示原样一句：不要调用任何工具，列出 `at-handoff-package`「交接包」一节的编号小标题，预加载了 `at-api-contract` 的再列五项。
 
@@ -83,7 +83,7 @@ CLI 2.1.301 解析 `skills:` 时先在全部 skill 里按名字精确匹配，�
 | `at-product` | 裸名 | 诱饵甲、诱饵乙、诱饵丙（项目层那份） | 说没有预加载 | 0 |
 
 派发提示原文（转录里的 `tool_use.input.prompt`）不含任何 skill 正文。结论：**全名精确命中插件那一份；裸名被项目层的同名 skill 抢先**——不只是源码读出来的推断。
-收尾：`claude stop d37331cd`、`claude rm d37331cd`，临时子目录删掉。项目经理开头两次写 `.agent-team/gate-check` 是门禁自检（被拒，磁盘上没有留下文件）。
+收尾：`claude stop d37331cd`、`claude rm d37331cd`，临时子目录删掉。项目经理开头两次写 `.poundlock/gate-check` 是门禁自检（被拒，磁盘上没有留下文件）。
 
 ## 4. 修法与判据
 

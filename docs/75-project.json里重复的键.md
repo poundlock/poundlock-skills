@@ -4,10 +4,10 @@
 
 ## 0. 一句话结论
 
-- 项目经理写 `.agent-team/project.json` 时（有 run、没有 run 两条路——没有 run 是 `/agent-team:at-init` 写它的那一次），原文里同一个对象写了不止一次的键并进【project.json】的
+- 项目经理写 `.poundlock/project.json` 时（有 run、没有 run 两条路——没有 run 是 `/poundlock:at-init` 写它的那一次），原文里同一个对象写了不止一次的键并进【project.json】的
   「要改」那一档，一键一行，跟 `state.json` 那一路同一个函数、同一句话（`docs/74`）。写 `current-run`、`state.json` 时不重复报。
 - 复核之后（§8）：句尾换成「前面那几个里要留的（例如前一遍里的前缀）并进最后那一个，再删掉前面几个」（`state.json` 那一路照旧）；每趟开头写 `current-run` 时也报
-  （读磁盘上那份 `project.json`），写 `state.json` 时不报；`reach.json` 抄重了键也算对不上、给出正确的那一份；`/agent-team:at-init` 第 2 节写明同一个键只写一次。
+  （读磁盘上那份 `project.json`），写 `state.json` 时不报；`reach.json` 抄重了键也算对不上、给出正确的那一份；`/poundlock:at-init` 第 2 节写明同一个键只写一次。
 
 ## 1. 问题
 
@@ -19,7 +19,7 @@
 - `hooks/gate.mjs`：`projectDupLines`（读写进去的那份原文、调 `state.mjs` 的 `duplicateKeyLines`，读不到给空）、`withDupFix`（并进 `validateProject` 报告的「要改」）；
   没有 run 那一支（账本回传触达表那一路）与有 run 时写 `project.json` 那一支各接一处。「要改」不扣下触达表（只有阻断扣下）。
 - `tests/trusted-echo.test.mjs` 补了「`project.json` 原文里重复的键与外层路径是载荷」那一格。
-- 复核之后：`state.mjs` 的 `duplicateKeyLines` 加 `merge` 选项（`projectDupLines` 用它）；有 run 那一支写 `current-run` 时也并进，读 `join(agentTeamDir, 'project.json')`；
+- 复核之后：`state.mjs` 的 `duplicateKeyLines` 加 `merge` 选项（`projectDupLines` 用它）；有 run 那一支写 `current-run` 时也并进，读 `join(poundlockDir, 'project.json')`；
   `ledger.mjs` 的 `reachCheckNotice` 见到 `duplicateKeys` 非空就当对不上；`commands/at-init.md` 第 2 节 `paths` 那几条加一句；挂错位置的注释挪回 `approvalDiagnostic` 头上。
 
 ## 3. 判据与变异
@@ -38,7 +38,7 @@
 
 ## 5. 没量到的
 
-- 真实会话里 `/agent-team:at-init` 写出重复的键、收到这一行之后改不改。
+- 真实会话里 `/poundlock:at-init` 写出重复的键、收到这一行之后改不改。
 
 ## 6. 归属
 

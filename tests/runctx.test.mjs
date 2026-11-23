@@ -61,7 +61,7 @@ test('current-run 指向不存在的 run 时返回 ok:false，kind 是 unreadabl
 // 依据都在 runctx.mjs 头部注释里——空内容是异常状态，不是干净的缺席。
 // ⚠️ 这两条都变绿不等于分类判别力还在：把 kind 塌成恒 'unreadable' 时它们照样绿，
 // 真正会红的是本文件里 pointer **不在**的那两条——「没有 .poundlock 时……kind 是
-// no-run」与「kind 是 no-run 的失败返回也带 agentTeamDir」。两侧各有人守着。
+// no-run」与「kind 是 no-run 的失败返回也带 poundlockDir」。两侧各有人守着。
 test('current-run 是空文件时返回 ok:false，kind 是 unreadable（不是 no-run）', () => {
   const dirs = makeRun({ runId: 'r1', stages: STAGES })
   try {
@@ -92,7 +92,7 @@ test('current-run 不在、而 runs/ 下有一个 run 目录时返回 ok:false�
     // 指针不在**和** runs/ 非空，两件事缺一这一格就不成立。
     assert.match(ctx.reason, /找不到/)
     assert.match(ctx.reason, /非空/)
-    assert.equal(ctx.agentTeamDir, join(dirs.projectDir, '.poundlock'))
+    assert.equal(ctx.poundlockDir, join(dirs.projectDir, '.poundlock'))
   } finally {
     cleanup(dirs)
   }
@@ -137,8 +137,8 @@ test('自举边界：runs/ 存在但是空目录——仍然 no-run，仍然放�
 
 // ⚠️ readdirSync 抛的时候落哪一支，是这一刀要自己裁的那一条边（理由三条，逐条写在
 // hooks/lib/runctx.mjs 那个 catch 上方）。要钉的是**两件事**：归 unreadable，以及
-// 带 agentTeamDir。**拆成两条**：写在一个 test() 里的话，kind 判错会让第二句断言
-// 根本跑不到，两个变异（改 kind / 删 agentTeamDir）打出来的红清单逐字相同，
+// 带 poundlockDir。**拆成两条**：写在一个 test() 里的话，kind 判错会让第二句断言
+// 根本跑不到，两个变异（改 kind / 删 poundlockDir）打出来的红清单逐字相同，
 // 看不出丢的是哪一样——本轮的变异验证当场撞到了这个，才拆的。
 // 两条共用同一个夹具帮手：造法是「runs 是个文件而不是目录」，readdirSync 当场
 // ENOTDIR，不依赖权限也不依赖并发。
@@ -164,15 +164,15 @@ test('runs/ 读不出来（它是个文件）时 kind 是 unreadable——判不
   }
 })
 
-test('runs/ 读不出来时的返回**带 agentTeamDir**——这一支必须自己接住异常，不能落到最外层兜底 catch', () => {
+test('runs/ 读不出来时的返回**带 poundlockDir**——这一支必须自己接住异常，不能落到最外层兜底 catch', () => {
   const dirs = makeUnreadableRunsDir()
   try {
     const ctx = readRunContext(dirs.projectDir, dirs.pluginDir)
     assert.equal(
-      ctx.agentTeamDir,
+      ctx.poundlockDir,
       join(dirs.projectDir, '.poundlock'),
-      '最外层兜底 catch 那一支没有 agentTeamDir，是因为 base 压根没算出来——这里 base ' +
-        '是算出来的。丢掉它，ledger 那条缝（/at-init 的触达表靠 ctx.agentTeamDir 认路）' +
+      '最外层兜底 catch 那一支没有 poundlockDir，是因为 base 压根没算出来——这里 base ' +
+        '是算出来的。丢掉它，ledger 那条缝（/at-init 的触达表靠 ctx.poundlockDir 认路）' +
         '会在这里静默倒退成照原路 fail open',
     )
   } finally {
@@ -327,27 +327,27 @@ test('project.json 是坏 JSON 时整个上下文返回 ok:false，kind 是 unre
   }
 })
 
-test('ctx 带 agentTeamDir，等于 <projectDir>/.poundlock', () => {
+test('ctx 带 poundlockDir，等于 <projectDir>/.poundlock', () => {
   const { projectDir, pluginDir } = makeRun({ stages: STAGES })
   try {
     const ctx = readRunContext(projectDir, pluginDir)
     assert.equal(ctx.ok, true)
-    assert.equal(ctx.agentTeamDir, join(projectDir, '.poundlock'))
+    assert.equal(ctx.poundlockDir, join(projectDir, '.poundlock'))
   } finally {
     rmSync(projectDir, { recursive: true, force: true })
     rmSync(pluginDir, { recursive: true, force: true })
   }
 })
 
-// M1b 终审 C1：失败返回里也要有 agentTeamDir。没有它，ledger 在「还没有 run」时
+// M1b 终审 C1：失败返回里也要有 poundlockDir。没有它，ledger 在「还没有 run」时
 // 连「这次写的是不是 .poundlock/project.json」都问不出来，触达表回传在全新项目上
 // 结构性不可达。两条分别钉住 no-run 与 unreadable，各自占一个 test()——它们是两个
 // 不同的返回点，不是同一个不变量按数据遍历。
 // ⚠️ M3c：这条的夹具原来只删 current-run，而那已经不再是 no-run——runs/r1/ 还在时
 // 它是 kind:'unreadable'（判据在 hooks/lib/runctx.mjs 头部 ③）。改的是夹具，不是断言：
-// 这条要钉的不变量（**no-run 的失败返回也带 agentTeamDir**，否则 /at-init 的触达表
+// 这条要钉的不变量（**no-run 的失败返回也带 poundlockDir**，否则 /at-init 的触达表
 // 在全新项目上结构性不可达）一个字没变，变的是「怎么造一个真的 no-run」。
-test('kind 是 no-run 的失败返回也带 agentTeamDir', () => {
+test('kind 是 no-run 的失败返回也带 poundlockDir', () => {
   const { projectDir, pluginDir } = makeRun({ stages: STAGES })
   try {
     rmSync(join(projectDir, '.poundlock', 'current-run'), { force: true })
@@ -355,35 +355,35 @@ test('kind 是 no-run 的失败返回也带 agentTeamDir', () => {
     const ctx = readRunContext(projectDir, pluginDir)
     assert.equal(ctx.ok, false)
     assert.equal(ctx.kind, 'no-run')
-    assert.equal(ctx.agentTeamDir, join(projectDir, '.poundlock'))
+    assert.equal(ctx.poundlockDir, join(projectDir, '.poundlock'))
   } finally {
     rmSync(projectDir, { recursive: true, force: true })
     rmSync(pluginDir, { recursive: true, force: true })
   }
 })
 
-test('kind 是 unreadable 的失败返回也带 agentTeamDir', () => {
+test('kind 是 unreadable 的失败返回也带 poundlockDir', () => {
   const { projectDir, pluginDir } = makeRun({ stages: STAGES })
   try {
     writeFileSync(join(projectDir, '.poundlock', 'current-run'), '', 'utf8')
     const ctx = readRunContext(projectDir, pluginDir)
     assert.equal(ctx.ok, false)
     assert.equal(ctx.kind, 'unreadable')
-    assert.equal(ctx.agentTeamDir, join(projectDir, '.poundlock'))
+    assert.equal(ctx.poundlockDir, join(projectDir, '.poundlock'))
   } finally {
     rmSync(projectDir, { recursive: true, force: true })
     rmSync(pluginDir, { recursive: true, force: true })
   }
 })
 
-// 最外层兜底 catch 那一支是唯一**没有** agentTeamDir 的失败返回，而且那是有意的：
+// 最外层兜底 catch 那一支是唯一**没有** poundlockDir 的失败返回，而且那是有意的：
 // 抛出的很可能正是 join(projectDir, '.poundlock') 自己。调用方按「取不到就照原路
 // fail open」处理，所以这条边界要钉住——凭空补一个值出来就是在编一条路径。
-test('projectDir 不是字符串时（最外层兜底 catch）不带 agentTeamDir——那条路径根本没算出来', () => {
+test('projectDir 不是字符串时（最外层兜底 catch）不带 poundlockDir——那条路径根本没算出来', () => {
   const ctx = readRunContext(undefined, undefined)
   assert.equal(ctx.ok, false)
   assert.equal(ctx.kind, 'unreadable')
-  assert.equal(ctx.agentTeamDir, undefined)
+  assert.equal(ctx.poundlockDir, undefined)
   assert.match(ctx.reason, /读取运行上下文失败/)
 })
 

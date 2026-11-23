@@ -332,7 +332,7 @@ test('rework：写的不是 state.json（比如 01-prd.md）→ 放行', () => {
 })
 
 // 真正的路径判据锚点——gate.mjs 的判据是
-// `isControlFile(filePath, agentTeamDir) && target.endsWith('/state.json')` 两个
+// `isControlFile(filePath, poundlockDir) && target.endsWith('/state.json')` 两个
 // 条件的合取，要各自独立地被测到，需要两份不会被"内容 parse 不出来"蒙混过关的夹具：
 // 磁盘上的"before"必须是合法的 state 形状 JSON，这次 Write 的"after"必须是相对它的一次
 // 真实 shrink（decideRework 会拒的那种），这样"这个检查项对这份内容本该 deny 却放行了"

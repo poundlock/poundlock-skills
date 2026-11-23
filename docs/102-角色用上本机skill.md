@@ -6,15 +6,15 @@
 
 ## 0. 一句话结论
 
-- **新命令 `/agent-team:at-skills`**：项目经理经 `Bash` 调插件自带的 `hooks/skills-cli.mjs`（不是门禁），把用户本机装的 skill（用户层、git 克隆的、
-  项目层、已装插件带的）整份复制进 `.agent-team/skills/<dir>/`、记进 `.agent-team/skills.json`（分给哪几个角色、来源、指纹、同步时间）。
+- **新命令 `/poundlock:at-skills`**：项目经理经 `Bash` 调插件自带的 `hooks/skills-cli.mjs`（不是门禁），把用户本机装的 skill（用户层、git 克隆的、
+  项目层、已装插件带的）整份复制进 `.poundlock/skills/<dir>/`、记进 `.poundlock/skills.json`（分给哪几个角色、来源、指纹、同步时间）。
 - **角色怎么用**：九个被派得到的角色同一节「登记给你的 skill」，项目经理一版自己的——开工时读清单、只看用途，用得上才读那份 `SKILL.md`；
   契约里用户点名的必须用；做法上与插件自带的（`at-ui-craft` 等）不一致时照 skill，管不了做什么（契约与产品定义定下的照它们），也盖不过四样（门禁与红线、
   要交哪几份、下游要读的项、开销规矩）；
   用过的记进产物的「用过的 skill」、交付文档汇总。
-- **更新**：只在 `/agent-team:at` 起新一趟、建 run 之前比对本机原件与副本，没变不出声，变了问用户再同步；一趟进行中、续跑都不换。
+- **更新**：只在 `/poundlock:at` 起新一趟、建 run 之前比对本机原件与副本，没变不出声，变了问用户再同步；一趟进行中、续跑都不换。
   网上那一层只在用户发起检查时查（git 克隆的 `fetch` 后看落后几个提交，批准了才 `pull --ff-only`）。
-- **不授 `Skill`、不加门禁**：角色写不进清单与副本靠现有的写路径隔离（`.agent-team` 不划给任何角色），新判据钉住。
+- **不授 `Skill`、不加门禁**：角色写不进清单与副本靠现有的写路径隔离（`.poundlock` 不划给任何角色），新判据钉住。
 
 ## 1. 起因
 
@@ -31,7 +31,7 @@
 - skill 目录里面的软链接（文件的、目录的、Windows 的目录联接）复制与算指纹都不跟；skill 目录本身是链进 `~/.claude/skills` 的照常认。起因同上：
   一份 skill 里放一个指向 `~/.ssh` 的链接，原来会被复制进项目。
 - 插件类的网上新版只核本机那份：当前 CLI 没有只读地查插件新版的子命令（`claude plugin --help` 核过），照设计的退路告诉用户可以 `claude plugin update`。
-- `/agent-team:at-skills` 开头做门禁自检（它会写 `.agent-team`）；README 两半「安装」一节与 `at-pm` 的「门禁自检」一节点名它。
+- `/poundlock:at-skills` 开头做门禁自检（它会写 `.poundlock`）；README 两半「安装」一节与 `at-pm` 的「门禁自检」一节点名它。
 - `argument-hint` 不以「[」开头：受限写法不许值以 YAML 指示符开头。
 - `~/.claude/skills/synced/`（从 claude.ai 同步下来的 skill，多套一层目录）与 skills-dir 形式的插件（`~/.claude/skills/<名>/.claude-plugin`）不认：
   两者在平台上叫什么名字本机核不了，登进 §5。
@@ -51,25 +51,25 @@
 - **`check` 也看副本**：副本的指纹和登记时对不上的报 `copy_changed`（被改过、删了里面的文件）；`sync` 记的指纹改按复制下来的副本算。
 - **改分给谁不再顺手换版本**：`assign` 能 `--add`、`--remove`（减到不剩一个拒绝）；已登记、本机那份又变了（或来源换了）的，`sync` 不带 `--update` 拒绝、副本不动。
   命令正文：已登记的只改角色用 `assign`，同步新版用 `sync --update`，且先照第 7 节问过用户。
-- **复制时跳过会被自动加载的位置**：`CLAUDE.md`、`CLAUDE.local.md`、`.claude`、`.git`（目录或文件）、`.agent-team`，哪一层都认、不分大小写，不复制也不进指纹，
+- **复制时跳过会被自动加载的位置**：`CLAUDE.md`、`CLAUDE.local.md`、`.claude`、`.git`（目录或文件）、`.poundlock`，哪一层都认、不分大小写，不复制也不进指纹，
   `list` 报出跳过了哪几处。名单从 `writepath.mjs` 导出（`AUTOLOADED_NAMES`），与写路径隔离认的是同一份。
-- **副本的落脚处是链接就不动**（推上去之后的后台安全审查）：目录名推出来之后只按字面核，`.agent-team/skills`、某份副本的目录、`skills.json` 被换成软链接或目录联接时，
-  写与删会跟着走到项目外面。这三处是链接的，`sync`、`remove` 给错误消息、不动，`check` 报 `copy_changed`。`.agent-team` 本身是不是链接不核（有人会把它链到别处放）。
-- **`/agent-team:at-skills` 里的几问另算**（审阅者标的小问题，按影响升了一级）：照「红线」那一节问用户要不要更新本机，原来会顺着敏感操作的流程往进行中那一趟
+- **副本的落脚处是链接就不动**（推上去之后的后台安全审查）：目录名推出来之后只按字面核，`.poundlock/skills`、某份副本的目录、`skills.json` 被换成软链接或目录联接时，
+  写与删会跟着走到项目外面。这三处是链接的，`sync`、`remove` 给错误消息、不动，`check` 报 `copy_changed`。`.poundlock` 本身是不是链接不核（有人会把它链到别处放）。
+- **`/poundlock:at-skills` 里的几问另算**（审阅者标的小问题，按影响升了一级）：照「红线」那一节问用户要不要更新本机，原来会顺着敏感操作的流程往进行中那一趟
   记 escalation、加修订块；命令正文写明不记、不动契约。
 
 ## 3. 判据
 
 - `tests/skills-lib.test.mjs`：目录名、指纹（与写入顺序无关、跳过 `.git`、改一个字节就变）、差异、用途与越出自己目录的 `${CLAUDE_PLUGIN_ROOT}` 引用、
-  四类来源都找得到且跳过 agent-team 自己、插件清单坏了不影响另两类、同步整份复制与写清单、撞名报错、不带角色沿用原有的、只改角色、副本被删、
+  四类来源都找得到且跳过 poundlock 自己、插件清单坏了不影响另两类、同步整份复制与写清单、撞名报错、不带角色沿用原有的、只改角色、副本被删、
   插件升级换目录、原件不见了、去掉不碰原件、角色白名单、清单坏了抛错不改文件、清单里被改过的 `dir` 走不出 skills 目录、不跟软链接、链进来的目录照常认。
 - `tests/skills-cli.test.mjs`：输出一份 JSON、`sync` 之后 `list` 带出分给谁、`check` 没变时全空、清单坏了退出码 2 且不改文件、`--roles at-outsider` 退出码 2
-  且什么都不写、没有 `.agent-team` 退出码 2、认不出的子命令、`assign` 与 `remove`。子进程经 `tests/helpers/gate-runner.mjs` 起（`run` 多了 `args` 选项）。
+  且什么都不写、没有 `.poundlock` 退出码 2、认不出的子命令、`assign` 与 `remove`。子进程经 `tests/helpers/gate-runner.mjs` 起（`run` 多了 `args` 选项）。
 - `tests/skills-prose.test.mjs`：九个角色逐字同一节、紧跟「项目自己的约定」；项目经理那一版排在「读文件与看输出」之前；UI 与三个端的覆盖句；
-  点名只认用户的话；`/agent-team:at-skills` 的承重句子；`/agent-team:at-init` 收尾那一句；README 两半；`/agent-team:at` 的四段各在该在的节、各只一处；
+  点名只认用户的话；`/poundlock:at-skills` 的承重句子；`/poundlock:at-init` 收尾那一句；README 两半；`/poundlock:at` 的四段各在该在的节、各只一处；
   续跑不核新版。
-- `tests/writepath.test.mjs`：每个被派得到的角色写 `.agent-team/skills.json` 与 `.agent-team/skills/` 下都被拒，`paths` 里写明了那个目录也拒；项目经理放行。
-- `tests/commands.test.mjs`：五条命令；命令正文里的 `.agent-team` 路径白名单认清单与副本。
+- `tests/writepath.test.mjs`：每个被派得到的角色写 `.poundlock/skills.json` 与 `.poundlock/skills/` 下都被拒，`paths` 里写明了那个目录也拒；项目经理放行。
+- `tests/commands.test.mjs`：五条命令；命令正文里的 `.poundlock` 路径白名单认清单与副本。
 
 ## 4. 门禁不核（三样）
 
@@ -83,8 +83,8 @@
 
 - 角色照不照登记的 skill 做、盖不盖得过插件自带的做法、四样有没有守住，只靠正文（付了三样，§4）。
 - skill 是第三方写的指令，里面可能有叫角色越界的话：写路径隔离照旧挡写入，`Bash` 不挡（不是沙箱，既有边界）。
-- 持 `Bash` 的角色能改 `.agent-team/skills.json` 与副本（`Bash` 不受门禁管）；副本目录由名字推出，改清单删不到 skills 目录之外。
-- 链接只核 `.agent-team/skills`、副本目录与 `skills.json` 这三处，在每一份动手之前核一次：`.agent-team` 本身是链接放过（有人把它链到别处放，换得了它的人已经
+- 持 `Bash` 的角色能改 `.poundlock/skills.json` 与副本（`Bash` 不受门禁管）；副本目录由名字推出，改清单删不到 skills 目录之外。
+- 链接只核 `.poundlock/skills`、副本目录与 `skills.json` 这三处，在每一份动手之前核一次：`.poundlock` 本身是链接放过（有人把它链到别处放，换得了它的人已经
   掌握了门禁读的全部状态）；核完到动手之间被另一个进程换成链接的不挡（要有一个同时在跑的恶意进程，不在这个插件防的范围里）。
 - 插件带的 skill 引用插件里别的文件时回原插件目录去读：在项目之外、可能弹读文件确认、不受同步与指纹管；原插件卸了就读不到（`check` 报不出这一种）。
 - skill 目录里的软链接一律不复制：靠软链接组织文件的 skill 复制进来会缺东西。
@@ -111,7 +111,7 @@
 **变异**（备份用 `cp` 放仓库外，改完跑、还原）：
 
 - `skillDirsIn` 不认链进来的目录：「skill 目录本身是链进来的」红。
-- `writepath.mjs` 里 `.agent-team` 那一道改成 `if (false)`：新的写路径判据红（同文件别的判据都没红——这一格原来没人钉）。
+- `writepath.mjs` 里 `.poundlock` 那一道改成 `if (false)`：新的写路径判据红（同文件别的判据都没红——这一格原来没人钉）。
 - 安全审查那两条：「清单里被改过的 `dir`」在修之前红；软链接那条在本机跳过（§6）。
 - 正文、命令、命令行入口与库一共十六刀（`at-qa` 与 `at-ui`、`at-pm` 那一节各改一句，`at-skills` 两句，`at` 两句，`at-init` 那一句，命令行的角色校验与退出码，
   库的指纹比对、`.git`、软链接、跳过自己、目录名校验、沿用角色）：十三刀第一轮就红。拿掉「跳过软链接」那一行与「空名字、`.`、`..`」那一行是等价变异
@@ -125,8 +125,8 @@
 
 - 探针目录先放在本工作树下：后台会话起不来（新目录没被信任，信任设置不替用户改），`-p` 能起，但工作树在 `.claude/worktrees/` 下，路径里带 `.claude`，
   平台把探针里每一次写入都当敏感文件拒掉、放行规则也不管用（项目经理照实停下、没有用 `Bash` 绕）。挪到仓库外的临时目录之后正常。
-- `/agent-team:at-skills 给 at-ui 加 probe-ui`（$0.14）：项目经理照命令正文调脚本、事后跑 `list` 核磁盘，清单与副本都对，回复里有「skill 是别人写的指令」那句提醒。
-- 改了本机原件（加一条「规格末尾写一行 probe-ui v2」）之后起 `/agent-team:at`：建 run 之前跑了 `check`、认出改了 `SKILL.md`；`-p` 会话问不了人，没同步，
+- `/poundlock:at-skills 给 at-ui 加 probe-ui`（$0.14）：项目经理照命令正文调脚本、事后跑 `list` 核磁盘，清单与副本都对，回复里有「skill 是别人写的指令」那句提醒。
+- 改了本机原件（加一条「规格末尾写一行 probe-ui v2」）之后起 `/poundlock:at`：建 run 之前跑了 `check`、认出改了 `SKILL.md`；`-p` 会话问不了人，没同步，
   回复里说了哪一份本机有新版——三场里每一场都一样（其中两场因为上面那条权限问题没建起 run）。
 - 走到 S2 的一趟（原话没提 skill）：项目经理嫌页面太简单，自己把 `at-ui` 写进了 `trimmed`，这一格没测到 skill。
 - 原话点名「UI 用 probe-ui」的一趟（$0.68）：S1 没问（已登记给 `at-ui`）；`at-ui` 读了副本，只出一个视觉方向、首行照写，规格与线框里的按钮都带「◆ 」，

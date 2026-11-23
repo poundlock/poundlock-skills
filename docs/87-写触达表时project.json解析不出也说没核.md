@@ -5,7 +5,7 @@
 
 ## 0. 一句话结论
 
-- 写 `.agent-team/reach.json` 时 `project.json` 读得到、却解析不出（或者不是一个 JSON 对象）：原来写 reach.json 那一条缝放过它，落到「它在别处被弄坏」那一条缝，
+- 写 `.poundlock/reach.json` 时 `project.json` 读得到、却解析不出（或者不是一个 JSON 对象）：原来写 reach.json 那一条缝放过它，落到「它在别处被弄坏」那一条缝，
   只说 `project.json` 的问题——没核被读成了对上。现在同一次回传里两段：先说【触达表】这一次没有核（`project.json` 解析不出、改好之后照写它那一次的【触达表】重写），
   再接【project.json】那一段（有没有 run、是不是 UTF-16，照旧分；出路与前一段同一条，复核之后，§8）。
 - 复核时顺带核实：「run 进行中、`project.json` 这一刻读不出」那一条（`docs/83` §4 第二条）早在 `docs/83` §8 加重读时就关上了，这一轮补了有 run 的判据。
@@ -13,7 +13,7 @@
 ## 1. 问题
 
 - `docs/83` 让写 `reach.json` 时核不了的几种都说一句「这一次没有核」，唯独 `project.json` 读得到、却解析不出那一种照旧落到「它在别处被弄坏」那一条缝：那一段
-  说 `project.json` 坏了、怎么改，不提 `reach.json` 没核。`/agent-team:at-init` 写的是「这一次没再收到【触达表】，就是对上了」——收到的只有【project.json】
+  说 `project.json` 坏了、怎么改，不提 `reach.json` 没核。`/poundlock:at-init` 写的是「这一次没再收到【触达表】，就是对上了」——收到的只有【project.json】
   那一段、没有【触达表】，照这一句就被读成了对上。
 
 ## 2. 修法

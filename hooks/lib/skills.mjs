@@ -139,10 +139,10 @@ function skillDirsIn(parent) {
 
 // 一份登记的副本在项目里的目录：一律由名字推出来，不信清单里记的 dir（清单谁都能用 Bash 改）；
 // 推出来不是 .poundlock/skills 下面的一层目录（空名字、`.`、`..`）给 null。
-function copyPathOf(agentTeamDir, name) {
+function copyPathOf(poundlockDir, name) {
   const dir = skillDirName(name)
   if (!dir || dir === '.' || dir === '..') return null
-  const base = path.resolve(agentTeamDir, SKILLS_DIR)
+  const base = path.resolve(poundlockDir, SKILLS_DIR)
   const full = path.resolve(base, dir)
   return path.dirname(full) === base ? full : null
 }
@@ -157,8 +157,8 @@ function isLink(p) {
 
 // 上面那一道只按字面核：.poundlock/skills 或某份副本的目录被换成软链接、目录联接的话，写与删会跟着它走到项目外面去。
 // 这两处是链接就不动（给错误消息），由人去看是谁换的。
-function linkedCopyReason(agentTeamDir, copyPath) {
-  if (isLink(path.resolve(agentTeamDir, SKILLS_DIR))) return `.poundlock/${SKILLS_DIR} 是一个链接，不往里写也不从里删`
+function linkedCopyReason(poundlockDir, copyPath) {
+  if (isLink(path.resolve(poundlockDir, SKILLS_DIR))) return `.poundlock/${SKILLS_DIR} 是一个链接，不往里写也不从里删`
   if (isLink(copyPath)) return `.poundlock/${SKILLS_DIR}/${path.basename(copyPath)} 是一个链接，不往里写也不从里删`
   return null
 }
@@ -280,8 +280,8 @@ export function discoverSkills({ home, projectRoot, selfPlugin = 'poundlock' }) 
 }
 
 /** 读 .poundlock/skills.json。文件不在给空清单；不是 JSON 或形状不对抛错，不改文件。 */
-export function readRegistry(agentTeamDir) {
-  const file = path.join(agentTeamDir, SKILLS_REGISTRY)
+export function readRegistry(poundlockDir) {
+  const file = path.join(poundlockDir, SKILLS_REGISTRY)
   if (!existsSync(file)) return { skills: {} }
   let reg
   try {
@@ -293,9 +293,9 @@ export function readRegistry(agentTeamDir) {
   return reg
 }
 
-function writeRegistry(agentTeamDir, reg) {
-  mkdirSync(agentTeamDir, { recursive: true })
-  const file = path.join(agentTeamDir, SKILLS_REGISTRY)
+function writeRegistry(poundlockDir, reg) {
+  mkdirSync(poundlockDir, { recursive: true })
+  const file = path.join(poundlockDir, SKILLS_REGISTRY)
   if (isLink(file)) throw new Error(`${SKILLS_REGISTRY} 是一个链接，不写它`)
   writeFileSync(file, `${JSON.stringify(reg, null, 2)}\n`)
 }
@@ -342,8 +342,8 @@ function placeholdersOf(skill, dir) {
  * 整份复制进项目、写清单。roles 为 null 时沿用清单里原有的角色；新登记却没给角色的报错。
  * 已登记的、本机原件（或来源）和登记时不一样了：不带 update 拒绝、副本不动——换版本要先给用户看改了什么、问过再换。
  */
-export function syncSkills({ agentTeamDir, installed, names, roles, now, update = false }) {
-  const reg = readRegistry(agentTeamDir)
+export function syncSkills({ poundlockDir, installed, names, roles, now, update = false }) {
+  const reg = readRegistry(poundlockDir)
   const synced = []
   const errors = []
   for (const wanted of names) {
@@ -358,12 +358,12 @@ export function syncSkills({ agentTeamDir, installed, names, roles, now, update 
       errors.push({ name: wanted, message: `${key} 还没登记过，要说分给哪几个角色` })
       continue
     }
-    const copyPath = copyPathOf(agentTeamDir, key)
+    const copyPath = copyPathOf(poundlockDir, key)
     if (!copyPath) {
       errors.push({ name: wanted, message: `${key} 这个名字推不出副本的目录名` })
       continue
     }
-    const linked = linkedCopyReason(agentTeamDir, copyPath)
+    const linked = linkedCopyReason(poundlockDir, copyPath)
     if (linked) {
       errors.push({ name: wanted, message: linked })
       continue
@@ -382,13 +382,13 @@ export function syncSkills({ agentTeamDir, installed, names, roles, now, update 
     reg.skills[key] = { dir, description: skill.description, roles: [...finalRoles], source, placeholders: placeholdersOf(skill, dir), sha, synced_at: now }
     synced.push({ name: key, dir, sha })
   }
-  if (synced.length) writeRegistry(agentTeamDir, reg)
+  if (synced.length) writeRegistry(poundlockDir, reg)
   return { synced, errors }
 }
 
 /** 只改登记过的 skill 分给谁，不复制：roles 整份换；add 加在后面（已有的不重复）；remove 减掉。减到一个不剩的拒绝。 */
-export function assignRoles({ agentTeamDir, names, roles = null, add = [], remove = [] }) {
-  const reg = readRegistry(agentTeamDir)
+export function assignRoles({ poundlockDir, names, roles = null, add = [], remove = [] }) {
+  const reg = readRegistry(poundlockDir)
   const assigned = []
   const errors = []
   for (const name of names) {
@@ -407,7 +407,7 @@ export function assignRoles({ agentTeamDir, names, roles = null, add = [], remov
     entry.roles = next
     assigned.push(name)
   }
-  if (assigned.length) writeRegistry(agentTeamDir, reg)
+  if (assigned.length) writeRegistry(poundlockDir, reg)
   return { assigned, errors }
 }
 
@@ -415,17 +415,17 @@ export function assignRoles({ agentTeamDir, names, roles = null, add = [], remov
  * 清单对本机原件与项目里的副本：没变、原件变了（附改了哪些文件）、原件不见了、副本不见了、副本被改过（和登记时的指纹对不上）。
  * 按来源的 ref 重新认原件，插件升级换目录照样认得。
  */
-export function checkSkills({ agentTeamDir, installed }) {
-  const reg = readRegistry(agentTeamDir)
+export function checkSkills({ poundlockDir, installed }) {
+  const reg = readRegistry(poundlockDir)
   const result = { unchanged: [], changed: [], missing: [], copy_missing: [], copy_changed: [] }
   for (const name of Object.keys(reg.skills).sort()) {
     const entry = reg.skills[name]
-    const copyPath = copyPathOf(agentTeamDir, name)
+    const copyPath = copyPathOf(poundlockDir, name)
     if (!copyPath || !existsSync(copyPath)) {
       result.copy_missing.push(name)
       continue
     }
-    if (linkedCopyReason(agentTeamDir, copyPath) || hashSkillDir(copyPath) !== entry?.sha) {
+    if (linkedCopyReason(poundlockDir, copyPath) || hashSkillDir(copyPath) !== entry?.sha) {
       result.copy_changed.push(name)
       continue
     }
@@ -446,8 +446,8 @@ export function checkSkills({ agentTeamDir, installed }) {
 }
 
 /** 删掉项目里的副本与清单里那一条；本机原件不碰。 */
-export function removeSkills({ agentTeamDir, names }) {
-  const reg = readRegistry(agentTeamDir)
+export function removeSkills({ poundlockDir, names }) {
+  const reg = readRegistry(poundlockDir)
   const removed = []
   const errors = []
   for (const name of names) {
@@ -456,12 +456,12 @@ export function removeSkills({ agentTeamDir, names }) {
       errors.push({ name, message: `${name} 没登记过` })
       continue
     }
-    const copyPath = copyPathOf(agentTeamDir, name)
+    const copyPath = copyPathOf(poundlockDir, name)
     if (!copyPath) {
       errors.push({ name, message: `${name} 这个名字推不出副本的目录名，没有删任何东西` })
       continue
     }
-    const linked = linkedCopyReason(agentTeamDir, copyPath)
+    const linked = linkedCopyReason(poundlockDir, copyPath)
     if (linked) {
       errors.push({ name, message: `${linked}，没有删任何东西` })
       continue
@@ -470,7 +470,7 @@ export function removeSkills({ agentTeamDir, names }) {
     delete reg.skills[name]
     removed.push(name)
   }
-  if (removed.length) writeRegistry(agentTeamDir, reg)
+  if (removed.length) writeRegistry(poundlockDir, reg)
   return { removed, errors }
 }
 
