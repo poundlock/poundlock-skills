@@ -516,7 +516,7 @@ test('回退后的 state 仍然合法：stage 指向更早的阶段、history �
 // ⚠️ 用 Write 工具落的这两条，没有走 Bash heredoc——heredoc 会吞掉正则里 \| 与 \d
 // 的反斜杠，导致测试假绿（M1c 终审复评踩过这个坑）。
 test('规格 §4.3 表里的每一行都能在 rejectTo 里命中', () => {
-  const spec = readFileSync(new URL('../docs/superpowers/specs/2026-09-15-agent-team-plugin-design.md', import.meta.url), 'utf8')
+  const spec = readFileSync(new URL('../docs/superpowers/specs/2026-09-15-poundlock-plugin-design.md', import.meta.url), 'utf8')
   const rows = [...spec.matchAll(/^\| (需求理解错|设计错|实现错) \| .*? \| (S\d) → S8 \|$/gm)]
   const byLabel = { 需求理解错: 'requirement', 设计错: 'design', 实现错: 'implementation' }
   for (const m of rows) {
@@ -525,7 +525,7 @@ test('规格 §4.3 表里的每一行都能在 rejectTo 里命中', () => {
 })
 
 test('前置条件：上一条真的从规格里解析出了 3 行——否则它是空转', () => {
-  const spec = readFileSync(new URL('../docs/superpowers/specs/2026-09-15-agent-team-plugin-design.md', import.meta.url), 'utf8')
+  const spec = readFileSync(new URL('../docs/superpowers/specs/2026-09-15-poundlock-plugin-design.md', import.meta.url), 'utf8')
   const rows = [...spec.matchAll(/^\| (需求理解错|设计错|实现错) \| .*? \| (S\d) → S8 \|$/gm)]
   assert.equal(rows.length, 3)
 })

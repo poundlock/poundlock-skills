@@ -17,7 +17,7 @@ const RUN = '/proj/.poundlock/runs/r1'
 const AT = '/proj/.poundlock'
 const PROJECT = { paths: { 'at-ui': ['src/ui/'], 'at-frontend': ['src/web/'], 'at-backend': ['src/server/'] } }
 const call = (role, filePath, stageId) =>
-  decideWritePath({ roster: ROSTER, role, filePath, project: PROJECT, runDir: RUN, stages: STAGES, agentTeamDir: AT, stageId })
+  decideWritePath({ roster: ROSTER, role, filePath, project: PROJECT, runDir: RUN, stages: STAGES, poundlockDir: AT, stageId })
 const SPEC_WAY = '这一段（S2）你交的是 run 目录里的 02-ui-spec.md、02-wireframe.html：要落的东西写进它们，这一段不为这个补 paths；确实要别的角色动的，写进去、冒泡给派你的上级。'
 
 test('H3：at-ui 在 S2 写别人认领的文件——出路是这一段的规格，不给「列到你名下」', () => {
@@ -60,7 +60,7 @@ test('H5b：at-ui 在 S2 没交齐——拦截文案补「被拒了的写进这�
 test('复核（docs/54 §8，中 1）：协调者——「没人认领」那一支同样给这一段的产物（S2 的 at-product、S3 的 at-architect，后者的产物是数组形式）；「归别人」那一支照旧是协调者的说法', () => {
   const project = { paths: { ...PROJECT.paths, 'at-product': ['docs/product/'], 'at-architect': ['docs/arch/'] } }
   const c = (role, f, stageId) =>
-    decideWritePath({ roster: ROSTER, role, filePath: f, project, runDir: RUN, stages: STAGES, agentTeamDir: AT, stageId })
+    decideWritePath({ roster: ROSTER, role, filePath: f, project, runDir: RUN, stages: STAGES, poundlockDir: AT, stageId })
   const prod = c('at-product', '/proj/nowhere/x.md', 'S2')
   assert.ok(prod.reason.includes('这一段（S2）你交的是 run 目录里的 01-prd.md：要落的东西写进它们'), prod.reason)
   const arch = c('at-architect', '/proj/nowhere/x.md', 'S3')

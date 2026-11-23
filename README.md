@@ -2,7 +2,7 @@
 
 # poundlock
 
-**十角色软件开发 agent team —— 一个 Claude Code 插件**
+**十角色软件开发团队 —— 一个 Claude Code 插件**
 
 项目经理就是你的主会话：分层派发任务，执行顺序由门禁强制，业务验收独立成线。
 
@@ -228,7 +228,7 @@ MIT — 见 [LICENSE](./LICENSE)。
 
 # poundlock
 
-**A ten-role software development agent team — as a Claude Code plugin**
+**A ten-role software development team — as a Claude Code plugin**
 
 The project manager is your main session: it dispatches work through a layered hierarchy, gates enforce the order, and business acceptance runs as its own track.
 

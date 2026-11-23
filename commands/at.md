@@ -1,5 +1,5 @@
 ---
-description: 起一趟 agent team：把一条业务需求从录入带到实现，PM 全程驱动直到完成或升级
+description: 起一趟十角色流程：把一条业务需求从录入带到实现，PM 全程驱动直到完成或升级
 argument-hint: <业务需求>
 ---
 

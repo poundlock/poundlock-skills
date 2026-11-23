@@ -33,15 +33,15 @@ test('cli sync 之后 list 带出登记给谁；再 check：没变时 changed �
 })
 
 test('cli refuses broken registry', () => {
-  const { home, projectRoot, agentTeamDir } = world()
-  writeFileSync(join(agentTeamDir, 'skills.json'), '{bad')
+  const { home, projectRoot, poundlockDir } = world()
+  writeFileSync(join(poundlockDir, 'skills.json'), '{bad')
   const cli = cliIn(projectRoot)
   for (const [sub, args] of [['list', []], ['check', []], ['sync', ['ui-kit:polish', '--roles', 'at-ui']], ['assign', ['plain', '--add', 'at-ui']], ['remove', ['plain']]]) {
     const r = cli(sub, [...args, '--home', home])
     assert.equal(r.status, 2, sub)
     assert.match(JSON.parse(r.stdout).error, /^skills\.json 读不出来：/, sub)
   }
-  assert.equal(readFileSync(join(agentTeamDir, 'skills.json'), 'utf8'), '{bad')
+  assert.equal(readFileSync(join(poundlockDir, 'skills.json'), 'utf8'), '{bad')
 })
 
 test('cli sync 对已登记、本机又变了的要带 --update；assign --add 只加不丢', () => {
@@ -57,10 +57,10 @@ test('cli sync 对已登记、本机又变了的要带 --update；assign --add �
 })
 
 test('cli 拒 --roles at-outsider，什么都不写', () => {
-  const { home, projectRoot, agentTeamDir } = world()
+  const { home, projectRoot, poundlockDir } = world()
   const r = cliIn(projectRoot)('sync', ['ui-kit:polish', '--roles', 'at-outsider', '--home', home])
   assert.equal(r.status, 2)
-  assert.throws(() => readFileSync(join(agentTeamDir, 'skills.json')))
+  assert.throws(() => readFileSync(join(poundlockDir, 'skills.json')))
 })
 
 test('cli 在没有 .poundlock 的目录里退出码 2', () => {

@@ -55,7 +55,7 @@
 // 门禁判不出来时要告诉 PM 怎么修，修法按它选（hooks/lib/fail-open.mjs 的 runContextFix）。它不改变 kind 的任何语义；
 // no-run 与 ok 不带它。tests/runctx.test.mjs 逐个出口钉着。
 //
-// 【M1b 终审 C1】失败返回里也带 agentTeamDir。理由：有一类判定只需要「.poundlock
+// 【M1b 终审 C1】失败返回里也带 poundlockDir。理由：有一类判定只需要「.poundlock
 // 在哪」，压根不需要一个进行中的 run——触达表就是这样（它的判据只有插件侧的
 // roster.json 与刚写完的 .poundlock/project.json，两者都与 run 无关），而
 // /at-init 按设计恰恰跑在**没有 run 的时候**。ok:false 时把这个字段一并给出去，
@@ -193,12 +193,12 @@ export function readProjectConfig(projectDir) {
  * 而 worktree 里没有 .poundlock 时，往上找会找回启动项目的 run，拿它去判 worktree 里的
  * 写入。团队自己进不了 worktree（没有角色持有 EnterWorktree，H1 拒绝带 isolation 的派发）。
  *
- * hasAgentTeam 注入只为单测；绝不抛——探测出错时退回 CLAUDE_PROJECT_DIR / cwd。
+ * hasPoundlock 注入只为单测；绝不抛——探测出错时退回 CLAUDE_PROJECT_DIR / cwd。
  */
 // run id 的白名单：以字母或数字开头，其余只许字母、数字、点、下划线、连字符。
 export const RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/
 
-export function projectRootFrom(env, cwd, hasAgentTeam = hasAgentTeamDir) {
+export function projectRootFrom(env, cwd, hasPoundlock = hasPoundlockDir) {
   const dir = env !== null && typeof env === 'object' ? env.CLAUDE_PROJECT_DIR : undefined
   const home = typeof dir === 'string' && dir !== '' ? dir : null
   const fallback = home ?? cwd
@@ -206,7 +206,7 @@ export function projectRootFrom(env, cwd, hasAgentTeam = hasAgentTeamDir) {
     if (typeof cwd !== 'string' || cwd === '') return fallback
     const bound = home !== null && underDir(cwd, home) ? norm(home) : null
     for (let d = resolve(cwd); ; ) {
-      if (!insideAgentTeam(d) && hasAgentTeam(d)) return d
+      if (!insidePoundlock(d) && hasPoundlock(d)) return d
       if (bound !== null && norm(d) === bound) return fallback
       const parent = dirname(d)
       if (parent === d) return fallback
@@ -220,11 +220,11 @@ export function projectRootFrom(env, cwd, hasAgentTeam = hasAgentTeamDir) {
 // 项目根不会在某个 .poundlock 目录里面（M3v，docs/30 §3）：PM 用 Bash `cd .poundlock/runs/<id>` 之后 cwd 留在那里，相对路径
 // 的 Write 会在 run 目录里造出一个嵌套的 .poundlock，「离最近的那个赢」就把 run 目录认成了项目根——那一趟的门禁全看错了
 // 地方，ledger 还因为写的是（那个根下的）控制文件一句不说。这样的候选跳过、接着往上找。按段比、不分大小写。
-function insideAgentTeam(dir) {
+function insidePoundlock(dir) {
   return String(dir).split(/[\\/]/).some((s) => s.toLowerCase() === '.poundlock')
 }
 
-function hasAgentTeamDir(dir) {
+function hasPoundlockDir(dir) {
   try {
     return statSync(join(dir, '.poundlock')).isDirectory()
   } catch {
@@ -277,15 +277,15 @@ export function readRunContext(projectDir, pluginDir, { runId: picked = null } =
           //      就是上面那一族的第四种手段，而且和 ③ 一样便宜——本轮关 ③ 的同时
           //      开一个同样大的口子，等于没关；
           //   ③ 不在这里接住、让它落到最外层兜底 catch，返回里就**没有
-          //      agentTeamDir**。那一支没有它是因为 base 压根没算出来，而这里 base
+          //      poundlockDir**。那一支没有它是因为 base 压根没算出来，而这里 base
           //      是算出来的；丢掉它会让 ledger 那条缝（/at-init 的触达表，靠
-          //      isProjectJson(filePath, ctx.agentTeamDir) 认路）在这里照原路
+          //      isProjectJson(filePath, ctx.poundlockDir) 认路）在这里照原路
           //      fail open，是一次谁都不会注意到的行为倒退。
           return {
             ok: false,
             kind: 'unreadable',
             cause: 'runs',
-            agentTeamDir: base,
+            poundlockDir: base,
             reason: `找不到 ${inline(pointer)}，而 ${inline(runsDir)} 读不出来：${quote(err.message, { max: 120 })}`,
           }
         }
@@ -296,7 +296,7 @@ export function readRunContext(projectDir, pluginDir, { runId: picked = null } =
             ok: false,
             kind: 'unreadable',
             cause: 'pointer',
-            agentTeamDir: base,
+            poundlockDir: base,
             reason: `找不到 ${inline(pointer)}，但 ${inline(runsDir)} 下非空——有人建过 run 而指针不在，不是没有 run`,
           }
         }
@@ -304,7 +304,7 @@ export function readRunContext(projectDir, pluginDir, { runId: picked = null } =
       return {
         ok: false,
         kind: 'no-run',
-        agentTeamDir: base,
+        poundlockDir: base,
         reason: `找不到 ${inline(pointer)}——当前没有进行中的 run`,
       }
     }
@@ -319,14 +319,14 @@ export function readRunContext(projectDir, pluginDir, { runId: picked = null } =
         ok: false,
         kind: 'unreadable',
         cause: 'pointer',
-        agentTeamDir: base,
+        poundlockDir: base,
         reason: `读取 current-run 失败：${quote(err.message, { max: 120 })}`,
       }
     }
     // 空文件不算 no-run，见文件头部注释：pointer 存在但内容为空是异常
     // 状态，不是干净的缺席，归 unreadable 更安全。
     if (!runId) {
-      return { ok: false, kind: 'unreadable', cause: 'pointer', agentTeamDir: base, reason: 'current-run 是空的' }
+      return { ok: false, kind: 'unreadable', cause: 'pointer', poundlockDir: base, reason: 'current-run 是空的' }
     }
     // current-run 的内容会被原样拼进 runs/<runId>/... 路径。不校验的话，一个
     // 含 ../ 的 runId 会被 path.join 正规化到 .poundlock/runs 之外，让 H5
@@ -344,10 +344,10 @@ export function readRunContext(projectDir, pluginDir, { runId: picked = null } =
     // 或者任何没预料到的异常。这不是「没有 run」——门禁自己都不知道出了
     // 什么问题，只能按最严格的 unreadable 处理。
     //
-    // ⚠️ 这一支**没有** agentTeamDir，和上面每一条失败返回都不一样，这是有意的：
+    // ⚠️ 这一支**没有** poundlockDir，和上面每一条失败返回都不一样，这是有意的：
     // 抛出的很可能正是 join(projectDir, '.poundlock') 自己（projectDir 不是字符串），
     // base 从来没被算出来、此刻也不在作用域里。硬凑一个值出来就是在编一条路径。
-    // 调用方按「取不到 agentTeamDir 就照原路 fail open」处理，见 hooks/gate.mjs 的
+    // 调用方按「取不到 poundlockDir 就照原路 fail open」处理，见 hooks/gate.mjs 的
     // ledger 分支。
     return { ok: false, kind: 'unreadable', cause: 'plugin', reason: `读取运行上下文失败：${quote(err.message, { max: 120 })}` }
   }
@@ -361,7 +361,7 @@ function readRunAt(base, pluginDir, runId, picked) {
       ok: false,
       kind: 'unreadable',
       cause: 'pointer',
-      agentTeamDir: base,
+      poundlockDir: base,
       reason:
         `${picked ? `${picked}的 id` : 'current-run 内容'}不是合法的 run id（只允许字母、数字、点、下划线、连字符，且以字母或数字开头）：` +
         quote(runId),
@@ -378,7 +378,7 @@ function readRunAt(base, pluginDir, runId, picked) {
       ok: false,
       kind: 'unreadable',
       cause: 'pointer',
-      agentTeamDir: base,
+      poundlockDir: base,
       reason: picked ? `${picked}的 run 目录 ${inline(runDir)} 不存在` : `current-run 指向 ${inline(runId)}，但 ${inline(runDir)} 不存在`,
     }
   }
@@ -386,12 +386,12 @@ function readRunAt(base, pluginDir, runId, picked) {
   // 走到这里，run 目录本身已确认存在——下面几步读到的任何失败都是
   // 「这个真实存在的 run 读不出来」，不再有 no-run 的可能，一律 unreadable。
   const state = readJson(join(runDir, 'state.json'))
-  if (!state.ok) return { ok: false, kind: 'unreadable', cause: 'state', agentTeamDir: base, reason: state.reason }
+  if (!state.ok) return { ok: false, kind: 'unreadable', cause: 'state', poundlockDir: base, reason: state.reason }
 
   // 单个微调：按这一趟的 mode 选阶段链（微调走 stages.tweak.json，别的——缺、full、坏值——走 stages.json）。
   const stagesFile = stagesFileFor(state.value)
   const stages = readJson(join(pluginDir, stagesFile))
-  if (!stages.ok) return { ok: false, kind: 'unreadable', cause: 'plugin', agentTeamDir: base, reason: stages.reason }
+  if (!stages.ok) return { ok: false, kind: 'unreadable', cause: 'plugin', poundlockDir: base, reason: stages.reason }
   // M3v 复核（docs/30 §3）：解析得出、形状不对的阶段链（{}、某一段的值不是对象）也是插件坏了。此前它算读出来了，每一次派发
   // 都落进 unknown-stage，门禁把原因说成 state.stage、叫 PM 去动 history；H3 也把 PM 的产物说成「不是任何阶段的 produces」。
   // 只核最外一层：各段里面的字段由各个消费方自己防。谓词与 H6 判「读不出阶段链」共用 stages.mjs 的 isStageChain（M3y）。
@@ -400,14 +400,14 @@ function readRunAt(base, pluginDir, runId, picked) {
       ok: false,
       kind: 'unreadable',
       cause: 'plugin',
-      agentTeamDir: base,
+      poundlockDir: base,
       reason: `${inline(join(pluginDir, stagesFile))} 的形状不对：要至少有一个阶段，每个阶段都是一个对象`,
     }
   }
 
   const projectPath = join(base, 'project.json')
   const project = existsSync(projectPath) ? readJson(projectPath) : { ok: true, value: null }
-  if (!project.ok) return { ok: false, kind: 'unreadable', cause: 'project', agentTeamDir: base, reason: project.reason }
+  if (!project.ok) return { ok: false, kind: 'unreadable', cause: 'project', poundlockDir: base, reason: project.reason }
 
   return {
     ok: true,
@@ -416,11 +416,11 @@ function readRunAt(base, pluginDir, runId, picked) {
     state: state.value,
     stages: stages.value,
     project: project.value,
-    // agentTeamDir 是 .poundlock 本身（runDir 的爷爷目录）。H3 判定控制文件要用
+    // poundlockDir 是 .poundlock 本身（runDir 的爷爷目录）。H3 判定控制文件要用
     // 它：current-run / project.json / reach.json 都在这一层、不在 runDir 里。
     // 让 decideWritePath 自己从 runDir 往上推两级也行，但那会是第二处「.poundlock
     // 在哪」的知识——这个文件已经是那条知识的唯一来源（上面的 base），直接给出去。
-    agentTeamDir: base,
+    poundlockDir: base,
     artifactExists(rel) {
       // join 放在 try 里面：rel 理论上总是 stages.json 里 requires/produces
       // 数组的字符串元素，但这层防御不该指望调用方守规矩——同一个教训

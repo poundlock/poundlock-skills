@@ -77,7 +77,7 @@ test('state.json 的例外名单：/at 建 run 那一段与规格 §4.4 点名�
   const optional = stateTemplateKeys().filter((k) => withoutKey(k).length === 0).sort()
   assert.deepEqual(optional, [...OPTIONAL_STATE_KEYS].sort())
   const at = readFileSync(new URL('../commands/at.md', import.meta.url), 'utf8')
-  const spec = readFileSync(new URL('../docs/superpowers/specs/2026-09-15-agent-team-plugin-design.md', import.meta.url), 'utf8')
+  const spec = readFileSync(new URL('../docs/superpowers/specs/2026-09-15-poundlock-plugin-design.md', import.meta.url), 'utf8')
   for (const [where, re] of [['commands/at.md', /除 ((?:`[a-z_]+`(?:、| 与 )?)+) 以外，少任何一个/], ['主规格 §4.4', /除 ((?:`[a-z_]+`(?:、| 与 )?)+) 外每一个都报/]]) {
     const m = (where === 'commands/at.md' ? at : spec).match(re)
     assert.ok(m, `${where} 里找不到那句例外名单——句式改了的话，这条判据的定位要跟着改`)

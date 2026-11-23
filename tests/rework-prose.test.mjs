@@ -94,7 +94,7 @@ test('M3y：at-qa 写明返工轮要在这一轮的实现上重跑，不拿上�
 })
 
 test('M3y：规格 §4.4 的示例带 rework_base、说明它的写法；§6 的 H6 那一行提到它', () => {
-  const spec = read('docs/superpowers/specs/2026-09-15-agent-team-plugin-design.md')
+  const spec = read('docs/superpowers/specs/2026-09-15-poundlock-plugin-design.md')
   const s44 = section(spec, '### 4.4 状态文件', '## 5.')
   assert.match(s44, /"rework_base": \{/)
   // 复核改的：带过来的条目沿用更早那次快照，「上一次回退那一刻」对它们不成立。
@@ -194,7 +194,7 @@ test('M3z：/at 第 4 节写明返工预算耗尽怎么问——规范标签、�
 test('M3z：「上限内的单角色重试」在插件正文、模板、规格与门禁代码里一处都不剩', () => {
   const files = [
     'commands/at.md', 'commands/at-resume.md', 'commands/at-status.md', 'agents/at-pm.md', 'templates/04-dispatch.md',
-    'docs/superpowers/specs/2026-09-15-agent-team-plugin-design.md', 'hooks/lib/rework-guard.mjs',
+    'docs/superpowers/specs/2026-09-15-poundlock-plugin-design.md', 'hooks/lib/rework-guard.mjs',
   ]
   for (const f of files) assert.ok(!read(f).includes('上限内的单角色重试'), f)
   for (const f of ['commands/at.md', 'agents/at-pm.md', 'templates/04-dispatch.md']) {
@@ -219,7 +219,7 @@ test('M3z：at-architect、at-product 写明越过那一段之后派执行角色
 })
 
 test('M3z：规格 §4.2 ③ 写到用户经规范标签批准、门禁记下；§6 的 H6 那一行不再说「只拦减少」', () => {
-  const spec = read('docs/superpowers/specs/2026-09-15-agent-team-plugin-design.md')
+  const spec = read('docs/superpowers/specs/2026-09-15-poundlock-plugin-design.md')
   assert.match(spec, /\*\*第 3 轮之后（M3z 补/)
   assert.match(spec, /门禁自己记下这条批准（`runs\/<id>\/approvals\.jsonl`/)
   const h6 = spec.split('\n').find((l) => l.startsWith('| H6 |'))

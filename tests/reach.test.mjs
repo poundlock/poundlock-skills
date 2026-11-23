@@ -237,7 +237,7 @@ test('M4f：unrestricted 与写路径隔离第 1 步是同一个判断——标�
   const r = computeReach({ roster: REAL_ROSTER, paths: TEMPLATE.paths })
   const stages = { S1: { role: 'at-pm', requires: [], produces: ['00-contract.md'] } }
   for (const [role, v] of Object.entries(r)) {
-    const d = decideWritePath({ role, filePath: '/proj/nobody-claims/x.ts', project: TEMPLATE, runDir: '/proj/.poundlock/runs/r1', stages, agentTeamDir: '/proj/.poundlock', roster: REAL_ROSTER })
+    const d = decideWritePath({ role, filePath: '/proj/nobody-claims/x.ts', project: TEMPLATE, runDir: '/proj/.poundlock/runs/r1', stages, poundlockDir: '/proj/.poundlock', roster: REAL_ROSTER })
     assert.equal(d.decision, v.unrestricted ? 'allow' : 'deny', `${role}：${JSON.stringify(d)}`)
   }
 })

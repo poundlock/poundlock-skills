@@ -25,7 +25,7 @@ const AT = '/proj/.poundlock'
 const STAGES = { S1: { role: 'at-pm', requires: [], produces: ['00-contract.md'] } }
 
 const decide = (role, filePath, project, roster = ROSTER) =>
-  decideWritePath({ role, filePath, project, runDir: RUN, stages: STAGES, agentTeamDir: AT, roster })
+  decideWritePath({ role, filePath, project, runDir: RUN, stages: STAGES, poundlockDir: AT, roster })
 const withPaths = (paths) => ({ ...TEMPLATE, paths })
 const OWN = '/proj/src/server/a.ts' // at-backend 自己的地盘
 const IOS = '/proj/src/ios/x.swift' // 别人的地盘
@@ -153,7 +153,7 @@ test('认领者查找只看合法的前缀：别人条目里阻断的前缀（�
 const REAL_STAGES = JSON.parse(readFileSync(new URL('../stages.json', import.meta.url), 'utf8'))
 const ownProduct = (role) => Object.values(REAL_STAGES).find((s) => s.role === role)?.produces?.join('、')
 const decideReal = (role, filePath, project, roster = ROSTER) =>
-  decideWritePath({ role, filePath, project, runDir: RUN, stages: REAL_STAGES, agentTeamDir: AT, roster })
+  decideWritePath({ role, filePath, project, runDir: RUN, stages: REAL_STAGES, poundlockDir: AT, roster })
 const NO_PATHS_TARGETS = [
   '/proj/tests/x.test.ts',
   '/proj/src/server/a.ts',
@@ -192,7 +192,7 @@ test('at-qa、at-acceptance 没有键：不管 project.json 在不在、形状�
 test('阶段链读不出、或者里面没有它那一段时，第 2 步照旧拒，理由泛说「自己那份产物」', () => {
   for (const role of NO_PATHS_ROLES) {
     for (const stages of [null, {}, STAGES]) {
-      const r = decideWritePath({ role, filePath: '/proj/tests/x.test.ts', project: TEMPLATE, runDir: RUN, stages, agentTeamDir: AT, roster: ROSTER })
+      const r = decideWritePath({ role, filePath: '/proj/tests/x.test.ts', project: TEMPLATE, runDir: RUN, stages, poundlockDir: AT, roster: ROSTER })
       assert.equal(r.decision, 'deny', role)
       assert.ok(r.reason.includes('你只写 run 目录里自己那份产物，run 目录之外的文件不是你的活。'), r.reason)
       assert.ok(r.reason.includes('照实写进你那份产物的结论，不用为这个冒泡。'), r.reason)

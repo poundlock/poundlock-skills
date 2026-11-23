@@ -209,17 +209,17 @@ let INPUT = null
 // 要在两条路径上问同一个问题（ctx.ok 的正常路径，以及 ctx 读不出来时那条只为触达表
 // 留的通道），而它对 filePath 的类型防御也只该写一遍：norm() 内部是 resolve()，
 // 传非字符串会同步抛。
-function isProjectJson(filePath, agentTeamDir) {
+function isProjectJson(filePath, poundlockDir) {
   if (typeof filePath !== 'string' || !filePath) return false
-  if (typeof agentTeamDir !== 'string' || !agentTeamDir) return false
-  return norm(filePath) === norm(`${agentTeamDir}/project.json`)
+  if (typeof poundlockDir !== 'string' || !poundlockDir) return false
+  return norm(filePath) === norm(`${poundlockDir}/project.json`)
 }
 
 // 「这次写的是不是 .poundlock/reach.json」（M4g）。与上面那个谓词同一个理由：ledger 的两条路径（ctx.ok、没有 run 的那条缝）问同一个问题。
-function isReachJson(filePath, agentTeamDir) {
+function isReachJson(filePath, poundlockDir) {
   if (typeof filePath !== 'string' || !filePath) return false
-  if (typeof agentTeamDir !== 'string' || !agentTeamDir) return false
-  return norm(filePath) === norm(`${agentTeamDir}/reach.json`)
+  if (typeof poundlockDir !== 'string' || !poundlockDir) return false
+  return norm(filePath) === norm(`${poundlockDir}/reach.json`)
 }
 
 // 每一趟 run 的派发记录：[{ id, dir, current, log }]，读不出派发记录的那一趟不列。runs 下的链接与 runctx 认 run 的口径一样算一个 run，同一个目录的
@@ -227,8 +227,8 @@ function isReachJson(filePath, agentTeamDir) {
 // 复核（docs/49 §8）：目录名不是合法 run id 的（资源管理器复制出来的「r1 - Copy」这类）不列——它们当不了 current-run，里面的派发记录只可能是
 // 拷来的；列进来会被当成派它的那一趟，给的出路（把指针改过去）走不通。
 function runLogs(ctx) {
-  if (typeof ctx.agentTeamDir !== 'string' || typeof ctx.runDir !== 'string') return []
-  const runsDir = join(ctx.agentTeamDir, 'runs')
+  if (typeof ctx.poundlockDir !== 'string' || typeof ctx.runDir !== 'string') return []
+  const runsDir = join(ctx.poundlockDir, 'runs')
   let ids
   try {
     ids = readdirSync(runsDir, { withFileTypes: true }).filter((e) => e.isDirectory() || e.isSymbolicLink()).map((e) => e.name)
@@ -400,7 +400,7 @@ function staleReachFor(ctx, writerIsPm = true) {
   let text
   let unreadable = false
   try {
-    text = readFileSync(join(ctx.agentTeamDir, 'reach.json'), 'utf8')
+    text = readFileSync(join(ctx.poundlockDir, 'reach.json'), 'utf8')
   } catch (err) {
     // docs/88：在、却读不出来（不是 ENOENT）——原来不核、一声不吭；现在说这一次没有核。只读一次：短暂占用时多说一次，照着重写一份正确的也无害。
     unreadable = err?.code !== 'ENOENT'
@@ -1225,9 +1225,9 @@ function contractBaseNotices(ctx) {
 // 是就回 { id（那一趟的目录名，照这次给的路径原样）, dir, name（契约或产物名，插件自己的名字）, role（产者；契约算项目经理的）, valid（目录名当得了
 // run id）}，否则 null。收窄到契约与产物：写 state.json（建新 run 时它本来就先于指针，/poundlock:at 第 1 节）、写别的文件都不算。currentRunDir 是
 // 指针指着的那一趟的目录（那一趟读不出来时由调用方按 current-run 的原文拼）；stages 读不出时只认契约。
-function otherRunWrite({ agentTeamDir, currentRunDir, stages }, filePath) {
-  if (typeof filePath !== 'string' || typeof agentTeamDir !== 'string' || typeof currentRunDir !== 'string') return null
-  const runsDir = join(agentTeamDir, 'runs')
+function otherRunWrite({ poundlockDir, currentRunDir, stages }, filePath) {
+  if (typeof filePath !== 'string' || typeof poundlockDir !== 'string' || typeof currentRunDir !== 'string') return null
+  const runsDir = join(poundlockDir, 'runs')
   const base = norm(runsDir)
   const target = norm(filePath)
   if (!target.startsWith(`${base}/`)) return null
@@ -1257,9 +1257,9 @@ function otherRunWrite({ agentTeamDir, currentRunDir, stages }, filePath) {
 }
 
 // M4p：current-run 里写的 run id，合法的才算；读不出、不合法回 null。指针指着的那一趟读不出来时，【指针】靠它认「这次写的不是那一趟」。
-function pointerIdOf(agentTeamDir) {
+function pointerIdOf(poundlockDir) {
   try {
-    const id = readFileSync(join(agentTeamDir, 'current-run'), 'utf8').trim()
+    const id = readFileSync(join(poundlockDir, 'current-run'), 'utf8').trim()
     return RUN_ID.test(id) ? id : null
   } catch {
     return null
@@ -1268,8 +1268,8 @@ function pointerIdOf(agentTeamDir) {
 
 // 一趟只归一个会话（hooks/lib/owner.mjs）：某一趟收没收口、归哪个会话——给 ownerWriteBlock、ownerDispatchBlock 的 infoOf。id 不合法、run 目录不在：null。
 // state.json 读不出来当没收口；owner.json 不在当没有归属，在却读不出来：留痕、当没有（少拦）。同一个 id 只读一次。
-function ownerInfoOf(agentTeamDir) {
-  const runsDir = join(agentTeamDir, 'runs')
+function ownerInfoOf(poundlockDir) {
+  const runsDir = join(poundlockDir, 'runs')
   const seen = new Map()
   return (id) => {
     if (typeof id !== 'string' || !RUN_ID.test(id)) return null
@@ -1310,16 +1310,16 @@ function forgetRuns() {
 
 // 并行微调（hooks/lib/runpick.mjs）：runs/ 下门禁记过的微调——[{ id, dir, open, owner（会话 id 或 null）, state, words }]，收口、放弃了的也列（open 为假）。
 // 名字不合 RUN_ID 的目录不列（当不了一趟 run），同一个目录的别名只算一次。读不出 runs/ 回空表。先读 run 目录的原话记录（小）：不是 at-tweak 的不读 state.json。
-function tweaksAt(agentTeamDir) {
-  const memoKey = norm(agentTeamDir)
+function tweaksAt(poundlockDir) {
+  const memoKey = norm(poundlockDir)
   if (TWEAKS_MEMO.has(memoKey)) return TWEAKS_MEMO.get(memoKey)
-  const out = scanTweaks(agentTeamDir)
+  const out = scanTweaks(poundlockDir)
   TWEAKS_MEMO.set(memoKey, out)
   return out
 }
 
-function scanTweaks(agentTeamDir) {
-  const runsDir = join(agentTeamDir, 'runs')
+function scanTweaks(poundlockDir) {
+  const runsDir = join(poundlockDir, 'runs')
   let entries
   try {
     entries = readdirSync(runsDir, { withFileTypes: true }).filter((e) => e.isDirectory() || e.isSymbolicLink())
@@ -1368,14 +1368,14 @@ function agentIdsAt(dir) {
 }
 
 // 并行微调：这个 agent_id 在不是微调的那些 run 的派发记录里有没有（skip：微调目录的规范化路径）。读不出的跳过。
-function agentInOtherRuns(agentTeamDir, agentId, skip) {
+function agentInOtherRuns(poundlockDir, agentId, skip) {
   let ids
   try {
-    ids = readdirSync(join(agentTeamDir, 'runs'), { withFileTypes: true }).filter((e) => e.isDirectory() || e.isSymbolicLink()).map((e) => e.name)
+    ids = readdirSync(join(poundlockDir, 'runs'), { withFileTypes: true }).filter((e) => e.isDirectory() || e.isSymbolicLink()).map((e) => e.name)
   } catch {
     return false
   }
-  return ids.some((id) => RUN_ID.test(id) && !skip.has(norm(join(agentTeamDir, 'runs', id))) && agentIdsAt(join(agentTeamDir, 'runs', id)).includes(agentId))
+  return ids.some((id) => RUN_ID.test(id) && !skip.has(norm(join(poundlockDir, 'runs', id))) && agentIdsAt(join(poundlockDir, 'runs', id)).includes(agentId))
 }
 
 // 并行微调：门禁这一次该按哪一趟判（hooks/lib/runpick.mjs 的 pickRun）。子代理（带 agent_id）按派发记录认回派它的那一趟微调；主线程（项目经理、
@@ -1389,10 +1389,10 @@ function pickedRunOf(input, agentId = input?.agent_id) {
     const tweaks = tweaksAt(join(ROOT_PROJECT, '.poundlock'))
     if (!tweaks.length) return null
     const sid = input?.session_id
-    const agentTeamDir = join(ROOT_PROJECT, '.poundlock')
+    const poundlockDir = join(ROOT_PROJECT, '.poundlock')
     const tweakDirs = new Set(tweaks.map((t) => norm(t.dir)))
-    const pid = pointerIdOf(agentTeamDir)
-    const pointerDir = pid ? join(agentTeamDir, 'runs', pid) : null
+    const pid = pointerIdOf(poundlockDir)
+    const pointerDir = pid ? join(poundlockDir, 'runs', pid) : null
     // 派发记录按需读（pickRun 依次问：开着的微调 → current-run 那一趟 → 收口了的微调 → 按会话认之前别的 run；前面认到了，后面的不读）。
     // 按会话认的退路之前先查别的（不是微调的）run 的派发记录：别的一趟派的子代理不认到这个会话名下的微调上（终审）。
     const picked = pickRun({
@@ -1404,7 +1404,7 @@ function pickedRunOf(input, agentId = input?.agent_id) {
         return isAgent && pointerDir !== null && !tweakDirs.has(norm(pointerDir)) && agentIdsAt(pointerDir).includes(agentId)
       },
       get agentElsewhere() {
-        return isAgent && agentInOtherRuns(agentTeamDir, agentId, tweakDirs)
+        return isAgent && agentInOtherRuns(poundlockDir, agentId, tweakDirs)
       },
     })
     if (!picked && mainThread && !(typeof sid === 'string' && sid !== '') && tweaks.some((t) => t.open)) {
@@ -1427,7 +1427,7 @@ function runCtxFor(input, agentId = input?.agent_id) {
       ok: false,
       kind: 'unreadable',
       cause: 'agent',
-      agentTeamDir: join(ROOT_PROJECT, '.poundlock'),
+      poundlockDir: join(ROOT_PROJECT, '.poundlock'),
       reason: '项目里开着微调，门禁认不出你是哪一趟派的（哪一趟的派发记录里都没有你）。以「冒泡：」停下，把这一句原样回报派你的项目经理',
     }
   }
@@ -1441,10 +1441,10 @@ function unclaimedTeamAgent(input, agentId) {
     if (typeof agentId !== 'string' || agentId === '' || malformedCaller(input)) return false
     const role = callerOf(input)
     if (isContractWriter(role) || !Object.hasOwn(loadRoster() ?? {}, role)) return false
-    const agentTeamDir = join(ROOT_PROJECT, '.poundlock')
-    if (!tweaksAt(agentTeamDir).some((t) => t.open)) return false
-    const pid = pointerIdOf(agentTeamDir)
-    return !(pid && agentIdsAt(join(agentTeamDir, 'runs', pid)).includes(agentId))
+    const poundlockDir = join(ROOT_PROJECT, '.poundlock')
+    if (!tweaksAt(poundlockDir).some((t) => t.open)) return false
+    const pid = pointerIdOf(poundlockDir)
+    return !(pid && agentIdsAt(join(poundlockDir, 'runs', pid)).includes(agentId))
   } catch {
     return false
   }
@@ -1454,8 +1454,8 @@ function unclaimedTeamAgent(input, agentId) {
 // 「别的一趟」随时都在跑；执行角色本来就被写路径隔离挡在那里之外，花名册外的调用者原来只挡控制文件。
 function otherRunDirWrite(ctx, role, filePath) {
   try {
-    if (isContractWriter(role) || typeof filePath !== 'string' || filePath === '' || typeof ctx?.agentTeamDir !== 'string') return false
-    return underDir(filePath, join(ctx.agentTeamDir, 'runs')) && !(typeof ctx.runDir === 'string' && underDir(filePath, ctx.runDir))
+    if (isContractWriter(role) || typeof filePath !== 'string' || filePath === '' || typeof ctx?.poundlockDir !== 'string') return false
+    return underDir(filePath, join(ctx.poundlockDir, 'runs')) && !(typeof ctx.runDir === 'string' && underDir(filePath, ctx.runDir))
   } catch {
     return false
   }
@@ -1465,7 +1465,7 @@ function otherRunDirWrite(ctx, role, filePath) {
 // 没有微调的项目不归这一条（自举不变）。
 function tweakDirsUnguarded(ctx, role, filePath) {
   try {
-    return !isContractWriter(role) && typeof filePath === 'string' && underDir(filePath, ctx.agentTeamDir) && tweaksAt(ctx.agentTeamDir).length > 0
+    return !isContractWriter(role) && typeof filePath === 'string' && underDir(filePath, ctx.poundlockDir) && tweaksAt(ctx.poundlockDir).length > 0
   } catch {
     return false
   }
@@ -1501,8 +1501,8 @@ function claimTargetOf(ctx, role, input, filePath) {
 function claimCheckOf(ctx, role, input, filePath) {
   try {
     if (!ctx?.ok || isContractWriter(role) || typeof input?.agent_id !== 'string' || typeof filePath !== 'string' || filePath === '') return null
-    const projectRoot = dirname(ctx.agentTeamDir)
-    if (!underDir(filePath, projectRoot) || underDir(filePath, ctx.agentTeamDir)) return null
+    const projectRoot = dirname(ctx.poundlockDir)
+    if (!underDir(filePath, projectRoot) || underDir(filePath, ctx.poundlockDir)) return null
     return { key: norm(filePath), path: relative(projectRoot, filePath).split(/[\\/]/).join('/') }
   } catch {
     return null
@@ -1511,7 +1511,7 @@ function claimCheckOf(ctx, role, input, filePath) {
 
 // 并行微调：别的没收尾的微调各自认领了什么——[{ id, keys, startedAt, wordsHead }]（不含这一趟）。认领记录读不出当没有。
 function otherClaimsOf(ctx) {
-  return tweaksAt(ctx.agentTeamDir)
+  return tweaksAt(ctx.poundlockDir)
     .filter((t) => t.open && norm(t.dir) !== norm(ctx.runDir))
     .map((t) => {
       let text = null
@@ -1548,12 +1548,12 @@ function recordClaim(ctx, role, input, filePath) {
 //   - 某一趟 run 目录里的文件：{ kind: 'run-file', runId, creatingState }。runId 取规范化之后的那一段（解析过链接、目录联接与别名，Windows、macOS 上折成
 //     小写）：照字面取的话，经一个名字不合 run id 格式的链接写进去，就查不到那一趟的归属。creatingState：写的是那一趟的 state.json、写之前它不在；
 //   - 别的：null。
-function ownerTargetOf(agentTeamDir, filePath) {
+function ownerTargetOf(poundlockDir, filePath) {
   if (typeof filePath !== 'string' || filePath === '') return null
-  const runsDir = join(agentTeamDir, 'runs')
+  const runsDir = join(poundlockDir, 'runs')
   const target = norm(filePath)
-  const pointerPath = join(agentTeamDir, 'current-run')
-  if (target === norm(pointerPath) || (leafName(filePath) === 'current-run' && norm(dirname(filePath)) === norm(agentTeamDir))) return { kind: 'pointer' }
+  const pointerPath = join(poundlockDir, 'current-run')
+  if (target === norm(pointerPath) || (leafName(filePath) === 'current-run' && norm(dirname(filePath)) === norm(poundlockDir))) return { kind: 'pointer' }
   const base = norm(runsDir)
   if (!target.startsWith(`${base}/`)) return null
   const rel = target.slice(base.length + 1).split('/')
@@ -1564,9 +1564,9 @@ function ownerTargetOf(agentTeamDir, filePath) {
 
 // 一趟只归一个会话：项目一级的原话记录按会话分开记（hooks/lib/user-words.mjs 的 readWordsBook）。readWordsBookAt 只读；updateWordsBook 在锁里读出整张表、
 // 交给 update 改（回 null 是不改）、写回——表空了就删掉文件（与原来清掉单份记录时一样）。写不进的异常照抛，调用方各自留痕。
-function readWordsBookAt(agentTeamDir) {
+function readWordsBookAt(poundlockDir) {
   try {
-    return readWordsBook(readFileSync(join(agentTeamDir, USER_WORDS_FILE)))
+    return readWordsBook(readFileSync(join(poundlockDir, USER_WORDS_FILE)))
   } catch {
     return readWordsBook(null)
   }
@@ -1574,10 +1574,10 @@ function readWordsBookAt(agentTeamDir) {
 
 // keep：这一次写的是哪个会话的。写回时顺手清掉别的会话里已经绑上或作废的条目——它们之后没有任何读者（run 目录里留着绑上的那一份），不清的话这张表
 // 只增不减、每个起过命令的会话都留着整段原话。还挂着的（没绑、没作废）不动。update 回 null（不改）时也不清。
-function updateWordsBook(agentTeamDir, keep, update) {
-  const file = join(agentTeamDir, USER_WORDS_FILE)
-  return withFileLock(agentTeamDir, USER_WORDS_FILE, () => {
-    let next = update(readWordsBookAt(agentTeamDir))
+function updateWordsBook(poundlockDir, keep, update) {
+  const file = join(poundlockDir, USER_WORDS_FILE)
+  return withFileLock(poundlockDir, USER_WORDS_FILE, () => {
+    let next = update(readWordsBookAt(poundlockDir))
     if (!next) return null
     for (const [sid, rec] of Object.entries(next.sessions)) {
       if (sid !== keep && (rec.bound !== null || rec.dropped !== null)) next = withWords(next, sid, null)
@@ -1591,10 +1591,10 @@ function updateWordsBook(agentTeamDir, keep, update) {
 
 // 一趟只归一个会话：hook 输入里读不到会话 id 时判不出来、放行——这一次碰到的那一趟（写的 run 目录、current-run 指着的）有主人、没收口时留一行痕，
 // 不然这次放行与「判过了、是主人」分不出来。没有归属的旧 run 不留（正常的一趟不多一行）。
-function ownerUnjudged(input, agentTeamDir, target = null) {
+function ownerUnjudged(input, poundlockDir, target = null) {
   if (typeof input?.session_id === 'string' && input.session_id !== '') return
-  const infoOf = ownerInfoOf(agentTeamDir)
-  for (const id of [target && target.kind === 'run-file' ? target.runId : null, pointerIdOf(agentTeamDir)]) {
+  const infoOf = ownerInfoOf(poundlockDir)
+  for (const id of [target && target.kind === 'run-file' ? target.runId : null, pointerIdOf(poundlockDir)]) {
     const info = typeof id === 'string' ? infoOf(id) : null
     if (info && info.owner && !info.closed) {
       process.stderr.write(`poundlock 会话归属：hook 输入里读不到会话 id，判不出这一次是不是 ${quote(id)} 那一趟的会话，不按会话拦、放行。\n`)
@@ -1611,10 +1611,10 @@ function delegationRoster(input) {
   const plain = { roster, tweak: false }
   try {
     if (malformedCaller(input) || !isContractWriter(callerOf(input)) || typeof input?.agent_id === 'string') return plain
-    const agentTeamDir = join(ROOT_PROJECT, '.poundlock')
-    const pid = pickedRunOf(input)?.runId ?? pointerIdOf(agentTeamDir)
+    const poundlockDir = join(ROOT_PROJECT, '.poundlock')
+    const pid = pickedRunOf(input)?.runId ?? pointerIdOf(poundlockDir)
     if (!pid) return plain
-    const runDir = join(agentTeamDir, 'runs', pid)
+    const runDir = join(poundlockDir, 'runs', pid)
     const st = runStateOf(runDir)
     // 只认门禁记过的微调：state 写着 tweak、run 目录里绑着 /poundlock:at-tweak 的原话记录、还没收口。读原话记录不经 runWords（它读不出时的留痕
     // 说的是契约第 1 节，放在派发这里不对）。
@@ -1637,11 +1637,11 @@ function delegationRoster(input) {
 // 重交）；写错了目录（照原样写进指针指着的那一趟，那一趟读不出来时不给）；要接着做那一趟（用户定过放弃的、拿不准的先问用户，它已经收口就不能接着做）。
 // 目录名当不了 run id 的，不给「指过去」「接着做」。指针指着的那一趟读不出来（currentBroken）：叫它别去修那一趟（/poundlock:at 第 1 节）。
 // 并行微调：这个 run 目录是不是一趟门禁记过的微调（tweaksAt 里的那一项，不是回 null）。
-function tweakOfDir(agentTeamDir, dir) {
+function tweakOfDir(poundlockDir, dir) {
   try {
-    if (typeof agentTeamDir !== 'string' || typeof dir !== 'string') return null
+    if (typeof poundlockDir !== 'string' || typeof dir !== 'string') return null
     const key = norm(dir)
-    return tweaksAt(agentTeamDir).find((t) => norm(t.dir) === key) ?? null
+    return tweaksAt(poundlockDir).find((t) => norm(t.dir) === key) ?? null
   } catch {
     return null
   }
@@ -1695,12 +1695,12 @@ function runClosed(dir) {
 // state.json（H6 里写之前文件还不在）——只有那一次绑。账本（项目经理在当前这一趟写 state.json、契约）只作废，H6（任何一趟的 state.json）作废与绑都做。
 // 复核（docs/50 §9）：原来账本在第一段里写 state.json、契约时也绑，run 目录里有就直接返回、不判作废——晚绑会跨会话绑错、回退到第一段时与契约
 // 基线互相卡死，续跑一趟自带记录的旧 run 不作废。写不进只是这一趟不核，留痕。
-function settleWords({ runDir, agentTeamDir, sessionId, state, stages, creating }) {
-  if (typeof runDir !== 'string' || typeof agentTeamDir !== 'string') return
+function settleWords({ runDir, poundlockDir, sessionId, state, stages, creating }) {
+  if (typeof runDir !== 'string' || typeof poundlockDir !== 'string') return
   // 一趟只归一个会话：只看这个会话那一条（别的会话挂着的不动）。
-  const pending = wordsFor(readWordsBookAt(agentTeamDir), sessionId)
+  const pending = wordsFor(readWordsBookAt(poundlockDir), sessionId)
   if (!pending) return
-  const runsDir = join(agentTeamDir, 'runs')
+  const runsDir = join(poundlockDir, 'runs')
   const ids = isStageChain(stages) ? Object.keys(stages) : []
   const runId = basename(runDir)
   const decision = bindDecision(pending, {
@@ -1713,7 +1713,7 @@ function settleWords({ runDir, agentTeamDir, sessionId, state, stages, creating 
   })
   if (!decision) return
   const patchMine = (patch) =>
-    updateWordsBook(agentTeamDir, sessionId, (book) => {
+    updateWordsBook(poundlockDir, sessionId, (book) => {
       const cur = wordsFor(book, sessionId)
       return cur ? withWords(book, sessionId, { ...cur, ...patch }) : null
     })
@@ -1732,16 +1732,16 @@ function settleWords({ runDir, agentTeamDir, sessionId, state, stages, creating 
   }
 }
 
-// 写的是不是某个 .poundlock/runs/<id>/state.json（按字面认三段名字，Windows、macOS 上不分大小写）：是就给 { runDir, runsDir, agentTeamDir }，否则 null。
+// 写的是不是某个 .poundlock/runs/<id>/state.json（按字面认三段名字，Windows、macOS 上不分大小写）：是就给 { runDir, runsDir, poundlockDir }，否则 null。
 // 不经运行上下文：建 run 的那一刻 current-run 多半还没写。
 function runStateFileOf(filePath) {
   if (typeof filePath !== 'string') return null
   const runDir = dirname(filePath)
   const runsDir = dirname(runDir)
-  const agentTeamDir = dirname(runsDir)
+  const poundlockDir = dirname(runsDir)
   const same = (a, b) => (process.platform === 'linux' ? a === b : a.toLowerCase() === b.toLowerCase())
-  if (!same(basename(filePath), 'state.json') || !same(basename(runsDir), 'runs') || !same(basename(agentTeamDir), '.poundlock')) return null
-  return { runDir, runsDir, agentTeamDir }
+  if (!same(basename(filePath), 'state.json') || !same(basename(runsDir), 'runs') || !same(basename(poundlockDir), '.poundlock')) return null
+  return { runDir, runsDir, poundlockDir }
 }
 
 // 一趟只归一个会话（hooks/lib/owner.mjs）：建 run 的那一次由账本记下归哪个会话（runs/<id>/owner.json，门禁专属）。只认主线程（项目经理、不带
@@ -1774,14 +1774,14 @@ function finishWordsBinding(input, filePath) {
   if (!isContractWriter(input?.agent_type) || typeof filePath !== 'string') return
   const parts = runStateFileOf(filePath)
   if (!parts) return
-  const { runDir, runsDir, agentTeamDir } = parts
+  const { runDir, runsDir, poundlockDir } = parts
   const sid = input.session_id
-  const pending = wordsFor(readWordsBookAt(agentTeamDir), sid)
+  const pending = wordsFor(readWordsBookAt(poundlockDir), sid)
   const runId = basename(runDir)
   const sameRun = (a, b) => norm(join(runsDir, a)) === norm(join(runsDir, b))
   if (!finishBinding(pending, { sessionId: sid, runId, sameRun }) || !existsSync(filePath)) return
   try {
-    updateWordsBook(agentTeamDir, sid, (book) => {
+    updateWordsBook(poundlockDir, sid, (book) => {
       const cur = wordsFor(book, sid)
       return cur ? withWords(book, sid, { ...cur, binding: null, bound: runId }) : null
     })
@@ -1807,21 +1807,21 @@ function recordBrief(input) {
   if (b.why) return skip(b.why)
   const sid = input.session_id
   if (typeof sid !== 'string' || sid === '') return skip('no-session')
-  const agentTeamDir = join(ROOT_PROJECT, '.poundlock')
+  const poundlockDir = join(ROOT_PROJECT, '.poundlock')
   let isDir = false
   try {
-    isDir = statSync(agentTeamDir).isDirectory()
+    isDir = statSync(poundlockDir).isDirectory()
   } catch {}
   if (!isDir) return skip('no-poundlock')
   let runsBefore = []
   try {
-    runsBefore = readdirSync(join(agentTeamDir, 'runs'))
+    runsBefore = readdirSync(join(poundlockDir, 'runs'))
   } catch {}
   try {
     const rec = pendingRecord({ at: new Date().toISOString(), sessionId: sid, args: b.draft, runsBefore, source: 'ask' })
     // 需求稿批准沿用这个会话还挂着（没绑、没作废）的那条命令（/poundlock:at-tweak 之后问清的需求稿，建的仍是微调）；绑上或作废了的旧记录不沿用——
     // 不然一次旧的 at-tweak 会让之后的需求稿建成微调。
-    updateWordsBook(agentTeamDir, sid, (book) => {
+    updateWordsBook(poundlockDir, sid, (book) => {
       const prev = wordsFor(book, sid)
       const pending = prev && prev.bound === null && prev.dropped === null
       return withWords(book, sid, { ...rec, command: pending ? prev.command : 'at' })
@@ -1835,8 +1835,8 @@ function recordBrief(input) {
   // 回传点明出路。只读指针与那一趟的 state.json，不引任何磁盘上的值。
   let staleRun = false
   try {
-    const runsDir = join(agentTeamDir, 'runs')
-    const id = readFileSync(join(agentTeamDir, 'current-run'), 'utf8').trim()
+    const runsDir = join(poundlockDir, 'runs')
+    const id = readFileSync(join(poundlockDir, 'current-run'), 'utf8').trim()
     if (id !== '' && runsBefore.some((n) => norm(join(runsDir, n)) === norm(join(runsDir, id)))) {
       const st = JSON.parse(readFileSync(join(runsDir, id, 'state.json'), 'utf8'))
       staleRun = isPlainObject(st) && closedAt(st) === null
@@ -1851,8 +1851,8 @@ function recordBrief(input) {
 function recordTakeover(input) {
   const a = takeoverAnswer(input?.tool_response)
   if (!a) return null
-  const agentTeamDir = join(ROOT_PROJECT, '.poundlock')
-  let runId = pointerIdOf(agentTeamDir)
+  const poundlockDir = join(ROOT_PROJECT, '.poundlock')
+  let runId = pointerIdOf(poundlockDir)
   const skip = (why) => {
     process.stderr.write(`poundlock approval-ask：没有记成接手（${why}）。\n`)
     return { kind: 'takeover-skipped', notice: takeoverNotice({ runId, why }) }
@@ -1860,9 +1860,9 @@ function recordTakeover(input) {
   if (a.why) return skip(a.why)
   const sid = input.session_id
   if (typeof sid !== 'string' || sid === '') return skip('no-session')
-  const infoOf = ownerInfoOf(agentTeamDir)
+  const infoOf = ownerInfoOf(poundlockDir)
   // 候选：current-run 指着的那一趟（目录在的），加上别的会话名下没收尾的微调（并行微调：微调不占 current-run，原会话关了要在这里接手）。
-  const open = tweaksAt(agentTeamDir).filter((t) => t.open)
+  const open = tweaksAt(poundlockDir).filter((t) => t.open)
   const candidates = [...new Set([...(runId && infoOf(runId) ? [runId] : []), ...open.filter((t) => t.owner !== sid).map((t) => t.id)])]
   if (!candidates.length) return skip('no-run')
   // 绑在用户看到的那一趟上：题面里要原样写着恰好一个候选的 run id。
@@ -1877,7 +1877,7 @@ function recordTakeover(input) {
   if (info.tweak === true && open.some((t) => t.owner === sid)) return skip('has-tweak')
   try {
     const rec = ownerRecord({ sessionId: sid, at: new Date().toISOString(), via: 'takeover', previous: info.owner ? info.owner.session_id : null })
-    writeFileSync(join(agentTeamDir, 'runs', runId, OWNER_FILE), `${JSON.stringify(rec, null, 2)}\n`)
+    writeFileSync(join(poundlockDir, 'runs', runId, OWNER_FILE), `${JSON.stringify(rec, null, 2)}\n`)
     forgetRuns()
   } catch {
     return skip('write-failed')
@@ -1900,7 +1900,7 @@ function recordAbandon(input) {
   if (!ctx.ok) return skip('no-run')
   if (!mentionsRunId(a.question, ctx.runId)) return skip('unbound', ctx.runId)
   if (closedAt(ctx.state) !== null) return skip('closed', ctx.runId)
-  if (blocksMe(ownerInfoOf(ctx.agentTeamDir)(ctx.runId), input.session_id)) return skip('other-session', ctx.runId)
+  if (blocksMe(ownerInfoOf(ctx.poundlockDir)(ctx.runId), input.session_id)) return skip('other-session', ctx.runId)
   try {
     withApprovalsLock(ctx.runDir, () => {
       const file = join(ctx.runDir, APPROVALS_FILE)
@@ -1932,7 +1932,7 @@ function recordTweakDone(input, source) {
   if (!ctx.ok) return skip('no-run')
   if (modeOf(ctx.state) !== TWEAK_MODE) return skip('not-tweak')
   if (ctx.state?.stage !== implStageOf(ctx.stages)) return skip('not-impl')
-  if (blocksMe(ownerInfoOf(ctx.agentTeamDir)(ctx.runId), input.session_id)) return skip('other-session')
+  if (blocksMe(ownerInfoOf(ctx.poundlockDir)(ctx.runId), input.session_id)) return skip('other-session')
   const bytes = ctx.artifactBytes(CONTRACT_FILE)
   if (!bytes) return skip('no-contract')
   try {
@@ -2368,8 +2368,8 @@ function progressOf({ ctx, fresh, log, coordinator, coordinatorId, stageId, reci
 }
 
 // 一趟只归一个会话：命令展开时的【会话】——current-run 指着的那一趟归另一个会话、没收口。停在最后一段、产物都写了的说「只差收口」。
-function ownerNoticeFor(command, agentTeamDir, runId, info) {
-  const runDir = join(agentTeamDir, 'runs', runId)
+function ownerNoticeFor(command, poundlockDir, runId, info) {
+  const runDir = join(poundlockDir, 'runs', runId)
   const st = runStateOf(runDir)
   let delivered = false
   try {
@@ -2458,9 +2458,9 @@ function main() {
     // 一趟只归一个会话（hooks/lib/owner.mjs）：主线程（项目经理、不带 agent_type 的主会话；不带 agent_id）在 current-run 指着的一趟归别的会话、还没收口时
     // 派人，拒。排在读运行上下文之前：它只看指针、那一趟的收口与归属，读不出运行上下文时照样判。子代理往下派照旧按派发记录认，不归这一道管。
     if (!malformedCaller(input) && isContractWriter(callerOf(input)) && typeof input.agent_id !== 'string') {
-      const agentTeamDir = join(ROOT_PROJECT, '.poundlock')
-      ownerUnjudged(input, agentTeamDir)
-      const block = ownerDispatchBlock({ sessionId: input.session_id, pointerId: pickedRunOf(input)?.runId ?? pointerIdOf(agentTeamDir), infoOf: ownerInfoOf(agentTeamDir) })
+      const poundlockDir = join(ROOT_PROJECT, '.poundlock')
+      ownerUnjudged(input, poundlockDir)
+      const block = ownerDispatchBlock({ sessionId: input.session_id, pointerId: pickedRunOf(input)?.runId ?? pointerIdOf(poundlockDir), infoOf: ownerInfoOf(poundlockDir) })
       if (block) denyAndExit(ownerDenyReason(block) + selfCheckIdentity(input, '派发'), spec.event)
     }
     const ctx = runCtxFor(input)
@@ -2616,15 +2616,15 @@ function main() {
     // 从它切走或指到它，拒。排在主线程豁免与读运行上下文之前：豁免放行的正是主线程，建 run 那一刻运行上下文也读不出来。子代理照旧按派发记录认回
     // 派它的那一趟，不归这一道管。hook 输入里读不到会话 id 时判不出来，不拦。
     if (isContractWriter(role) && typeof input.agent_id !== 'string') {
-      const agentTeamDir = join(ROOT_PROJECT, '.poundlock')
-      const runsDir = join(agentTeamDir, 'runs')
-      const target = ownerTargetOf(agentTeamDir, checked)
-      ownerUnjudged(input, agentTeamDir, target)
+      const poundlockDir = join(ROOT_PROJECT, '.poundlock')
+      const runsDir = join(poundlockDir, 'runs')
+      const target = ownerTargetOf(poundlockDir, checked)
+      ownerUnjudged(input, poundlockDir, target)
       const block = ownerWriteBlock({
         sessionId: input.session_id,
         target,
-        pointerId: pointerIdOf(agentTeamDir),
-        infoOf: ownerInfoOf(agentTeamDir),
+        pointerId: pointerIdOf(poundlockDir),
+        infoOf: ownerInfoOf(poundlockDir),
         same: (a, b) => norm(join(runsDir, a)) === norm(join(runsDir, b)),
       })
       if (block) denyAndExit(ownerDenyReason(block) + selfCheckIdentity(input, '写入'), spec.event)
@@ -2642,7 +2642,7 @@ function main() {
       if (ctx.kind === 'no-run') {
         // 并行微调：项目里开着微调、这个团队角色哪一趟的派发记录里都没有——不按「没有 run」放行（那会把认领与写路径隔离一起绕开）。
         // 项目经理不在此列（它不经派发记录认）；没有微调开着的项目照旧放行（自举不变）。
-        if (!isContractWriter(role) && Object.hasOwn(loadRoster() ?? {}, role) && tweaksAt(ctx.agentTeamDir).some((t) => t.open)) {
+        if (!isContractWriter(role) && Object.hasOwn(loadRoster() ?? {}, role) && tweaksAt(ctx.poundlockDir).some((t) => t.open)) {
           denyAndExit(
             `poundlock 写路径门禁：项目里开着微调，门禁认不出你是哪一趟派的（哪一趟的派发记录里都没有你），按安全边界拒绝。` +
               '以「冒泡：」停下，把这一句原样回报派你的项目经理。' +
@@ -2717,7 +2717,7 @@ function main() {
       project: ctx.project,
       runDir: ctx.runDir,
       stages: ctx.stages,
-      agentTeamDir: ctx.agentTeamDir,
+      poundlockDir: ctx.poundlockDir,
       roster: loadRoster(),
       // M4s（docs/54）：叶子角色在规格段被拒时按这一段给出路。
       stageId: ctx.state?.stage,
@@ -2842,7 +2842,7 @@ function main() {
     // isControlFile 的 runs/*/state.json 模式本来就是"不只是当前那个"语义（一个
     // 角色去写别的 run 的 state.json 同样是在动编排层的账本，见
     // hooks/lib/control-files.mjs 头部），不依赖"当前是哪个 run"。挂 ctx 会平白
-    // 多出 no-run/unreadable 两支要分派，而这条检查根本用不上：agentTeamDir 只是
+    // 多出 no-run/unreadable 两支要分派，而这条检查根本用不上：poundlockDir 只是
     // .poundlock 在哪，跟 readRunContext(projectDir, ...) 内部算出来的 base 是
     // 同一条路径（join(projectDir, '.poundlock')），这里直接算一遍，不必先读
     // current-run/state.json/stages.json 一整套只为了拿这一个字符串。
@@ -2861,14 +2861,14 @@ function main() {
         ? input?.tool_input?.notebook_path
         : input?.tool_input?.file_path
 
-    const agentTeamDir = join(ROOT_PROJECT, '.poundlock')
+    const poundlockDir = join(ROOT_PROJECT, '.poundlock')
 
     // M3q（docs/25）：认不出是哪个文件的写法（流后缀、结尾带点或空格、网络路径），可能正是
     // 某个 run 的 state.json——H6 认不出来就等于放行一次清零。只在这个项目确实用着这支团队
     // （.poundlock 在）、且最后一段可能就是 state.json（含 8.3 短名）时拦：H6 挂在每一次
     // Edit/Write 上，主线程写网络上一个不相干的文件不归它管。排在 norm() 之前，网络路径不能碰。
     const exotic =
-      existsSync(agentTeamDir) && mayBeStateFile(filePath) ? exoticPath(filePath, ROOT_PROJECT) : null
+      existsSync(poundlockDir) && mayBeStateFile(filePath) ? exoticPath(filePath, ROOT_PROJECT) : null
     if (exotic) {
       denyAndExit(
         `poundlock H6 返工预算：不得写 ${inline(filePath)}——${exotic}。门禁认不出它是不是 state.json，` +
@@ -2882,7 +2882,7 @@ function main() {
     if (
       input.tool_name !== 'NotebookEdit' &&
       target &&
-      isControlFile(filePath, agentTeamDir) &&
+      isControlFile(filePath, poundlockDir) &&
       target.endsWith('/state.json')
     ) {
       let beforeText
@@ -2980,7 +2980,7 @@ function main() {
       const ab = decideAbandon({
         before,
         after,
-        approved: readAbandoned(approvalsText, (id) => RUN_ID.test(id) && norm(join(agentTeamDir, 'runs', id)) === norm(runDir)),
+        approved: readAbandoned(approvalsText, (id) => RUN_ID.test(id) && norm(join(poundlockDir, 'runs', id)) === norm(runDir)),
       })
       if (!ab.ok) denyAndExit(ab.reason, spec.event)
       const abandoning = isAbandoning(before, after)
@@ -3000,7 +3000,7 @@ function main() {
       if (!sk.ok) denyAndExit(sk.reason, spec.event)
       // 单个微调：mode 为 tweak 的写入要有门禁记下的 /poundlock:at-tweak——建 run 那一次看这个会话挂着的原话记录，之后 state.json 读不出来时看 run 目录
       // 里绑上的那一份（rework-guard.mjs 的 decideModeKey）。
-      const myWords = wordsFor(readWordsBookAt(agentTeamDir), input.session_id)
+      const myWords = wordsFor(readWordsBookAt(poundlockDir), input.session_id)
       const mk = decideModeKey({
         before,
         after,
@@ -3013,14 +3013,14 @@ function main() {
       // 并行微调（hooks/lib/parallel.mjs）：建 run 的那一次判互斥——完整的一趟开着不能起微调，微调开着不能起完整的一趟，一个会话同一时刻只有一趟微调。
       // 「完整的一趟」只认 current-run 指着的那一趟（不是这次建的）；微调按 tweaksAt 列没收尾的（不含这次建的）。
       if (before === null && beforeText === null && !runSeen) {
-        const pid = pointerIdOf(agentTeamDir)
-        const pinfo = pid && norm(join(agentTeamDir, 'runs', pid)) !== norm(runDir) ? ownerInfoOf(agentTeamDir)(pid) : null
+        const pid = pointerIdOf(poundlockDir)
+        const pinfo = pid && norm(join(poundlockDir, 'runs', pid)) !== norm(runDir) ? ownerInfoOf(poundlockDir)(pid) : null
         const ex = decideExclusion({
           creating: true,
           mode: modeOf(after),
           sessionId: input.session_id,
           pointerRun: pinfo ? { id: pid, open: !pinfo.closed, tweak: pinfo.tweak === true } : null,
-          openTweaks: tweaksAt(agentTeamDir)
+          openTweaks: tweaksAt(poundlockDir)
             .filter((t) => t.open && norm(t.dir) !== norm(runDir))
             .map((t) => ({ id: t.id, owner: t.owner })),
         })
@@ -3109,7 +3109,7 @@ function main() {
       // 走不到它们（绑只在那一次），被它们拒掉的续跑写入照样会作废原话记录：作废说的是「续跑了它」，那一次写入被拒，续跑这件事已经发生。
       // 复核（docs/58 §8）：只认项目经理的写入——别的角色写 state.json 被 H3 拒，几道门禁并行，H6 这边不能先替它记下 binding。
       if (isContractWriter(input.agent_type)) {
-        settleWords({ runDir, agentTeamDir, sessionId: input.session_id, state: after, stages: stagesForRework, creating: before === null && beforeText === null })
+        settleWords({ runDir, poundlockDir, sessionId: input.session_id, state: after, stages: stagesForRework, creating: before === null && beforeText === null })
       }
 
       // docs/66（docs/46 §4「测试报告的结论不读」）：推进出测试那一段的那一次读测试报告首行——不通过的拒（回退到实现那一段）、读不出的拒（同段重派
@@ -3213,9 +3213,9 @@ function main() {
       //
       // 只放这一条缝，不放宽别的：这次写的必须正好是 project.json 本身。别的写入
       // （包括 run 目录下的阶段产物）在没有运行上下文时照旧 fail open + 留痕。
-      // ctx.agentTeamDir 取不到时（runctx 最外层兜底 catch 那一支，连 .poundlock
+      // ctx.poundlockDir 取不到时（runctx 最外层兜底 catch 那一支，连 .poundlock
       // 在哪都不知道）也照原路 fail open —— 见 hooks/lib/runctx.mjs 那里的注释。
-      if (isProjectJson(filePath, ctx.agentTeamDir)) {
+      if (isProjectJson(filePath, ctx.poundlockDir)) {
         let project = readProjectConfig(ROOT_PROJECT)
         // 读不出来时自己再读原文（M3u，readProjectText）：readProjectConfig 可能只是撞上了短暂的占用，再读就是合法
         // 的——那就照正常路径发报告与触达表，不对一份合法的文件说「写坏了」。
@@ -3266,7 +3266,7 @@ function main() {
       // run 无关，照上面 project.json 那条缝的理由核它（对不上才说话）。project.json 核不了的几种（不在、这一刻读不出、读得到却解析不出）都在这里说。
       // docs/83 §8：写 reach.json 那一条缝重读过 project.json 的，下面「它在别处被弄坏」那一条缝用它，不再读第二轮（各停两次）。
       let projectReread = null
-      if (isReachJson(filePath, ctx.agentTeamDir)) {
+      if (isReachJson(filePath, ctx.poundlockDir)) {
         let project = readProjectConfig(ROOT_PROJECT)
         const projectFile = join(ROOT_PROJECT, '.poundlock', 'project.json')
         // docs/83：project.json 不在也说（核不了）。
@@ -3311,7 +3311,7 @@ function main() {
       // 是第一次就写坏、或者坏了之后又写坏的。
       if (
         typeof filePath === 'string' &&
-        isControlFile(filePath, ctx.agentTeamDir) &&
+        isControlFile(filePath, ctx.poundlockDir) &&
         norm(filePath).endsWith('/state.json')
       ) {
         let text = null
@@ -3341,10 +3341,10 @@ function main() {
       // 业务文件都刷一遍这段话，会把真正要看的东西淹掉。
       if (
         typeof filePath === 'string' &&
-        underDir(filePath, ctx.agentTeamDir) &&
-        !isProjectJson(filePath, ctx.agentTeamDir)
+        underDir(filePath, ctx.poundlockDir) &&
+        !isProjectJson(filePath, ctx.poundlockDir)
       ) {
-        const { value, text } = projectReread ?? readProjectText(join(ctx.agentTeamDir, 'project.json'))
+        const { value, text } = projectReread ?? readProjectText(join(ctx.poundlockDir, 'project.json'))
         if (text !== null && value === null) {
           // no-run 不留痕，与上面那条缝同一个理由：不把人指向 current-run 去查一个不存在的问题。
           if (ctx.kind !== 'no-run') process.stderr.write(failOpenNotice('ledger 回传', ctx))
@@ -3371,15 +3371,15 @@ function main() {
       // M4p 复核（docs/51 §8，中 1）：指针指着的那一趟 state.json 读不出来，项目经理照 /poundlock:at 第 1 节另起一趟、却漏切了指针，把契约或产物写进
       // 了新的那一趟——先说【指针】、叫它别去修那一趟。原来这里出【门禁】，修法叫它照 current-run 重建那一趟的 state.json，正好违反第 1 节。
       // 阶段链从插件自己那份读（ctx 读不出时没有它），读不出就只认契约。
-      if (ctx.cause === 'state' && isContractWriter(input.agent_type) && typeof ctx.agentTeamDir === 'string') {
-        const pid = pointerIdOf(ctx.agentTeamDir)
+      if (ctx.cause === 'state' && isContractWriter(input.agent_type) && typeof ctx.poundlockDir === 'string') {
+        const pid = pointerIdOf(ctx.poundlockDir)
         if (pid) {
           let stages = null
           try {
             stages = JSON.parse(normalizeText(readFileSync(join(ROOT, 'stages.json'), 'utf8')))
           } catch {}
-          const other = otherRunWrite({ agentTeamDir: ctx.agentTeamDir, currentRunDir: join(ctx.agentTeamDir, 'runs', pid), stages }, filePath)
-          if (other && tweakOfDir(ctx.agentTeamDir, other.dir)) emitHookJson(spec.event, { contexts: [tweakUnpickedNotice(other.id, other.name)] })
+          const other = otherRunWrite({ poundlockDir: ctx.poundlockDir, currentRunDir: join(ctx.poundlockDir, 'runs', pid), stages }, filePath)
+          if (other && tweakOfDir(ctx.poundlockDir, other.dir)) emitHookJson(spec.event, { contexts: [tweakUnpickedNotice(other.id, other.name)] })
           else if (other) emitHookJson(spec.event, { contexts: [pointerNotice({ ...other, closed: runClosed(other.dir) }, pid, { currentBroken: true })] })
         }
       }
@@ -3387,9 +3387,9 @@ function main() {
         ctx.kind !== 'no-run' &&
         isContractWriter(input.agent_type) &&
         typeof filePath === 'string' &&
-        typeof ctx.agentTeamDir === 'string' &&
-        underDir(filePath, join(ctx.agentTeamDir, 'runs')) &&
-        !isControlFile(filePath, ctx.agentTeamDir)
+        typeof ctx.poundlockDir === 'string' &&
+        underDir(filePath, join(ctx.poundlockDir, 'runs')) &&
+        !isControlFile(filePath, ctx.poundlockDir)
       ) {
         emitHookJson(spec.event, {
           contexts: [ledgerUnreadableNotice(ctx.cause)],
@@ -3407,12 +3407,12 @@ function main() {
     // M4p（docs/51，docs/30 §4）：漏切指针——项目经理把契约或阶段产物写进另一趟的 run 目录。原来这一格落进下面的提前退出、一句不说：没有 sha 回传、
     // 不进账本比对，门禁照旧按指针指着的那一趟判。只在写者是项目经理时说（执行角色写别的 run 的目录，H3 本来就拒）。
     if (isContractWriter(input.agent_type)) {
-      const other = otherRunWrite({ agentTeamDir: ctx.agentTeamDir, currentRunDir: ctx.runDir, stages: ctx.stages }, filePath)
+      const other = otherRunWrite({ poundlockDir: ctx.poundlockDir, currentRunDir: ctx.runDir, stages: ctx.stages }, filePath)
       // 并行微调：写的是一趟微调（没认出它归这个会话），说微调那一句、不叫它改指针。
-      if (other && tweakOfDir(ctx.agentTeamDir, other.dir)) emitHookJson(spec.event, { contexts: [tweakUnpickedNotice(other.id, other.name)] })
+      if (other && tweakOfDir(ctx.poundlockDir, other.dir)) emitHookJson(spec.event, { contexts: [tweakUnpickedNotice(other.id, other.name)] })
       else if (other) emitHookJson(spec.event, { contexts: [pointerNotice({ ...other, closed: runClosed(other.dir) }, basename(ctx.runDir))] })
     }
-    if (!isControlFile(filePath, ctx.agentTeamDir) && !underDir(filePath, ctx.runDir)) {
+    if (!isControlFile(filePath, ctx.poundlockDir) && !underDir(filePath, ctx.runDir)) {
       process.exit(0)
     }
 
@@ -3421,9 +3421,9 @@ function main() {
     if (target === norm(`${ctx.runDir}/${CONTRACT_FILE}`)) kind = 'contract'
     // project.json 这一问复用上面那个谓词，不在这里再写一遍同样的等式——
     // 上面 !ctx.ok 那条分支问的是同一个问题，两处分叉就是 C1 的复发形状。
-    else if (isProjectJson(filePath, ctx.agentTeamDir)) kind = 'project'
+    else if (isProjectJson(filePath, ctx.poundlockDir)) kind = 'project'
     else if (target === norm(`${ctx.runDir}/state.json`)) kind = 'state'
-    else if (isReachJson(filePath, ctx.agentTeamDir)) kind = 'reach'
+    else if (isReachJson(filePath, ctx.poundlockDir)) kind = 'reach'
 
     // 写的是 run 目录下某个阶段的 produces —— 算它的哈希回传，PM 写进 artifacts。
     // 这条排在最后：上面三条都是控制文件或契约，命中它们就不会落到这里。
@@ -3470,7 +3470,7 @@ function main() {
     // 拿第 1 节对它（第一段之后第 1 节的变化归契约基线管）。写契约那一次对不上说【契约】；写 state.json 时第一段的产物齐了，【阶段】那一句补上。
     const firstStageId = isStageChain(ctx.stages) ? Object.keys(ctx.stages)[0] : null
     if (kind === 'state' || kind === 'contract') {
-      settleWords({ runDir: ctx.runDir, agentTeamDir: ctx.agentTeamDir, sessionId: input.session_id, state: ctx.state, stages: ctx.stages, creating: false })
+      settleWords({ runDir: ctx.runDir, poundlockDir: ctx.poundlockDir, sessionId: input.session_id, state: ctx.state, stages: ctx.stages, creating: false })
     }
     const words = kind === 'state' || kind === 'contract' ? runWords(ctx.runDir) : null
     const wordsMismatch =
@@ -3481,7 +3481,7 @@ function main() {
     // 写 state.json（只报阻断与插件问题：覆盖升级前开始、升级后续跑的 run，不报要改与请确认免得每次记账都刷一遍）。解析不出的
     // project.json 走不到这里（ctx 判 unreadable），由上面 !ctx.ok 那一支回传。
     let projectReport = null
-    const isPointer = target === norm(`${ctx.agentTeamDir}/current-run`)
+    const isPointer = target === norm(`${ctx.poundlockDir}/current-run`)
     if (kind === 'project' || isPointer || kind === 'state') {
       if (!ctx.project) {
         projectReport = {
@@ -3494,7 +3494,7 @@ function main() {
         // docs/75：写 project.json 本身、每趟开头写 current-run 时，原文里重复的键并进「要改」（与那两个时机三档全报同一个理由：用户手改留下的
         // 在 S1 就露面）；写 state.json 时照旧只报阻断。
         projectReport =
-          kind === 'state' ? { block: full.block, plugin: full.plugin } : withDupFix(full, projectDupLines(join(ctx.agentTeamDir, 'project.json')))
+          kind === 'state' ? { block: full.block, plugin: full.plugin } : withDupFix(full, projectDupLines(join(ctx.poundlockDir, 'project.json')))
       }
     }
 
@@ -3799,14 +3799,14 @@ function main() {
     // 那一次由 H6 绑进 run 目录（settleWords）。不拦任何东西、stdout 一个字都不写（这个事件上 exit 2 会把用户的命令拦掉）。.poundlock 不在不建它：
     // 还没跑过 /poundlock:at-init 的项目，项目经理会叫用户先跑它（之后没重发命令、在对话里叫它接着做的，这一趟不核）。runs/ 读不出来当一趟都没有。
     // 记不下只是这一趟不核第 1 节，留痕。
-    const agentTeamDir = join(ROOT_PROJECT, '.poundlock')
+    const poundlockDir = join(ROOT_PROJECT, '.poundlock')
     // 复核（docs/50 §9）：不带参数的 /poundlock:at——这个会话之前那条命令记下的、还挂着（没绑也没作废）的那份清掉：这一次的需求在之后的对话里给，
     // 留着它会绑给这一次建的那一趟。别的会话的那份不动。
     const blank = blankAtSession(input)
     if (blank) {
       try {
-        if (existsSync(join(agentTeamDir, USER_WORDS_FILE))) {
-          const done = updateWordsBook(agentTeamDir, blank, (book) => {
+        if (existsSync(join(poundlockDir, USER_WORDS_FILE))) {
+          const done = updateWordsBook(poundlockDir, blank, (book) => {
             const p = wordsFor(book, blank)
             return p && p.bound === null && p.dropped === null ? withWords(book, blank, null) : null
           })
@@ -3819,7 +3819,7 @@ function main() {
     if (!w) process.exit(0)
     let isDir = false
     try {
-      isDir = statSync(agentTeamDir).isDirectory()
+      isDir = statSync(poundlockDir).isDirectory()
     } catch {}
     if (!isDir) {
       process.stderr.write('poundlock user-words：这个项目里还没有 .poundlock（没跑过 /poundlock:at-init），这次的原话不记。\n')
@@ -3827,12 +3827,12 @@ function main() {
     }
     let runsBefore = []
     try {
-      runsBefore = readdirSync(join(agentTeamDir, 'runs'))
+      runsBefore = readdirSync(join(poundlockDir, 'runs'))
     } catch {}
     try {
       const rec = pendingRecord({ at: new Date().toISOString(), sessionId: w.sessionId, args: w.args, runsBefore, command: w.command })
       // 一趟只归一个会话：只换这个会话那一条，别的会话挂着的不动。
-      updateWordsBook(agentTeamDir, w.sessionId, (book) => withWords(book, w.sessionId, rec))
+      updateWordsBook(poundlockDir, w.sessionId, (book) => withWords(book, w.sessionId, rec))
       process.stderr.write('poundlock user-words：已记下 /poundlock:at 后面的原话。\n')
     } catch (e) {
       process.stderr.write(`poundlock user-words：原话记不下（${quote(e?.message ?? e, { max: 120 })}），这一趟契约第 1 节不跟它核。\n`)
@@ -3846,15 +3846,15 @@ function main() {
     // 已收口的不出声——正常的一趟不多一个字。
     const command = typeof input.command_name === 'string' ? stripPluginPrefix(input.command_name) : ''
     if (input.expansion_type !== 'slash_command' || !['at', 'at-resume', 'at-status', 'at-tweak'].includes(command) || input.command_name === command) process.exit(0)
-    const agentTeamDir = join(ROOT_PROJECT, '.poundlock')
+    const poundlockDir = join(ROOT_PROJECT, '.poundlock')
     const contexts = []
-    const runId = pointerIdOf(agentTeamDir)
-    const info = runId ? ownerInfoOf(agentTeamDir)(runId) : null
+    const runId = pointerIdOf(poundlockDir)
+    const info = runId ? ownerInfoOf(poundlockDir)(runId) : null
     // 并行微调：current-run 指着的是一趟微调（升级之前的单个微调）时不说【会话】——微调不占 current-run，由下面的【微调】说。
-    if (info && info.tweak !== true && blocksMe(info, input.session_id)) contexts.push(ownerNoticeFor(command, agentTeamDir, runId, info))
+    if (info && info.tweak !== true && blocksMe(info, input.session_id)) contexts.push(ownerNoticeFor(command, poundlockDir, runId, info))
     // 并行微调（hooks/lib/parallel.mjs）：这个项目里没收尾的微调——这个会话名下的、别的会话名下的。
     const sid = typeof input.session_id === 'string' && input.session_id !== '' ? input.session_id : null
-    const open = tweaksAt(agentTeamDir).filter((t) => t.open)
+    const open = tweaksAt(poundlockDir).filter((t) => t.open)
     const desc = (t) => ({ id: t.id, startedAt: startedAtOf(t.state), wordsHead: wordsHeadOf(t.words) })
     const mineT = sid ? (open.find((t) => t.owner === sid) ?? null) : null
     const tn = tweaksNotice({ command, mine: mineT ? desc(mineT) : null, others: open.filter((t) => t !== mineT).map(desc) })
@@ -3899,7 +3899,7 @@ function main() {
         cause = ctx.cause ?? null
         const why = ctx.kind === 'no-run' ? 'no-run' : 'unreadable'
         results = found.items.map((item) => (item.stage ? { stage: item.stage, why } : item.deliver && !item.why ? { deliver: true, why } : item))
-      } else if (blocksMe(ownerInfoOf(ctx.agentTeamDir)(ctx.runId), input.session_id)) {
+      } else if (blocksMe(ownerInfoOf(ctx.poundlockDir)(ctx.runId), input.session_id)) {
         // 一趟只归一个会话：current-run 指着的那一趟归别的会话（指针空着时别的会话指得过来，为了接回丢了指针的一趟）——这个会话里的回答不记进它。
         stages = ctx.stages
         results = found.items.map((item) => (item.stage ? { stage: item.stage, why: 'other-session' } : item.deliver && !item.why ? { deliver: true, why: 'other-session' } : item))

@@ -524,8 +524,8 @@ test('writepath：run 目录下写 state.json——仍然 deny，它不是任何
 // H3：run 目录的兄弟目录同前缀粘连（docs/11 §1.5 第 3 点）。docs/11 举的例子字面
 // 是 `.poundlock-backup` 对 `.poundlock`，跟 tests/path-norm.test.mjs 钉住的纯
 // 函数场景一致。但动手前核对 decideWritePath 的实现发现：underDir 在这个函数里
-// 唯一的调用点传的第二个参数是 runDir（`.poundlock/runs/<id>`），不是 agentTeamDir
-// （`.poundlock`）本身——agentTeamDir 层面的判定走的是 isControlFile 自己另一份
+// 唯一的调用点传的第二个参数是 runDir（`.poundlock/runs/<id>`），不是 poundlockDir
+// （`.poundlock`）本身——poundlockDir 层面的判定走的是 isControlFile 自己另一份
 // 独立、已经带结尾 `/` 的 inline 前缀检查（hooks/lib/control-files.mjs），根本不经过
 // underDir。这意味着"`.poundlock-backup` 对 `.poundlock`"这个具体输入，即使
 // underDir 退化成不带结尾 `/` 的裸 startsWith，在 decideWritePath 这条调用链上也
@@ -619,7 +619,7 @@ test('自检：同名的 01-prd.md 若真的落在 run 目录里，reason 点名
 })
 
 // docs/09 账一：控制文件与阶段产物分家的子进程级传导链。纯函数测试
-// （tests/writepath.test.mjs）证明判据本身没错，这里证明 ctx.agentTeamDir 真的
+// （tests/writepath.test.mjs）证明判据本身没错，这里证明 ctx.poundlockDir 真的
 // 从 runctx.mjs 传到了 gate.mjs 再传到 decideWritePath——这一层传导链此前没有
 // 任何测试覆盖，M1a Task 3 就是栽在"只有纯函数测试"上（docs/08 ②）。
 

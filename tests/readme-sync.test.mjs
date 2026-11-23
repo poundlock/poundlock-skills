@@ -1035,7 +1035,7 @@ test('锚：docs/19 在，且它记的就是从 GitHub 装的那条远端路径'
     )
   }
   assert.ok(
-    text.includes('marketplace add hangwenlei/agent-team'),
+    text.includes('marketplace add poundlock/poundlock-skills'),
     `${DOCS19} 里找不到那条 GitHub 市场的 marketplace add 命令。它记的是「从公开仓库把插件装上」` +
       '这条路，两份 README 安装那一节开头引的就是它；这条命令不在了，说明那份记录已经不是原来那件事',
   )

@@ -33,7 +33,7 @@ const STAGES = {
 const AT = '/proj/.poundlock'
 
 const call = (role, filePath) =>
-  decideWritePath({ roster: ROSTER, role, filePath, project: PROJECT, runDir: RUN, stages: STAGES, agentTeamDir: AT })
+  decideWritePath({ roster: ROSTER, role, filePath, project: PROJECT, runDir: RUN, stages: STAGES, poundlockDir: AT })
 
 // Task 4：S5 多产者夹具，自建一份、不读真 stages.json——单测要能独立于真实配置。
 // 形状照抄上面 STAGES 的风格，只是 S5 换成 producers + <role> 模式。
@@ -48,7 +48,7 @@ const STAGES_M2A = {
 }
 
 const callM2a = (role, filePath) =>
-  decideWritePath({ roster: ROSTER, role, filePath, project: PROJECT, runDir: RUN, stages: STAGES_M2A, agentTeamDir: AT })
+  decideWritePath({ roster: ROSTER, role, filePath, project: PROJECT, runDir: RUN, stages: STAGES_M2A, poundlockDir: AT })
 
 // ——— docs/09 账一：控制文件 ———
 
@@ -89,7 +89,7 @@ test('账一 #2：PM 仍然不能伪造别人阶段的产物', () => {
   assert.doesNotMatch(r.reason, /控制文件/)
 })
 
-test('不传 agentTeamDir 时控制文件分支不触发，保持既有行为', () => {
+test('不传 poundlockDir 时控制文件分支不触发，保持既有行为', () => {
   const r = decideWritePath({ roster: ROSTER,
     role: 'at-pm', filePath: `${RUN}/state.json`,
     project: PROJECT, runDir: RUN, stages: STAGES,
@@ -429,7 +429,7 @@ test('project.paths[role] 不是数组时拒绝，理由指向 project.json 配�
 // 第 33 条（WP1，M4l）：paths 的前缀按目录边界认——认领 src/server 的，写不了 src/server2/ 下的文件（粘连的前缀不算它的地盘）。
 test('第 33 条（WP1）：前缀按目录边界认——src/server 盖不住 src/server2/', () => {
   const project = { paths: { 'at-backend': ['src/server'], 'at-frontend': ['src/web/'] } }
-  const r = (filePath) => decideWritePath({ roster: ROSTER, role: 'at-backend', filePath, project, runDir: RUN, stages: STAGES, agentTeamDir: AT })
+  const r = (filePath) => decideWritePath({ roster: ROSTER, role: 'at-backend', filePath, project, runDir: RUN, stages: STAGES, poundlockDir: AT })
   assert.equal(r('/proj/src/server/api.ts').decision, 'allow')
   assert.equal(r('/proj/src/server').decision, 'allow')
   assert.equal(r('/proj/src/server2/api.ts').decision, 'deny')
@@ -445,7 +445,7 @@ test('只有项目经理写得进 .poundlock/skills.json 与 .poundlock/skills/ 
     const filePath = `${AT}/${rel}`
     for (const role of dispatchable) {
       for (const project of [PROJECT, claimed]) {
-        const d = decideWritePath({ roster: ROSTER, role, filePath, project, runDir: RUN, stages: STAGES, agentTeamDir: AT })
+        const d = decideWritePath({ roster: ROSTER, role, filePath, project, runDir: RUN, stages: STAGES, poundlockDir: AT })
         assert.equal(d.decision, 'deny', `${role} ${rel}`)
       }
     }

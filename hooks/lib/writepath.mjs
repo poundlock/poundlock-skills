@@ -155,7 +155,7 @@ export function stageOwnerOfRunPath(stages, rd, target) {
   return null
 }
 
-export function decideWritePath({ role, filePath, project, runDir, stages, agentTeamDir, roster, stageId }) {
+export function decideWritePath({ role, filePath, project, runDir, stages, poundlockDir, roster, stageId }) {
   if (typeof filePath !== 'string' || !filePath) return { decision: 'allow' }
   const who = inline(role)
   const fp = inline(filePath)
@@ -163,7 +163,7 @@ export function decideWritePath({ role, filePath, project, runDir, stages, agent
   // M3q（docs/25）：解析不了的写法（流后缀、结尾带点或空格、项目不在网络共享上却写网络路径）
   // 排在一切比对之前拒掉——下面的每一条判据都要先认出「这是哪个文件」，而这些写法认不出来，
   // 落到哪一条都可能是放行。排在 norm() 之前还因为网络路径不能碰：norm 会去 lstat 它。
-  const projectRoot = agentTeamDir ? dirname(agentTeamDir) : runDir ? resolve(runDir, '..', '..', '..') : null
+  const projectRoot = poundlockDir ? dirname(poundlockDir) : runDir ? resolve(runDir, '..', '..', '..') : null
   const exotic = exoticPath(filePath, projectRoot)
   if (exotic) {
     return {
@@ -190,9 +190,9 @@ export function decideWritePath({ role, filePath, project, runDir, stages, agent
   // 「没有角色能把 at-pm 当派发目标」这条花名册不变量，由
   // tests/roster-closure.test.mjs 钉住，完整论证在 contract-guard.mjs 头部。
   //
-  // agentTeamDir 缺省时这一段整体不触发，回落到既有行为——导出的判定函数不该假设
-  // 调用方一定传全参数，而 gate.mjs 那条路径上它总是来自 ctx.agentTeamDir。
-  if (isControlFile(filePath, agentTeamDir)) {
+  // poundlockDir 缺省时这一段整体不触发，回落到既有行为——导出的判定函数不该假设
+  // 调用方一定传全参数，而 gate.mjs 那条路径上它总是来自 ctx.poundlockDir。
+  if (isControlFile(filePath, poundlockDir)) {
     if (isContractWriter(role)) return { decision: 'allow' }
     return {
       decision: 'deny',

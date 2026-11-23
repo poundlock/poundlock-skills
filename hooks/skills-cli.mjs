@@ -49,10 +49,10 @@ function main() {
   const { sub, names, roles, add, remove, update, home } = parseArgs(process.argv.slice(2))
   if (!SUBCOMMANDS.includes(sub)) throw new Error(`认不出的子命令：${sub ?? '（没写）'}，只认 ${SUBCOMMANDS.join('、')}`)
   const projectRoot = projectRootFrom(process.env, process.cwd())
-  const agentTeamDir = path.join(projectRoot, '.poundlock')
-  if (!existsSync(agentTeamDir)) throw new Error(`在 ${projectRoot} 及其上层找不到 .poundlock，先跑 /poundlock:at-init`)
+  const poundlockDir = path.join(projectRoot, '.poundlock')
+  if (!existsSync(poundlockDir)) throw new Error(`在 ${projectRoot} 及其上层找不到 .poundlock，先跑 /poundlock:at-init`)
   const roster = JSON.parse(readFileSync(new URL('../roster.json', import.meta.url), 'utf8'))
-  const reg = readRegistry(agentTeamDir)
+  const reg = readRegistry(poundlockDir)
   for (const given of [roles, add, remove]) if (given !== null) assertRoles(given, roster)
   if (['sync', 'assign', 'remove'].includes(sub) && names.length === 0) throw new Error(`${sub} 要写至少一个名字`)
   if (sub === 'assign' && roles === null && add === null && remove === null) throw new Error('assign 要带 --add、--remove 或 --roles')
@@ -72,13 +72,13 @@ function main() {
   }
   if (sub === 'sync') {
     const { installed, errors } = found()
-    const r = syncSkills({ agentTeamDir, installed, names, roles, now, update })
+    const r = syncSkills({ poundlockDir, installed, names, roles, now, update })
     return emit({ ...r, errors: [...errors, ...r.errors] })
   }
-  if (sub === 'assign') return emit(assignRoles({ agentTeamDir, names, roles, add: add ?? [], remove: remove ?? [] }))
-  if (sub === 'remove') return emit(removeSkills({ agentTeamDir, names }))
+  if (sub === 'assign') return emit(assignRoles({ poundlockDir, names, roles, add: add ?? [], remove: remove ?? [] }))
+  if (sub === 'remove') return emit(removeSkills({ poundlockDir, names }))
   const { installed, errors } = found()
-  return emit({ ...checkSkills({ agentTeamDir, installed }), errors })
+  return emit({ ...checkSkills({ poundlockDir, installed }), errors })
 }
 
 try {

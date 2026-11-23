@@ -1,6 +1,6 @@
 {
   "name": "poundlock",
-  "description": "十角色软件开发 agent team 插件的自托管市场。",
+  "description": "十角色软件开发团队插件的自托管市场。",
   "owner": {
     "name": "poundlock"
   },
@@ -8,7 +8,7 @@
     {
       "name": "poundlock",
       "source": "./",
-      "description": "十角色软件开发 agent team，分层派发与门禁强制的顺序流程。"
+      "description": "十角色软件开发团队，分层派发与门禁强制的顺序流程。"
     }
   ]
 }

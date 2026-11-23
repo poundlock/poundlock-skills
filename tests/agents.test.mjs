@@ -1154,7 +1154,7 @@ test('自检：statesPathsEscape() 认得出一个已知违规样本——保留
 test('故意不认领 project.paths 的角色，正文里必须写明写路径隔离在 run 目录之外拒它——而且门禁真的拒', () => {
   const project = JSON.parse(readFileSync(url('templates/project.json'), 'utf8'))
   for (const role of ROLES_WITHOUT_PATHS) {
-    const r = decideWritePath({ role, filePath: '/proj/src/server/a.ts', project, runDir: '/proj/.poundlock/runs/r1', stages, agentTeamDir: '/proj/.poundlock', roster })
+    const r = decideWritePath({ role, filePath: '/proj/src/server/a.ts', project, runDir: '/proj/.poundlock/runs/r1', stages, poundlockDir: '/proj/.poundlock', roster })
     assert.equal(r.decision, 'deny', `${role} 写 run 目录之外没被拒——正文那一句与门禁对不上：${JSON.stringify(r)}`)
     assert.ok(
       statesPathsEscape(bodyOf(`${role}.md`)),
