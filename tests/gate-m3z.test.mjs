@@ -12,6 +12,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { run, runAsync, hermeticEnv, GATE } from './helpers/gate-runner.mjs'
+import { markPm } from './helpers/pm-mark.mjs'
 import { spawnSync } from 'node:child_process'
 import { makeRun } from './fixtures/make-run.mjs'
 import { reworkFromHistory } from '../hooks/lib/state.mjs'
@@ -37,6 +38,8 @@ const sha = (text) => sha256OfContract(Buffer.from(text, 'utf8'))
 function fixture({ ids, files = {}, approvals = null, extra = {}, roster = ROSTER } = {}) {
   const stage = ids[ids.length - 1]
   const dirs = makeRun({ runId: 'r1', stage, roster, project: PROJECT })
+  // prompted() 的会话 s 是项目经理会话：UserPromptSubmit 不带 agent_type，记过号才是（跑命令才成为项目经理那份设计 §5.1）。
+  markPm(dirs.projectDir, 's')
   const runDir = join(dirs.projectDir, '.poundlock', 'runs', 'r1')
   for (const [rel, text] of Object.entries(files)) {
     mkdirSync(dirname(join(runDir, rel)), { recursive: true })

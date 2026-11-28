@@ -2,8 +2,8 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import {
-  BLOCKED_TOOLS, IDENTITY_TAG, MARK_COMMANDS, NOT_PM_HEAD, OUTSIDE_HEAD,
-  blockedToolReason, identityNotice, inPoundlock, markOf, marksText, outsiderReason, readMarks, roleFileNote, standingOf, unjudgedNote, withMark,
+  BLOCKED_TOOLS, IDENTITY_TAG, MARK_COMMANDS, NOT_PM_HEAD, OUTSIDE_HEAD, OUTSIDER_CHECKS,
+  blockedToolReason, identityNotice, inPoundlock, markOf, marksText, outsiderReason, outsiderVerdict, readMarks, roleFileNote, standingOf, unjudgedNote, withMark,
 } from '../hooks/lib/pm-session.mjs'
 import { GATE_CHECK_ONLINE } from '../hooks/lib/gate-check.mjs'
 import { isGateFile, PM_SESSIONS_FILE } from '../hooks/lib/control-files.mjs'
@@ -117,4 +117,31 @@ test('调用方给的键撞上原型链上的名字时，不取到函数或对�
 test('记号文件是门禁专属文件', () => {
   assert.equal(PM_SESSIONS_FILE, 'pm-sessions.json')
   assert.equal(isGateFile('/p/.poundlock/pm-sessions.json'), true)
+})
+
+test('outsiderVerdict：不是团队之外的人回 null；派花名册里的名字拒、别的目标放行；写 .poundlock 之下拒、之外放行；别的检查项一律放行', () => {
+  const out = S(main())
+  assert.equal(out.outsider, true)
+  for (const standing of [PM, LEGACY, null, undefined]) {
+    for (const check of OUTSIDER_CHECKS) assert.equal(outsiderVerdict({ check, standing, roster, target: 'at-backend', filePath: '/p/.poundlock/x' }), null)
+  }
+  for (const target of ['poundlock:at-backend', 'at-product', 'at-pm', 'at-outsider']) {
+    const v = outsiderVerdict({ check: 'delegation', standing: out, roster, target })
+    assert.equal(v.action, '派发', target)
+    assert.ok(v.deny.startsWith(NOT_PM_HEAD), target)
+  }
+  for (const target of ['Explore', 'general-purpose', undefined, '', 'poundlock:', 'constructor', '__proto__', 7]) {
+    assert.deepEqual(outsiderVerdict({ check: 'delegation', standing: out, roster, target }), { allow: true }, String(target))
+  }
+  assert.deepEqual(outsiderVerdict({ check: 'delegation', standing: out, roster: {}, target: 'at-backend' }), { allow: true })
+  const sub = S(main({ agent_type: 'general-purpose', agent_id: 'a-1' }))
+  assert.ok(outsiderVerdict({ check: 'delegation', standing: sub, roster, target: 'at-qa' }).deny.startsWith(OUTSIDE_HEAD))
+  const w = outsiderVerdict({ check: 'writepath', standing: out, roster, filePath: '/p/.poundlock/notes.md' })
+  assert.equal(w.action, '写入')
+  assert.ok(w.deny.startsWith(NOT_PM_HEAD))
+  for (const filePath of ['/p/src/a.js', undefined, '', 5]) assert.deepEqual(outsiderVerdict({ check: 'writepath', standing: out, roster, filePath }), { allow: true }, String(filePath))
+  for (const check of OUTSIDER_CHECKS.filter((c) => c !== 'delegation' && c !== 'writepath')) {
+    assert.deepEqual(outsiderVerdict({ check, standing: out, roster, target: 'at-backend', filePath: '/p/.poundlock/state.json' }), { allow: true }, check)
+  }
+  assert.deepEqual([...OUTSIDER_CHECKS].sort(), ['approval-ask', 'approval-prompt', 'completion', 'contract', 'delegation', 'deliverable', 'ledger', 'readiness', 'rework', 'writepath'])
 })

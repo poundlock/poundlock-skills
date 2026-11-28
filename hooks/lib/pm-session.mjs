@@ -125,6 +125,30 @@ export function outsiderReason({ kind, action, target }) {
   return `${head}。${what}${tail}`
 }
 
+// 门禁里按身份分流的检查项（设计 §5.4）：团队之外的人在这几项上不走原来的代码。stop-gate、handback、handback-sent、记录器那几项不分流。
+export const OUTSIDER_CHECKS = ['delegation', 'readiness', 'writepath', 'contract', 'rework', 'ledger', 'deliverable', 'approval-ask', 'approval-prompt', 'completion']
+
+/**
+ * 团队之外的人在一个检查项上怎么判（设计 §5.4），不看运行上下文：
+ *   delegation：目标剥掉前缀是花名册里的名字 → 拒（派发），别的目标、没写目标 → 放行；
+ *   writepath：路径在某个 .poundlock 之下 → 拒（写入），否则放行（门禁自检与门禁专属文件由调用方在这之前判）；
+ *   别的检查项：放行，不出声、不记。
+ * 不是团队之外的人回 null（走原来的代码）。拒回 { deny: 理由, action: 拼身份那一句用的动作 }，放行回 { allow: true }。
+ */
+export function outsiderVerdict({ check, standing, roster, target, filePath }) {
+  if (!standing?.outsider) return null
+  const kind = standing.kind
+  if (check === 'delegation') {
+    const bare = stripPluginPrefix(target)
+    if (nonEmptyString(bare) && isPlainObject(roster) && has(roster, bare)) {
+      return { deny: outsiderReason({ kind, action: 'dispatch', target: bare }), action: '派发' }
+    }
+    return { allow: true }
+  }
+  if (check === 'writepath' && inPoundlock(filePath)) return { deny: outsiderReason({ kind, action: 'write' }), action: '写入' }
+  return { allow: true }
+}
+
 const NOTICE = {
   'no-session-id': '门禁这一次没有拿到会话 id，判不出这个会话是不是项目经理会话，按项目经理放行。',
   'marks-unreadable': '门禁读不出记录项目经理会话的文件（.poundlock/pm-sessions.json），所以现在没有会话靠记号当项目经理。请用户重新敲一次团队命令（比如 `/poundlock:at <需求>`），那份文件会被重建。',

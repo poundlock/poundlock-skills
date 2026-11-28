@@ -88,7 +88,7 @@ import { exoticPath, norm, underDir } from './lib/path-norm.mjs'
 import { isPlainObject, isStageChain, isVerifyStage, participantsOf, isRolePatternStage, expandProduces, productsOfStage, stageRoles, producerOfName, verifyStageOf } from './lib/stages.mjs'
 import { inline, quote } from './lib/trusted.mjs'
 import { installTrace } from './lib/trace.mjs'
-import { identityNotice, markOf, marksText, readMarks, withMark } from './lib/pm-session.mjs'
+import { OUTSIDER_CHECKS, identityNotice, markOf, marksText, outsiderReason, outsiderVerdict, readMarks, standingOf, unjudgedNote, withMark } from './lib/pm-session.mjs'
 import { USER_WORDS_FILE, WORDS_FIX, bindDecision, blankAtSession, bookText, briefAnswer, briefNotice, finishBinding, matchedSection1, pendingRecord, readWords, readWordsBook, withWords, wordsFor,section1Mismatch, wordsMismatchText, wordsOf } from './lib/user-words.mjs'
 import { GATE_CHECK_PATH, gateCheckReason, isGateCheck, selfCheckIdentity } from './lib/gate-check.mjs'
 import {
@@ -193,7 +193,7 @@ function loadRoster() {
 // 问题。这里只做 I/O：拿到结果、写对应的流、退出，永不返回，调用点之后
 // 不需要再写 exit。
 function denyAndExit(reason, event) {
-  const { stream, text, exitCode } = denyOutput(reason, event)
+  const { stream, text, exitCode } = denyOutput(reason + DENY_NOTE, event)
   DECIDED = exitCode
   process[stream].write(text)
   process.exit(exitCode)
@@ -205,6 +205,46 @@ function denyAndExit(reason, event) {
 let DECIDED = null
 // 这次的 hook 输入。只有最外层 catch 读它：崩溃时按「收件人是不是 PM」选措辞。
 let INPUT = null
+// 这次调用的发起者在团队里是什么位置（hooks/lib/pm-session.mjs 的 standingOf）：main() 只对 OUTSIDER_CHECKS 那几项算，别的检查项上是 null。
+let STANDING = null
+// 判不出身份时（设计 §5.7）delegation 与 writepath 的每一条拒绝理由末尾接的那一句（unjudgedNote）；别的检查项、判得出时是空串。最外层 catch 的崩溃理由不接。
+let DENY_NOTE = ''
+
+// 读花名册与项目的记号文件，回 standingOf 的结果（设计 §5.1、§5.7）。记号文件不在是一个项目经理会话都没有；别的读错（是目录、没权限）是读不出来。
+// 绝不抛：分流排在 fail closed 的检查项最前面，抛了就成了拒，普通会话就被拦了。任何意外都按记号文件读不出来算。
+function standingFor(input) {
+  let marks
+  try {
+    marks = readMarks(readFileSync(join(ROOT_PROJECT, '.poundlock', PM_SESSIONS_FILE)))
+  } catch (e) {
+    marks = e?.code === 'ENOENT' ? readMarks(null) : { ok: false }
+  }
+  try {
+    return standingOf({ input, roster: loadRoster(), marks })
+  } catch {
+    try {
+      return standingOf({ input, roster: loadRoster(), marks: { ok: false } })
+    } catch {
+      return { outsider: false, pm: false, kind: null, unjudged: null }
+    }
+  }
+}
+
+// 团队之外的人在这一项上的判定（hooks/lib/pm-session.mjs 的 outsiderVerdict）：不是团队之外的人就返回、走原来的代码；拒了理由末尾接身份那一句
+// （被换掉的主会话才有）；放行是 exit 0，stdout、stderr 都不写。不读运行上下文、不比认领、不记任何文件。
+function outsiderGate(spec, input) {
+  if (!STANDING?.outsider) return
+  const ti = input?.tool_input
+  const v = outsiderVerdict({
+    check: CHECK,
+    standing: STANDING,
+    roster: loadRoster(),
+    target: ti?.subagent_type,
+    filePath: input?.tool_name === 'NotebookEdit' ? ti?.notebook_path : ti?.file_path,
+  })
+  if (v?.deny) denyAndExit(v.deny + selfCheckIdentity(input, v.action), spec.event)
+  process.exit(0)
+}
 
 // 「这次写的是不是 .poundlock/project.json」。抽成一个谓词是因为 ledger 分支现在
 // 要在两条路径上问同一个问题（ctx.ok 的正常路径，以及 ctx 读不出来时那条只为触达表
@@ -2443,7 +2483,15 @@ function main() {
     }
   }
 
+  // 按身份分流（设计 §5.1、§5.4）：不带 agent_type 的主线程记过号才是项目经理；没记过号的普通会话、被换成花名册外 agent 的主会话、花名册外的子代理
+  // 是团队之外的人，各检查项开头经 outsiderGate 走一条不依赖运行上下文的判定。项目经理与团队角色照旧走下面原来的代码。
+  if (OUTSIDER_CHECKS.includes(CHECK)) {
+    STANDING = standingFor(input)
+    if (CHECK === 'delegation' || CHECK === 'writepath') DENY_NOTE = unjudgedNote(STANDING.unjudged)
+  }
+
   if (CHECK === 'delegation') {
+    outsiderGate(spec, input)
     const { roster, tweak } = delegationRoster(input)
     let result = decideDelegation(input, roster)
     // 单个微调：换了花名册之后被拒的（项目经理派产品、架构、测试、验收），decideDelegation 会照新花名册说「没有哪个角色能派它」——那是假话。
@@ -2463,6 +2511,7 @@ function main() {
   }
 
   if (CHECK === 'readiness') {
+    outsiderGate(spec, input)
     // 一趟只归一个会话（hooks/lib/owner.mjs）：主线程（项目经理、不带 agent_type 的主会话；不带 agent_id）在 current-run 指着的一趟归别的会话、还没收口时
     // 派人，拒。排在读运行上下文之前：它只看指针、那一趟的收口与归属，读不出运行上下文时照样判。子代理往下派照旧按派发记录认，不归这一道管。
     if (!malformedCaller(input) && isContractWriter(callerOf(input)) && typeof input.agent_id !== 'string') {
@@ -2590,7 +2639,13 @@ function main() {
     // .poundlock 的项目里、坏掉的 run 里、由主线程发起时都拿得到回答。协议在 agents/at-pm.md。
     // M3v：调用者是 PM 时，理由末尾可能追加一句运行状态的说明（selfCheckTail）。
     const checked = input.tool_name === 'NotebookEdit' ? input?.tool_input?.notebook_path : input?.tool_input?.file_path
-    if (isGateCheck(checked)) denyAndExit(gateCheckReason() + selfCheckTail(input, checked) + selfCheckIdentity(input), spec.event)
+    // 团队之外的人（设计 §5.6）：门禁在线，但只对项目经理会话回答「在线」。
+    if (isGateCheck(checked)) {
+      denyAndExit(
+        (STANDING.outsider ? outsiderReason({ kind: STANDING.kind, action: 'self-check' }) : gateCheckReason() + selfCheckTail(input, checked)) + selfCheckIdentity(input),
+        spec.event,
+      )
+    }
 
     // M3z（docs/34，全量审查第 16 条）：门禁专属文件（返工批准记录、交付快照）任何人都不用 Edit/Write 改，PM 与主线程也不行——
     // 排在主线程豁免与读运行上下文之前，与门禁自检同一个位置。按路径形状认任何项目的 runs/<id>/ 下的这两个名字；写法认不出
@@ -2601,6 +2656,8 @@ function main() {
     const exotic =
       mayBeGateFile(checked) && existsSync(join(ROOT_PROJECT, '.poundlock')) ? exoticPath(checked, ROOT_PROJECT) : null
     if (exotic || isGateFile(checked)) denyAndExit(gateFileReason(checked, exotic), spec.event)
+    // 团队之外的人（设计 §5.4）：.poundlock 之下一律拒，之外放行——排在主线程豁免、归属与读运行上下文之前。
+    outsiderGate(spec, input)
 
     // MAIN（无 agent_type）不受 per-role 隔离约束——H3 隔离的是
     // project.paths 里登记的各角色之间的边，主线程不是参与路径认领的
@@ -2796,6 +2853,7 @@ function main() {
     //
     // unreadable 对子代理继续 fail closed，这条不放松——读不到 runDir 就
     // 算不出哪个文件是契约，那时拒绝是对的；这条短路只免除 PM 自己。
+    outsiderGate(spec, input)
     if (isContractWriter(input?.agent_type)) process.exit(0)
 
     const ctx = runCtxFor(input)
@@ -2839,6 +2897,7 @@ function main() {
   }
 
   if (CHECK === 'rework') {
+    outsiderGate(spec, input)
     // H6 返工预算写时强制（规格 §4.2 ③；docs/11 §1.2 的缺口；完整论证见
     // hooks/lib/rework-guard.mjs 头部，不在这里重复）。判定本身（"新的比旧的少"）
     // 是纯函数 decideRework；这一段只做三件事：认出目标是不是 runs/*/state.json、
@@ -3189,6 +3248,7 @@ function main() {
   }
 
   if (CHECK === 'ledger') {
+    outsiderGate(spec, input)
     // ledger 不是门禁：它没有 deny 这个出口，只往 stdout 写 additionalContext。
     // 执行面裁定（为什么算在 hook 侧而不是让 PM 跑脚本）写在 hooks/lib/ledger.mjs
     // 头部，不在这里重复。
@@ -3908,6 +3968,7 @@ function main() {
   }
 
   if (CHECK === 'approval-ask' || CHECK === 'approval-prompt') {
+    outsiderGate(spec, input)
     // M3z（docs/34，全量审查第 16 条）：返工批准的两个记录器。不是门禁：不拒任何东西，只在用户选了（approval-ask）或单独发了
     // （approval-prompt）规范标签、而这一轮真的需要批准时，往当前 run 的 approvals.jsonl 追加一行。认回答、判需不需要、回传怎么说
     // 在 hooks/lib/approvals.mjs；标签与上限在 hooks/lib/budget.mjs。
@@ -4029,6 +4090,7 @@ function main() {
   }
 
   if (CHECK === 'completion') {
+    outsiderGate(spec, input)
     // M4d（docs/38，全量审查第 19 条）：后台派发的子代理完成时，主会话收到一条 <task-notification>、UserPromptSubmit 随之触发。认出通知，按门禁记的
     // 派发记录对回「谁、哪一段、谁派的」，核它这一段的产物；没交齐的说成因（冒泡了、门禁拦过它而平台静默放行、门禁没拦它、没正常结束），
     // 协调者返回而那一段还没齐的报进度。交齐了的不出声（与 H5a 同一个口径）。
@@ -4174,6 +4236,8 @@ function main() {
   if (CHECK === 'stop-gate' || CHECK === 'deliverable' || HANDING_BACK) {
     // 两道 H5 共用这一整段，差别只有这个名字。同一句三元此前在下面相隔 16 行
     // 写了两遍（整理项 9），提到分支外算一次。
+    // 只有 deliverable 分流：看的是发起这次派发的人（agent_type），不是被派的角色。stop-gate、handback、handback-sent 不分流。
+    if (CHECK === 'deliverable') outsiderGate(spec, input)
     const label = CHECK === 'stop-gate' || HANDING_BACK ? 'H5b 交付物拦截' : 'H5a 交付物记录'
 
     // H5b（stop-gate）判的是"正在停止的这个 subagent 自己"：SubagentStop 是
@@ -4775,7 +4839,8 @@ try {
   // CHECK 此刻按理已经通过 main() 顶部的 KNOWN_CHECKS 校验，spec 应该总是存在；
   // 万一不存在（防御性兜底），按最严格的 fail closed 处理，安全边界优先于精确。
   if (!spec || spec.failClosed) {
-    // err?.message：throw 出来的不一定是 Error，这一层自己再抛就会掉进 boot.mjs 的加载失败退路。
+    // err?.message：throw 出来的不一定是 Error，这一层自己再抛就会掉进 boot.mjs 的加载失败退路。判不出身份的那一句不接在崩溃理由后面。
+    DENY_NOTE = ''
     denyAndExit(`poundlock 门禁异常，按安全边界拒绝：${quote(err?.message ?? err, { max: 120 })}`, event)
   }
   // fail open 的检查项（spec.failClosed === false，此刻 spec 必然存在，见上面

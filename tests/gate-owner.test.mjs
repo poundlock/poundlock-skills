@@ -9,6 +9,7 @@ import assert from 'node:assert/strict'
 import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { run, decisionOf, GATE } from './helpers/gate-runner.mjs'
+import { markPm } from './helpers/pm-mark.mjs'
 import { makeRun } from './fixtures/make-run.mjs'
 import { BACK_LABEL, OWNER_FILE, TAKEOVER_CLOSE_LABEL, TAKEOVER_LABEL } from '../hooks/lib/owner.mjs'
 
@@ -156,6 +157,7 @@ const OWNED = /会话归属/
 
 test('别的会话写这一趟的 state.json、契约、04-dispatch.md，H3 拒（项目经理与不带 agent_type 的主会话都拒）', () => {
   world(({ projectDir }) => {
+    markPm(projectDir, 's-2')
     const { dir } = createRun(projectDir, 'r1', { sid: 's-1' })
     for (const f of ['state.json', '00-contract.md', '04-dispatch.md']) {
       for (const over of [{}, { agent_type: undefined }]) {
@@ -525,6 +527,7 @@ test('题面里没有 current-run 指着的那一趟的 run id（问的是别的
 // 指针空着时别的会话能把 current-run 指到这一趟（为了接回丢了指针的一趟），所以两个批准记录器要自己核归属：别的会话里的回答不记进这一趟。
 test('current-run 那一趟归别的会话时，两个批准记录器不记（返工批准、照现状交付），回传与留痕说归另一个会话', () => {
   world(({ projectDir }) => {
+    markPm(projectDir, 's-2')
     const { dir } = createRun(projectDir, 'r1', { sid: 's-1' })
     const questions = [{ question: '要怎么办？', header: '交付', multiSelect: false, options: [{ label: '照现状交付', description: '' }, { label: '停在这里', description: '' }] }]
     const ask = {

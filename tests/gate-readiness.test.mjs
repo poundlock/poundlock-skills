@@ -232,14 +232,17 @@ test('readiness（M3w）：S2 只交了一半、stage 是 S3——架构师派 a
   })
 })
 
-// 派发者不在花名册里（别的插件的代理、用户自己的 subagent）：H1 对它放行，前置只有 H2 在查。不剪、也不因此放行或崩溃——
-// 两格：前置缺照样拒；派多段角色时退回老规则，那一段前置齐了就放行（R3 那一行在门禁层就是这里走得到），stderr 为空。
-test('readiness（M3w）：派发者不在花名册里——前置缺照样拒；派 at-ui、只有契约时按老规则放行，不崩', () => {
+// 派发者不在花名册里（别的插件的代理、用户自己的 subagent）：它是团队之外的人（跑命令才成为项目经理那份设计 §5.4）——派花名册里的角色由 H1 拒，
+// H2 对它不判（放行、两个流都空），不看前置、不崩。
+test('readiness（M3w）：派发者不在花名册里——派团队角色由 H1 拒、H2 不判；派 at-ui、只有契约时 H2 同样放行，不崩', () => {
   withRun({ stage: 'S5', artifacts: ['00-contract.md', '01-prd.md', '03-arch.md'] }, (dirs) => {
     const be = { ...dispatchUi('other-plugin:helper'), tool_input: { subagent_type: 'poundlock:at-backend', prompt: 'x' } }
-    const out = decisionOf(run('readiness', be, undefined, dirs.projectDir).stdout)
+    const h2 = run('readiness', be, undefined, dirs.projectDir)
+    assert.equal(h2.stdout, '')
+    assert.equal(h2.stderr, '')
+    const out = decisionOf(run('delegation', be, undefined, dirs.projectDir).stdout)
     assert.equal(out?.permissionDecision, 'deny')
-    assert.match(out.permissionDecisionReason, /04-dispatch\.md/)
+    assert.match(out.permissionDecisionReason, /^poundlock：这次调用来自团队之外/)
   })
   withRun({ stage: 'S2', artifacts: ['00-contract.md'] }, (dirs) => {
     const r = run('readiness', dispatchUi('other-plugin:helper'), undefined, dirs.projectDir)
