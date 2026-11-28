@@ -4,7 +4,7 @@
 // 复核（docs/48 §8）：逐行认不出折在两行的一句（正文按显示宽度折行、门禁的字符串用 ' +' 接起来），整份接成一行再扫一遍；遍历的集合有身份锚。
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -39,7 +39,8 @@ const RUNTIME_PROSE = () => [
   'stages.produces.md',
 ]
 // 每轮提醒（UserPromptSubmit 上那条 echo）与 statusMessage 也进模型或用户看得到的地方；另外三份是模型照着读的配置。
-const CONFIGS = ['hooks/hooks.json', 'stages.json', 'roster.json', 'settings.json']
+// settings.json 默认不在（插件不再默认接管）；有人加回来时照样扫。
+const CONFIGS = ['hooks/hooks.json', 'stages.json', 'roster.json', 'settings.json'].filter((rel) => existsSync(join(ROOT, rel)))
 const HOOK_CODE = () => files('hooks', (n) => n.endsWith('.mjs'))
 
 // 门禁回传、拒绝理由、留痕都是代码里的字符串：只看代码行（整行注释跳过，行尾「 // 」之后的注释也跳过）。

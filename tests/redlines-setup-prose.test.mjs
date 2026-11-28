@@ -13,6 +13,7 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { toolsDeclarationOf } from './helpers/agent-tools.mjs'
 import { BUBBLE_MARK, BUBBLE_WHEN } from '../hooks/lib/deliverable.mjs'
 import { explainMissing } from '../hooks/lib/completion.mjs'
+import { PM_ROLE } from '../hooks/lib/decide.mjs'
 
 const url = (p) => new URL(`../${p}`, import.meta.url)
 const read = (p) => readFileSync(url(p), 'utf8')
@@ -20,7 +21,7 @@ const bodyOf = (f) => read(`agents/${f}`).split(/^---\s*$/m).slice(2).join('---'
 const stripWs = (s) => s.replace(/\s+/g, '')
 const has = (text, sentence) => stripWs(text).includes(stripWs(sentence))
 const roster = JSON.parse(read('roster.json'))
-const MAIN = JSON.parse(read('settings.json')).agent.replace(/^poundlock:/, '')
+const MAIN = PM_ROLE
 
 const AGENTS = readdirSync(url('agents')).filter((f) => f.endsWith('.md'))
 const BASH_ROLES = AGENTS.filter((f) => toolsDeclarationOf(read(`agents/${f}`)).names.includes('Bash'))

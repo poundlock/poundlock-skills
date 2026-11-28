@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { existsSync, readFileSync } from 'node:fs'
-import { PLUGIN_PREFIX, stripPluginPrefix } from '../hooks/lib/decide.mjs'
+import { PLUGIN_PREFIX, PM_ROLE } from '../hooks/lib/decide.mjs'
 
 test('PLUGIN_PREFIX 与 plugin.json 的 name 保持一致', () => {
   const manifest = JSON.parse(
@@ -15,12 +15,10 @@ test('PLUGIN_PREFIX 与 plugin.json 的 name 保持一致', () => {
   )
 })
 
-// M4b（docs/36，P8/P8b）：插件 settings.json 的 agent 写全名。平台解析 agent 键时先找完全同名、再找「:名字」后缀——写裸名
-// "at-pm" 时，项目里或用户层一份自己的 at-pm.md（agentType 就是 "at-pm"）会抢先当上主会话（P8 实测：项目里放一份
-// tools: Read 的 at-pm.md，主会话就成了它）；门禁按剥掉前缀的名字认 PM，冒名者还会拿到控制文件的写权。markdown agent 的
-// 名字不许含冒号，写全名就没有谁撞得上（P8b，2.1.286 与 2.1.278 上核过）。
-// 前缀从 PLUGIN_PREFIX 取（上面那条把它和 plugin.json 的 name 锁在一起）：插件改名时两条接力——PLUGIN_PREFIX 没跟上红上一条，跟上了而 settings.json 没跟上红这一条。全名找不到时平台只告警、
-// 退回默认主会话——主会话不再是 PM、门禁一路按主线程放行，而这一层不会出声，所以这里不写字面量。
+// 默认接管去掉了（设计 §5.1）：插件根的 settings.json 写 agent 键，启用了插件的目录里每个新会话都被钉成项目经理，
+// 用户只想在项目里装着插件、平时照常用 Claude Code 也不行。现在项目经理靠用户敲团队命令成为（门禁按会话的记号认），
+// 所以插件根不能再有 settings.json——有人把 agent 键加回来，每个新会话又都成了项目经理，而别的判据照样全绿。
+// agents/at-pm.md 留着：带 --agent 起的会话照旧是项目经理，升级之前开着的会话也靠它不被改判。
 // M4o（docs/50）：原话记录器只认本插件的 at——hooks.json 的 matcher、checks.mjs 声明的 matcher、门禁认的命令名都从插件名来。插件改名时
 // 三处没跟上，记录器就再也不触发，契约第 1 节一声不响地不再核。
 test('M4o 原话记录器认的命令是 PLUGIN_PREFIX + at 与 at-tweak：hooks.json 与 checks.mjs 的 matcher、user-words.mjs 的 AT_COMMAND、tweak.mjs 的 TWEAK_COMMAND', async () => {
@@ -49,12 +47,7 @@ test('session-notice 认的命令是 PLUGIN_PREFIX + at / at-resume / at-status 
   for (const c of ['at', 'at-resume', 'at-status', 'at-tweak']) assert.ok(existsSync(new URL(`../commands/${c}.md`, import.meta.url)), c)
 })
 
-test('M4b settings.json 的 agent 是插件全名（PLUGIN_PREFIX + at-pm），剥掉前缀后对得上一份 agents/*.md', () => {
-  const settings = JSON.parse(readFileSync(new URL('../settings.json', import.meta.url), 'utf8'))
-  assert.equal(
-    settings.agent,
-    `${PLUGIN_PREFIX}at-pm`,
-    'settings.json 的 agent 不是插件全名。写裸名时，项目或用户层同名的 at-pm.md 会抢先当上主会话（docs/36 P8）。',
-  )
-  assert.ok(existsSync(new URL(`../agents/${stripPluginPrefix(settings.agent)}.md`, import.meta.url)), settings.agent)
+test('插件根没有 settings.json——默认接管去掉了，项目经理靠敲命令成为', () => {
+  assert.equal(existsSync(new URL('../settings.json', import.meta.url)), false, '加回 settings.json 的 agent 会让每个新会话都变成项目经理')
+  assert.ok(existsSync(new URL(`../agents/${PM_ROLE}.md`, import.meta.url)))
 })

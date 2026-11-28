@@ -33,7 +33,7 @@ import { toolsDeclarationOf } from './helpers/agent-tools.mjs'
 import { EXPECTED_AGENTS } from './helpers/expected-agents.mjs'
 import { ROLES_WITHOUT_PATHS } from './helpers/roles-without-paths.mjs'
 import { COMMAND_NAMES } from './helpers/command-names.mjs'
-import { stripPluginPrefix } from '../hooks/lib/decide.mjs'
+import { PM_ROLE } from '../hooks/lib/decide.mjs'
 
 const url = (p) => new URL(`../${p}`, import.meta.url)
 const readFile = (p) => readFileSync(url(p), 'utf8')
@@ -208,13 +208,12 @@ test('前置条件：TEST_DOUBLE_ROLES 里的每个名字都真的在 agents/ �
   )
 })
 
-test('交叉核：产品角色 = settings.json 的 agent + templates/project.json 的 available_roles', () => {
-  const settings = JSON.parse(read('settings.json'))
+test('交叉核：产品角色 = 项目经理（PM_ROLE）+ templates/project.json 的 available_roles', () => {
   const project = JSON.parse(read('templates/project.json'))
   assert.deepEqual(
     [...PRODUCT_ROLES].sort(),
-    // M4b：settings.json 的 agent 写插件全名（docs/36），比之前剥掉前缀——与门禁共用同一份剥前缀规则。
-    [...new Set([stripPluginPrefix(settings.agent), ...project.available_roles])].sort(),
+    // 项目经理的名字取门禁认的那一个（decide.mjs 的 PM_ROLE）；插件根不再有 settings.json。
+    [...new Set([PM_ROLE, ...project.available_roles])].sort(),
     'agents/ 减去测试替身，与「主会话角色 + 可用班底」两个真源算出来的对不上——' +
       '往 agents/ 里加了真角色却没写进 available_roles，或者反过来。先确认哪一侧漏了，' +
       '再决定对外那句角色数要不要跟着改。\n' +
