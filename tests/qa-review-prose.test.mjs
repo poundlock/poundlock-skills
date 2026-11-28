@@ -82,13 +82,14 @@ test('运行时正文不提别的插件：superpowers 只出现在 README', () =
   }
 })
 
-test('README 两半：主会话拿不到 Skill 工具；别处想好的需求只贴要点、每一句都算原话', () => {
+// 插件不再默认接管主会话之后（docs/107）：项目经理会话有 Skill 工具，被门禁拦下；带 --agent 起的会话没有它。
+test('README 两半：项目经理会话里 Skill 工具被门禁拦下、别的插件的 skill 调不起来；别处想好的需求只贴要点、每一句都算原话', () => {
   const md = read('README.md')
   const cut = md.indexOf('<a id="english"></a>')
   const zh = md.slice(0, cut)
   const en = md.slice(cut)
-  assert.ok(zh.includes('它也拿不到 Skill 工具，别的插件带的 skill 它调不起来。'), 'zh Skill')
-  assert.ok(en.includes('It does not get the Skill tool either'), 'en Skill')
+  assert.ok(zh.includes('门禁拦下 Skill、') && zh.includes('别的插件带的 skill 它因此调不起来'), 'zh Skill')
+  assert.ok(en.includes('the gates block five tools — Skill,') && en.includes('Skills that come with other plugins are therefore out of its reach'), 'en Skill')
   assert.ok(has(zh, '只贴要做什么、给谁用、做完是什么样子、不做什么，不要整份贴') && has(zh, '后面的每一句都会被当成你的原话'), 'zh 贴需求')
   assert.ok(en.includes('paste only what to build') && en.includes('is taken as your own words'), 'en 贴需求')
   // 两半各一处，且都紧跟在「先把需求问清楚」那一段之后。

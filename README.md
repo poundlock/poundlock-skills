@@ -4,7 +4,7 @@
 
 **十角色软件开发团队 —— 一个 Claude Code 插件**
 
-项目经理就是你的主会话：分层派发任务，执行顺序由门禁强制，业务验收独立成线。
+敲一条命令，你的会话就成为项目经理：分层派发任务，执行顺序由门禁强制，业务验收独立成线。
 
 [![version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fpoundlock%2Fpoundlock-skills%2Fmain%2F.claude-plugin%2Fplugin.json&query=%24.version&label=version&color=blue)](.claude-plugin/plugin.json) [![license](https://img.shields.io/github/license/poundlock/poundlock-skills)](./LICENSE) ![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-D97757)
 
@@ -16,7 +16,7 @@
 
 ## 特性
 
-- 🧭 **项目经理就是主会话**：你只跟项目经理对话。它把你的需求逐字冻结成契约，再分层派给产品、架构、实现、测试与验收各角色。
+- 🧭 **敲命令才成为项目经理**：新开的会话是平常的 Claude Code；敲一条团队命令，这个会话就成为项目经理，之后你只跟它对话。它把你的需求逐字冻结成契约，再分层派给产品、架构、实现、测试与验收各角色。
 - 🚦 **顺序由门禁强制**：六道 hook 门禁——派发白名单、前置就绪、写路径隔离、契约保护、交付物核验、返工预算——拦下越级派发、越界写入，以及跳段、没交齐就推进。
 - ✅ **业务验收独立成线**：测试之外，还有一道对着你的原话逐条核对的业务验收。
 - 👀 **过程看得见**：在桌面应用里，每个角色的完整过程都能单独查看；同一阶段的角色并行干活。
@@ -31,22 +31,22 @@ claude plugin marketplace add poundlock/poundlock-skills --scope local
 claude plugin install poundlock@poundlock --scope local
 ```
 
-装好后在这个目录里新开一个会话，主会话就是项目经理。插件只对这一个项目生效，不影响别的项目。
+装好后，这个目录里新开的会话就是平常的 Claude Code：工具齐全，门禁不拦它的正常工作。要用团队，在会话里敲下面[使用](#使用)里的一条命令，这个会话就成为项目经理。插件只对这一个项目生效，不影响别的项目。
 
 > [!WARNING]
-> **安装命令要带 `--scope local`。** `install` 不带它、或者在 `/plugin` 面板里选了默认的第一项，装的是 user 作用域：这台机器上此后开的每一个新会话、不分项目，主会话都会变成项目经理。装错了就执行 `claude plugin uninstall poundlock@poundlock`（不带 `--scope`，卸的就是 user 作用域那一份），再照上面重装。`marketplace add` 不带它，只是把市场登记在 user 一层，不接管会话。
+> **安装命令要带 `--scope local`。** `install` 不带它、或者在 `/plugin` 面板里选了默认的第一项，装的是 user 作用域：这台机器上此后开的每一个会话、不分项目，都挂着门禁的 hook，每一轮多一行提醒，哪个项目里都敲得出团队命令。装错了就执行 `claude plugin uninstall poundlock@poundlock`（不带 `--scope`，卸的就是 user 作用域那一份），再照上面重装。`marketplace add` 不带它，只是把市场登记在 user 一层，不装插件。
 
 **前提**：
 
 - **Node 16.9 或更新**，而且要在 Claude Code 启动时的 PATH 上——门禁就是用它跑的。原生安装的 Claude Code 自己不需要 Node，所以要单独确认。桌面端和 IDE 起的会话用的是它们自己的环境，不一定和你终端里的一致；装完或换了 Node，要重开 Claude Code（桌面端要完全退出再打开）。
-- **Claude Code 2.1.276 或更新**。桌面端保持应用为最新即可。
+- **Claude Code 2.1.325 或更新**。桌面端保持应用为最新即可。
 - **原生 Windows 上要装 Git for Windows**。团队角色跑命令只用 `Bash`（Git Bash）；没装的话 Claude Code 只给 PowerShell，角色装依赖、编译、跑测试都做不了，项目经理会停下来告诉你。
 
 Node 找不到、旧到门禁起不来，或者 hooks 被关掉时，平台不拦任何调用，门禁一道都不生效，界面上至多一行不起眼的灰字。所以项目经理在 `/poundlock:at`、`/poundlock:at-tweak`、`/poundlock:at-resume`、`/poundlock:at-init`、`/poundlock:at-skills` 开头，以及之后你每发一条消息、它这一轮第一次派发或写 `.poundlock` 之前（续会话之后也一样），都会做一次**门禁自检**：故意写一个门禁一定会拦下的文件。每次自检都会在界面上留下一条被拦下的写入（显示为一条错误），内容以「门禁自检：在线」开头——那就是自检，属预期。门禁没拦下它，项目经理会停下来，告诉你怎么查。`/poundlock:at-status` 只读，不做这项检查。
 
-Node 起得来但太旧时，门禁会拒绝每一次派发与写入，并写明要装哪个版本。自检不核 Claude Code 的版本：版本不够时，门禁可能照常在跑、自检也通过，分层派发却走不通——所以要自己确认，终端里用 `claude --version`，桌面端保持应用为最新。
+Node 起得来但太旧时，门禁会拒绝每一次派发与写入，并写明要装哪个版本。自检不核 Claude Code 的版本：版本不够时，敲了团队命令可能没让会话成为项目经理（自检会说这个会话不是项目经理会话），也可能自检通过、分层派发却走不通——所以要自己确认，终端里用 `claude --version`，桌面端保持应用为最新。
 
-**更新**——版本号变了才会拉到新版，已经开着的会话要重开才生效。每一版改了什么写在 [CHANGELOG.md](CHANGELOG.md)，每一版都打了对应的 tag（`v` 加版本号）。更新最好放在两趟之间；进行中的那一趟更新之后可以接着跑，万一被门禁拦得没有出路，另起一趟（`/poundlock:at`）。
+**更新**——版本号变了才会拉到新版，已经开着的会话要重开才生效。从更早的版本升级上来的：升级之后新开的会话不再自动是项目经理，要用团队就敲[使用](#使用)里的命令。每一版改了什么写在 [CHANGELOG.md](CHANGELOG.md)，每一版都打了对应的 tag（`v` 加版本号）。更新最好放在两趟之间；进行中的那一趟更新之后可以接着跑，万一被门禁拦得没有出路，另起一趟（`/poundlock:at`）。
 
 ```sh
 claude plugin update poundlock@poundlock --scope local
@@ -74,6 +74,8 @@ claude --plugin-dir /path/to/poundlock
 ## 使用
 
 ### 命令
+
+在会话里敲下表任一条命令（`/poundlock:at-status` 除外），这个会话就成为**项目经理会话**——门禁按会话记下它，由项目经理接手——直到会话结束或 `/clear` 为止。要普通会话就新开一个。最好在刚开的会话里起一趟：敲命令之前对话里已有的内容，都会跟着进项目经理会话。
 
 | 命令 | 作用 |
 |---|---|
@@ -160,12 +162,14 @@ flowchart TB
 
 ## 怎么看每个角色
 
-在桌面应用里，项目经理就是你正在看的这个会话，其余角色是它派出去的子代理。每次派发在对话里收成一行灰色小字（如「Ran an agent, finished 6 background tasks」）：
+在桌面应用里，项目经理就是你敲了团队命令的那个会话，其余角色是它派出去的子代理。每次派发在对话里收成一行灰色小字（如「Ran an agent, finished 6 background tasks」）：
 
 1. **点那一行**，右侧打开 Background tasks 面板：每个角色一条（包括架构师再派出去的下级），显示状态、用时、用量与工具调用次数。
 2. **点某一条的 View transcript**，查看这个角色的完整过程：拿到的任务、读了哪些文件、改了什么、跑了什么命令、交回的报告。
 
-角色只能看、不能直接对话，有问题会报给项目经理，由它来问你；整趟 run 始终是一个会话。项目经理用你在应用里选的模型，其余角色用 `sonnet`；命令行里项目经理默认也是 `sonnet`（见 `agents/at-pm.md`），可以用 `--model` 覆盖。
+角色只能看、不能直接对话，有问题会报给项目经理，由它来问你；整趟 run 始终是一个会话。项目经理用这个会话的模型（桌面应用里就是你选的那个），其余角色用 `sonnet`。
+
+命令行里想要工具面由平台锁住的项目经理，可以用 `claude --agent poundlock:at-pm` 起会话：这样起的会话一开始就是项目经理，默认用 `sonnet`（见 `agents/at-pm.md`），可以用 `--model` 覆盖；它的工具面见[已知边界](#已知边界)。
 
 ## 已知边界
 
@@ -173,19 +177,22 @@ flowchart TB
 > **这不是沙箱。** 写路径隔离按 `project.json` 的 `paths` 管项目经理以外的各个角色：在 run 目录之外，只能写划给自己的前缀，没有条目就哪都写不了——按设计不认领目录的 `at-qa` 与 `at-acceptance` 也一样，它们只写 run 目录里自己那份产物。划给一个角色的目录不连带它下面的 `CLAUDE.md`、`CLAUDE.local.md`、`.claude/`、`.git`——要写这几处，得把它们本身划过去（先问你）；目录下面另建 `.poundlock/` 谁都不行。`Bash` 没有任何门禁看着，而执行角色保留它来构建和测试。项目经理在实现之前（实现中有角色被拒时也会）照架构方案往 `paths` 里补前缀（只加不删；落在 `.claude/`、CI/CD、凭据这类位置的先问你；补了什么会告诉你），这些前缀留给以后各趟。
 
 > [!WARNING]
-> **主会话会被接管成 `at-pm`。** 它的工具面是 `Agent(...)`（受派发白名单约束）、`AskUserQuestion`、`Bash`、`Read`、`Glob`、`Grep`、`Write`、`Edit`——能改动的范围与普通会话相当，把它限制在目标项目里的是角色说明，不是工具权限。它拿不到你在普通会话里能用的 MCP 工具与网页搜索、抓取（WebSearch、WebFetch）。它也拿不到 Skill 工具，别的插件带的 skill 它调不起来。要让角色用上你自己装的 skill，用 `/poundlock:at-skills` 登记给它们：整份复制进项目，角色按清单读来用；skill 是别人写的指令，登记给谁谁就照着做，同步新版之前会先给你看改了什么。团队里只有 `at-ui` 多一组看页面用的浏览器工具：你装了官方插件市场的 Playwright 插件，它就在本机打开自己起的页面截图看效果（会弹出一个浏览器窗口，截图留在项目根的 .playwright-mcp/ 下），没装就照实说没看过；其余角色都拿不到 MCP 与网页工具——每个角色只拿自己清单里的工具。按上面的方式安装，影响范围只在安装它的那个项目目录；也不要用 `--agent`、或在你自己的设置里设 `agent` 键，把主会话换成别的角色，门禁按主会话的身份判定。
+> **项目经理会话保留你平常的工具，门禁只拦下几样。** 敲过团队命令的会话照样用得了 MCP 工具与网页搜索、抓取；门禁拦下 Skill、SendMessage、ListAgents、EnterWorktree、Workflow 这五样工具，它们能绕开派发门禁起或续子代理、或者换工作树。能改动的范围与普通会话相当，把项目经理限制在目标项目里的是角色说明，不是工具权限。别的插件带的 skill 它因此调不起来，你自己敲的斜杠命令不受影响。命令行里带 `--agent poundlock:at-pm` 起的会话，工具面由平台锁在 `Agent(...)`（受派发白名单约束）、`AskUserQuestion`、`Bash`、`Read`、`Glob`、`Grep`、`Write`、`Edit`：它拿不到 MCP 工具与网页搜索、抓取（WebSearch、WebFetch），也没有 Skill 工具。要让角色用上你自己装的 skill，用 `/poundlock:at-skills` 登记给它们：整份复制进项目，角色按清单读来用；skill 是别人写的指令，登记给谁谁就照着做，同步新版之前会先给你看改了什么。团队里只有 `at-ui` 多一组看页面用的浏览器工具：你装了官方插件市场的 Playwright 插件，它就在本机打开自己起的页面截图看效果（会弹出一个浏览器窗口，截图留在项目根的 .playwright-mcp/ 下），没装就照实说没看过；其余角色都拿不到 MCP 与网页工具——每个角色只拿自己清单里的工具。按上面的方式安装，影响范围只在安装它的那个项目目录。
 
 > [!NOTE]
-> **设置里的 `agent` 会盖掉项目经理。** 用户、项目或本地设置里写了别的 `agent`（或者起会话时带了别的 `--agent`），主会话就不是 `poundlock:at-pm`，团队跑不起来（门禁会说出来）：去掉那一项设置，或者起会话时加 `--agent poundlock:at-pm`。
+> **普通会话里门禁不拦正常工作，但团队的事做不了。** 没敲过团队命令的会话派 `Explore` 这类子代理、写项目文件都照常；只是用 Edit、Write 写不了 `.poundlock/` 下的文件，也派不了团队角色，被拒时理由里说要敲哪条命令。插件在你每条消息后面加一行以 `poundlock reminder:` 开头的英文提醒，它只对项目经理会话说话，普通会话里可以不管。
+
+> [!NOTE]
+> **设置里的 `agent` 键会让会话当不成项目经理。** 用户、项目或本地设置里写了 `agent` 键（或者起会话时带了别的 `--agent`），会话的身份就是那个 agent，敲团队命令也成不了项目经理会话，团队跑不起来（门禁会说出来）：去掉那一项设置，或者起会话时改带 `--agent poundlock:at-pm`。
 
 > [!NOTE]
 > **项目的 `CLAUDE.md` 引了很大的文档时，项目经理所在的主会话照样整份读它**（团队里的其余角色不自动带它，开工时只读项目根那一份）：在项目的 `.claude/settings.local.json` 里用 `claudeMdExcludes` 排除那几份文件（只对你自己生效）。
 
 > [!IMPORTANT]
-> **续会话要带上 `--plugin-dir`。** `claude --resume` 不会继承这个参数；忘了带，CLI 会打印 `Continuing with the default tools and system prompt — the agent's tool restrictions no longer apply.`，插件命令与全部角色限制随即失效。按 local 作用域安装时同理：只在安装它的项目目录里续会话。
+> **用 `--plugin-dir` 加载时，续会话要带上它。** `claude --resume` 不会继承这个参数；忘了带，插件的命令与全部门禁随即失效，对话里却还留着项目经理的角色说明，转录里看不出来。带 `--agent poundlock:at-pm` 起的会话，CLI 还会打印 `Continuing with the default tools and system prompt — the agent's tool restrictions no longer apply.`，工具面的限制一起没了。按 local 作用域安装时同理：只在安装它的项目目录里续会话。
 
 > [!CAUTION]
-> **不要用 `claude plugin disable` 或 `claude plugin enable` 开关插件。** 一个会话的工具面在它的生命周期内是固定的，disable 不会把它还回来；enable 会接管已经在跑的会话。用完就结束会话，不再需要就卸载。
+> **会话开着时不要用 `claude plugin disable` 或 `claude plugin enable` 开关插件。** 一个会话的工具面在它的生命周期内是固定的，disable 不会把它还回来；已经开着的会话里，插件的命令与门禁会不会跟着开关，没有保证。用完就结束会话，不再需要就卸载。
 
 > [!NOTE]
 > **默认权限模式下会频繁弹窗。** 每次写文件、跑命令都要你确认；插件装在项目文件夹之外，项目经理和部分角色读插件自带的说明也要确认。在权限确认里拒掉项目经理的一次请求，这一轮就停下等你——说一句「继续」它会接着做。嫌弹窗多可以用 auto 模式。
@@ -230,7 +237,7 @@ MIT — 见 [LICENSE](./LICENSE)。
 
 **A ten-role software development team — as a Claude Code plugin**
 
-The project manager is your main session: it dispatches work through a layered hierarchy, gates enforce the order, and business acceptance runs as its own track.
+Type one command and your session becomes the project manager: it dispatches work through a layered hierarchy, gates enforce the order, and business acceptance runs as its own track.
 
 [简体中文](#poundlock) · **English**
 
@@ -240,7 +247,7 @@ The project manager is your main session: it dispatches work through a layered h
 
 ## Features
 
-- 🧭 **The project manager is your main session.** You only talk to the project manager. It freezes your requirement word for word as the contract, then dispatches product, architecture, implementation, testing and acceptance roles layer by layer.
+- 🧭 **A session becomes the project manager on demand.** A new session is plain Claude Code; type a team command and that session becomes the project manager, the only role you talk to from then on. It freezes your requirement word for word as the contract, then dispatches product, architecture, implementation, testing and acceptance roles layer by layer.
 - 🚦 **Gates enforce the order.** Six hook gates — dispatch whitelist, readiness, write-path isolation, contract protection, deliverable checks and rework budget — stop out-of-order dispatch, out-of-bounds writes, and skipped or unfinished stages.
 - ✅ **Business acceptance is its own track.** Beyond testing, a separate acceptance pass checks the result against your original words, clause by clause.
 - 👀 **You can watch every role.** In the desktop app each role's full run can be viewed on its own, and roles in the same stage work in parallel.
@@ -255,24 +262,24 @@ claude plugin marketplace add poundlock/poundlock-skills --scope local
 claude plugin install poundlock@poundlock --scope local
 ```
 
-Then start a new session in that directory — the main session is the project manager. The plugin applies to this one project only.
+After that, a new session in that directory is plain Claude Code: every tool is there, and the gates stay out of its ordinary work. To use the team, type one of the commands under [Usage](#usage) in a session, and that session becomes the project manager. The plugin applies to this one project only.
 
 > [!WARNING]
-> **Install with `--scope local`.** If `install` runs without it, or you pick the default first option in the `/plugin` panel, you get a user-scope install: every new session on this machine, in every project, starts with the project manager as its main session. If that happened, run `claude plugin uninstall poundlock@poundlock` (no `--scope` — that removes the user-scope copy) and reinstall as above. `marketplace add` without it only registers the marketplace at user level and takes over no session.
+> **Install with `--scope local`.** If `install` runs without it, or you pick the default first option in the `/plugin` panel, you get a user-scope install: every session on this machine, in every project, then carries the gates' hooks and an extra reminder line each turn, and the team commands work in any project. If that happened, run `claude plugin uninstall poundlock@poundlock` (no `--scope` — that removes the user-scope copy) and reinstall as above. `marketplace add` without it only registers the marketplace at user level and installs nothing.
 
 **Language:** the plugin runs in Chinese — role prompts, artifact templates, gate messages and status lines are all Chinese, and the gates recognise a few Chinese labels verbatim (for example the rework-approval label under “When it asks you”).
 
 **Requirements:**
 
 - **Node 16.9 or later** on the PATH that Claude Code starts with — the gates run on it. A native install of Claude Code does not need Node itself, so check it separately. Sessions started from the desktop app or an IDE use that app's environment, which may differ from your terminal's; after installing or switching Node, restart Claude Code (quit the desktop app completely and reopen it).
-- **Claude Code 2.1.276 or later.** For the desktop app, keeping the app up to date is enough.
+- **Claude Code 2.1.325 or later.** For the desktop app, keeping the app up to date is enough.
 - **On native Windows, Git for Windows.** The roles run commands only through `Bash` (Git Bash); without it Claude Code offers only PowerShell, so the roles cannot install, build or test, and the project manager stops and tells you.
 
 If Node is missing or too old for the gates to start, or hooks are disabled, the platform blocks nothing: no gate takes effect, and at most one easy-to-miss grey line appears. That is why the project manager runs a **gate self-check** at the start of `/poundlock:at`, `/poundlock:at-tweak`, `/poundlock:at-resume`, `/poundlock:at-init` and `/poundlock:at-skills`, and again after each message you send, before its first dispatch or first write under `.poundlock` in that turn (including after a session is resumed): it deliberately writes a file the gates always block. Each self-check shows up as a blocked write (shown as an error) whose text starts with the self-check's “online” message — that is expected. If the gates fail to block it, the project manager stops and tells you what to check. `/poundlock:at-status` is read-only and skips this check.
 
-If Node starts but is too old, the gates refuse every dispatch and write and say which version to install. The self-check does not check the Claude Code version: on an older Claude Code the gates may run and the self-check pass while layered dispatch still fails — so check it yourself with `claude --version` in a terminal, and keep the desktop app up to date.
+If Node starts but is too old, the gates refuse every dispatch and write and say which version to install. The self-check does not check the Claude Code version: on an older Claude Code a team command may fail to make the session the project manager (the self-check then says the session is not a project manager session), or the self-check may pass while layered dispatch still fails — so check it yourself with `claude --version` in a terminal, and keep the desktop app up to date.
 
-**Update** — a new release arrives only when its version number changes, and sessions already open need a restart. What changed in each version is in [CHANGELOG.md](CHANGELOG.md), and every version has a matching tag (`v` plus the version number). Updating between runs is best; a run in progress can carry on after an update, and if the gates ever block it with no way forward, start a new run (`/poundlock:at`).
+**Update** — a new release arrives only when its version number changes, and sessions already open need a restart. If you are upgrading from an earlier version: after the upgrade, new sessions are no longer the project manager by default; type a command under [Usage](#usage) to use the team. What changed in each version is in [CHANGELOG.md](CHANGELOG.md), and every version has a matching tag (`v` plus the version number). Updating between runs is best; a run in progress can carry on after an update, and if the gates ever block it with no way forward, start a new run (`/poundlock:at`).
 
 ```sh
 claude plugin update poundlock@poundlock --scope local
@@ -300,6 +307,8 @@ Loaded this way, pass the flag again every time you resume a session — see [Kn
 ## Usage
 
 ### Commands
+
+Type any command in the table below (except `/poundlock:at-status`) in a session, and that session becomes a **project manager session** — the gates record it by session and the project manager takes it over — until the session ends or you run `/clear`. For an ordinary session, open a new one. Start a run in a fresh session if you can: whatever is already in the conversation when you type the command comes along into the project manager session.
 
 | Command | What it does |
 |---|---|
@@ -386,12 +395,14 @@ We suggest adding `.poundlock/` to `.gitignore` (the project manager asks you fi
 
 ## Watching each role
 
-In the desktop app the project manager is the session you are looking at; every other role is a subagent it dispatches. Each dispatch collapses into one grey line in the conversation (such as "Ran an agent, finished 6 background tasks"):
+In the desktop app the project manager is the session where you typed the team command; every other role is a subagent it dispatches. Each dispatch collapses into one grey line in the conversation (such as "Ran an agent, finished 6 background tasks"):
 
 1. **Click that line** to open the Background tasks panel: one entry per role (including roles the architect dispatches in turn), with status, time, usage and tool-call count.
 2. **Click View transcript** on an entry to see that role's full run: the task it was given, the files it read, what it changed, the commands it ran, and the report it handed back.
 
-You can watch a role but not talk to it: roles report their questions to the project manager, which asks you, and a whole run stays one session. The project manager runs on the model you pick in the app and the other roles on `sonnet`; in the CLI the project manager also defaults to `sonnet` (see `agents/at-pm.md`), which `--model` overrides.
+You can watch a role but not talk to it: roles report their questions to the project manager, which asks you, and a whole run stays one session. The project manager runs on the session's model (in the desktop app, the one you pick) and the other roles on `sonnet`.
+
+In the CLI, if you want a project manager whose tool surface the platform locks down, start the session with `claude --agent poundlock:at-pm`: such a session is the project manager from the start, defaults to `sonnet` (see `agents/at-pm.md`), which `--model` overrides, and has the tool surface described under [Known Limitations](#known-limitations).
 
 ## Known Limitations
 
@@ -399,19 +410,22 @@ You can watch a role but not talk to it: roles report their questions to the pro
 > **This is not a sandbox.** Write-path isolation governs every team role except the project manager by the `paths` in `project.json`: outside the run directory a role may write only its own prefixes, and nothing at all without an entry — including `at-qa` and `at-acceptance`, which claim no directories by design and write only their own deliverable in the run directory. A claimed directory does not carry the `CLAUDE.md`, `CLAUDE.local.md`, `.claude/` or `.git` below it — those have to be claimed by name (after asking you) — and no role may create an `.poundlock/` inside it. `Bash` is not watched by any gate, and implementation roles keep it to build and test. Before implementation (and during it, when a role is refused) the project manager adds prefixes to `paths` from the architecture plan (it only adds; it asks you first for `.claude/`, CI/CD or credential locations; it tells you what it added); they stay for later runs.
 
 > [!WARNING]
-> **The main session is taken over as `at-pm`.** Its tool surface is `Agent(...)` (bound by the dispatch whitelist), `AskUserQuestion`, `Bash`, `Read`, `Glob`, `Grep`, `Write` and `Edit` — it can change anything an ordinary session can, and what keeps it inside the target project is its role definition, not its permissions. It does not get the MCP tools or the web search and fetch tools (WebSearch, WebFetch) that an ordinary session has. It does not get the Skill tool either, so skills that come with other plugins are out of its reach. To let roles use skills you installed yourself, register them with `/poundlock:at-skills`: each is copied into the project and roles read it from there; a skill is instructions someone else wrote, so the roles you register it to will follow it, and you are shown what changed before a newer version is synced. On the team only `at-ui` gets an extra set of browser tools for looking at pages: if you have installed the Playwright plugin from the official plugin marketplace, it opens the pages it serves on your machine and takes screenshots to check how they look (a browser window pops up, and the screenshots stay under .playwright-mcp/ in the project root); without that plugin it says plainly that it has not looked. No other role gets MCP or web tools: each role gets only the tools on its own list. Installed as above, its reach is limited to the one project directory that declares it. Don't swap the main session for another role with `--agent` or an `agent` key in your own settings either: the gates judge by the main session's identity.
+> **A project manager session keeps your usual tools; the gates block only a few.** A session where you typed a team command can still use MCP tools and web search and fetch; the gates block five tools — Skill, SendMessage, ListAgents, EnterWorktree and Workflow — because they could start or resume subagents around the dispatch gate, or switch worktrees. It can change anything an ordinary session can, and what keeps the project manager inside the target project is its role definition, not its permissions. Skills that come with other plugins are therefore out of its reach, though slash commands you type yourself are unaffected. In the CLI, a session started with `--agent poundlock:at-pm` has its tool surface locked by the platform to `Agent(...)` (bound by the dispatch whitelist), `AskUserQuestion`, `Bash`, `Read`, `Glob`, `Grep`, `Write` and `Edit`: it does not get the MCP tools or the web search and fetch tools (WebSearch, WebFetch), and has no Skill tool. To let roles use skills you installed yourself, register them with `/poundlock:at-skills`: each is copied into the project and roles read it from there; a skill is instructions someone else wrote, so the roles you register it to will follow it, and you are shown what changed before a newer version is synced. On the team only `at-ui` gets an extra set of browser tools for looking at pages: if you have installed the Playwright plugin from the official plugin marketplace, it opens the pages it serves on your machine and takes screenshots to check how they look (a browser window pops up, and the screenshots stay under .playwright-mcp/ in the project root); without that plugin it says plainly that it has not looked. No other role gets MCP or web tools: each role gets only the tools on its own list. Installed as above, its reach is limited to the one project directory that declares it.
 
 > [!NOTE]
-> **An `agent` in your settings overrides the project manager.** If user, project or local settings name another `agent` (or the session was started with another `--agent`), the main session is not `poundlock:at-pm` and the team cannot run (the gates say so): remove that setting, or start the session with `--agent poundlock:at-pm`.
+> **In an ordinary session the gates stay out of normal work, but team work is off limits.** A session where you have not typed a team command dispatches subagents such as `Explore` and writes project files as usual; it just cannot write under `.poundlock/` with Edit or Write, or dispatch team roles, and the refusal says which command to type. The plugin adds an English reminder line starting with `poundlock reminder:` after each of your messages; it only speaks to project manager sessions, and an ordinary session can ignore it.
+
+> [!NOTE]
+> **An `agent` key in your settings keeps a session from becoming the project manager.** If user, project or local settings set an `agent` key (or the session was started with another `--agent`), the session takes that agent's identity, a team command does not make it a project manager session, and the team cannot run (the gates say so): remove that setting, or start the session with `--agent poundlock:at-pm` instead.
 
 > [!NOTE]
 > **If the project's `CLAUDE.md` imports large documents, the main session, where the project manager runs, still reads them in full** (the other roles do not get it automatically and read only the one at the project root when they start): exclude those files with `claudeMdExcludes` in the project's `.claude/settings.local.json` (it applies to you only).
 
 > [!IMPORTANT]
-> **Pass `--plugin-dir` every time you resume.** `claude --resume` does not inherit it; forget it and the CLI prints `Continuing with the default tools and system prompt — the agent's tool restrictions no longer apply.`, after which the plugin's commands and every role restriction are gone. With a local-scope install the same holds for directories: resume only in the project directory that holds the install.
+> **When loading with `--plugin-dir`, pass it every time you resume.** `claude --resume` does not inherit it; forget it and the plugin's commands and every gate are gone, while the project manager's role text is still in the conversation — and nothing in the transcript shows it. For a session started with `--agent poundlock:at-pm`, the CLI also prints `Continuing with the default tools and system prompt — the agent's tool restrictions no longer apply.`, and the tool-surface limits go with it. With a local-scope install the same holds for directories: resume only in the project directory that holds the install.
 
 > [!CAUTION]
-> **Don't toggle the plugin with `claude plugin disable` or `claude plugin enable`.** A session's tool surface is fixed for its lifetime, and disabling does not hand it back; enabling takes over sessions that are already running. End the session when you are done, and uninstall when you no longer need it.
+> **Don't toggle the plugin with `claude plugin disable` or `claude plugin enable` while sessions are open.** A session's tool surface is fixed for its lifetime, and disabling does not hand it back; whether an open session's commands and gates follow the switch is not guaranteed. End the session when you are done, and uninstall when you no longer need it.
 
 > [!NOTE]
 > **Expect frequent prompts in the default permission mode.** Every file write and command asks for your confirmation, and since the plugin lives outside your project folder, the project manager and some roles also ask before reading the plugin's own instructions. Deny one of the project manager's requests and that turn stops and waits for you — say “continue” and it picks up where it stopped. Auto mode cuts the prompts down.

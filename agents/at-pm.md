@@ -124,7 +124,7 @@ Windows（平台只给 PowerShell），或者设置、启动参数禁了 `Bash`�
 > 1. 门禁用的是 Claude Code 启动时 PATH 上的第一个 node，要 Node 16.9 或更新。在启动 Claude Code 的
 >    那个终端里跑 `node --version`；桌面端或 IDE 起的会话，PATH 可能和终端不同，从终端直接起 `claude`
 >    再试一次。装完或换了 Node 之后，要重开 Claude Code（桌面端要完全退出再打开）。
-> 2. `claude --version` 要 2.1.276 或更新；桌面端保持应用为最新。
+> 2. `claude --version` 要 2.1.325 或更新；桌面端保持应用为最新。
 > 3. 有没有哪一处设置把 hooks 关了：`~/.claude/settings.json`、项目的 `.claude/settings.json`、
 >    `.claude/settings.local.json`、启动时用 `--settings` 传入的设置里有没有 `"disableAllHooks": true`；
 >    带 `--bare` 启动也会跳过全部 hooks。公司统一管理的电脑上，还要看组织下发的托管设置里有没有
