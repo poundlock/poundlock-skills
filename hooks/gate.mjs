@@ -10,7 +10,7 @@
 // 入口只做「该检查项声明的前置校验」，不做统一校验——H1–H5 分布在三种
 // hook 事件上，输入形状不同（规格 §6 注记）。
 
-import { appendFileSync, closeSync, existsSync, fstatSync, openSync, readFileSync, readSync, readdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
+import { appendFileSync, closeSync, existsSync, fstatSync, mkdirSync, openSync, readFileSync, readSync, readdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { basename, dirname, join, relative } from 'node:path'
 import { CHECKS, KNOWN_CHECKS } from './lib/checks.mjs'
@@ -52,7 +52,7 @@ import {
 } from './lib/completion.mjs'
 import { mayWaive, dispatchedIn, wholeStageTrimmed, trimmedAt } from './lib/advance.mjs'
 import { SUBAGENT_STOP_RETRY_NOTE } from './lib/retry-budget.mjs'
-import { APPROVALS_FILE, CLAIMS_FILE, DELIVERED_FILE, DISPATCHES_FILE, GATE_FILES, OWNER_FILE, isControlFile, isGateFile, leafName, mayBeGateFile, mayBeStateFile } from './lib/control-files.mjs'
+import { APPROVALS_FILE, CLAIMS_FILE, DELIVERED_FILE, DISPATCHES_FILE, GATE_FILES, OWNER_FILE, PM_SESSIONS_FILE, isControlFile, isGateFile, leafName, mayBeGateFile, mayBeStateFile } from './lib/control-files.mjs'
 import { blocksMe, mentionsRunId, ownerDenyReason, ownerDispatchBlock, ownerRecord, ownerWriteBlock, readOwner, sessionNotice, takeoverAnswer, takeoverNotice } from './lib/owner.mjs'
 import {
   CONTRACT_BASE_FILE,
@@ -88,6 +88,7 @@ import { exoticPath, norm, underDir } from './lib/path-norm.mjs'
 import { isPlainObject, isStageChain, isVerifyStage, participantsOf, isRolePatternStage, expandProduces, productsOfStage, stageRoles, producerOfName, verifyStageOf } from './lib/stages.mjs'
 import { inline, quote } from './lib/trusted.mjs'
 import { installTrace } from './lib/trace.mjs'
+import { identityNotice, markOf, marksText, readMarks, withMark } from './lib/pm-session.mjs'
 import { USER_WORDS_FILE, WORDS_FIX, bindDecision, blankAtSession, bookText, briefAnswer, briefNotice, finishBinding, matchedSection1, pendingRecord, readWords, readWordsBook, withWords, wordsFor,section1Mismatch, wordsMismatchText, wordsOf } from './lib/user-words.mjs'
 import { GATE_CHECK_PATH, gateCheckReason, isGateCheck, selfCheckIdentity } from './lib/gate-check.mjs'
 import {
@@ -551,7 +552,14 @@ function emitHookJson(event, parts) {
 // M3z（docs/34）：给用户的那一行只在 PreToolUse、PostToolUse 上发——SubagentStop 上 stdout 等于拦截，UserPromptSubmit 上 stdout
 // 进模型上下文（hookOutput 对这两种事件有东西要发就报 BUG）。
 function inputUnreadable(spec, what) {
-  const outcome = spec.recorder === true ? (spec.records === 'user-words' ? '这次的原话没有记下' : '这次的回答没有记下') : '没有做校验、放行'
+  const outcome =
+    spec.recorder === true
+      ? spec.records === 'user-words'
+        ? '这次的原话没有记下'
+        : spec.records === 'pm-session'
+          ? '这个会话没有记成项目经理会话'
+          : '这次的回答没有记下'
+      : '没有做校验、放行'
   process.stderr.write(`poundlock ${CHECK}：读不出这次的 hook 输入（${what}），${outcome}。\n`)
   emitHookJson(spec.event, userFacing(spec.event) ? { systemMessage: systemMessage('input', { check: CHECK }) } : {})
 }
@@ -3861,6 +3869,42 @@ function main() {
     if (tn) contexts.push(tn)
     if (!contexts.length) process.exit(0)
     emitHookJson(spec.event, { contexts })
+  }
+
+  if (CHECK === 'pm-session') {
+    // 项目经理会话的记号（hooks/lib/pm-session.mjs）：用户敲五条团队命令之一时，把这个会话记进项目的 .poundlock/pm-sessions.json（门禁专属），回传【身份】。
+    // 判不判、记什么、回传怎么说都在 pm-session.mjs，这里只做 I/O。不拦任何东西：这个事件上 exit 2 会把用户的命令拦掉。.poundlock 不在就建（at-init 之前
+    // 敲的也要记）。记号文件读不出来时从空表重建、只记这个会话（读不出来的那份里谁都不靠记号当项目经理，重建不会多放进谁）。写不进只留痕、不回传——
+    // 没记下却说「现在是项目经理会话」，门禁之后照样认不出它。回传不带会话 id，也不带磁盘上读来的值。
+    const mark = markOf(input)
+    if (!mark) process.exit(0)
+    const poundlockDir = join(ROOT_PROJECT, '.poundlock')
+    const file = join(poundlockDir, PM_SESSIONS_FILE)
+    let first
+    try {
+      mkdirSync(poundlockDir, { recursive: true })
+      first = withFileLock(poundlockDir, PM_SESSIONS_FILE, () => {
+        let bytes = null
+        try {
+          bytes = readFileSync(file)
+        } catch (e) {
+          if (e?.code !== 'ENOENT') bytes = ''
+        }
+        let marks = readMarks(bytes)
+        if (!marks.ok) {
+          process.stderr.write('poundlock pm-session：读不出记录项目经理会话的文件（.poundlock/pm-sessions.json），从空表重建、只记这个会话。\n')
+          marks = readMarks(null)
+        }
+        const next = withMark(marks, mark.sessionId, { at: new Date().toISOString(), command: mark.command })
+        if (!next) return false
+        writeFileSync(file, marksText(next))
+        return true
+      })
+    } catch (e) {
+      process.stderr.write(`poundlock pm-session：这个会话没有记成项目经理会话（${quote(e?.message ?? e, { max: 120 })}），请用户再敲一次团队命令。\n`)
+      process.exit(0)
+    }
+    emitHookJson(spec.event, { contexts: [identityNotice({ pluginRoot: ROOT, first })] })
   }
 
   if (CHECK === 'approval-ask' || CHECK === 'approval-prompt') {

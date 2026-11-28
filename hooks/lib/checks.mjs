@@ -58,9 +58,13 @@ export const CHECKS = {
   'user-words': { event: 'UserPromptExpansion', toolNames: null, matcher: '^poundlock:(at|at-tweak)$', failClosed: false, recorder: true, records: 'user-words' },
   // 一趟只归一个会话（hooks/lib/owner.mjs）：/poundlock:at、at-resume、at-status 展开时，current-run 指着的那一趟归另一个会话、还没收口，就用
   // additionalContext 告诉项目经理（【会话】），正文照它问用户。不是门禁：不拦任何东西（这个事件上 exit 2 会把用户的命令拦掉）。speaks：这个事件上
-  // 只有它可以发受信回传（不发 systemMessage）；user-words 照旧一个字都不写。matcher 与插件名同步（tests/plugin-name-sync.test.mjs）。
+  // 它与 pm-session 可以发受信回传（不发 systemMessage）；user-words 照旧一个字都不写。matcher 与插件名同步（tests/plugin-name-sync.test.mjs）。
   // 单个微调：/poundlock:at-tweak 起的也是一趟，同样要说。
   'session-notice': { event: 'UserPromptExpansion', toolNames: null, matcher: '^poundlock:(at|at-resume|at-status|at-tweak)$', failClosed: false, speaks: true },
+  // 项目经理会话的记号（hooks/lib/pm-session.mjs）：用户敲五条团队命令之一时，把这个会话记进项目的 .poundlock/pm-sessions.json（门禁专属），用
+  // additionalContext 回传【身份】。门禁按这份记号认谁是项目经理。不是门禁：不拦任何东西（这个事件上 exit 2 会把用户的命令拦掉）。at-status 只读，
+  // 不让会话变成项目经理会话。records：失败时的说法是「这个会话没有记成项目经理会话」。matcher 与 MARK_COMMANDS、插件名对得上。
+  'pm-session': { event: 'UserPromptExpansion', toolNames: null, matcher: '^poundlock:(at|at-tweak|at-resume|at-init|at-skills)$', failClosed: false, recorder: true, records: 'pm-session', speaks: true },
 }
 
 export const KNOWN_CHECKS = new Set(Object.keys(CHECKS))

@@ -270,6 +270,15 @@ test('接线（M4o）：原话记录器的 matcher 放进来的命令恰好是 p
   assert.deepEqual(names.filter((n) => new RegExp(r.matcher).test(n)), ['poundlock:at'], r.matcher)
 })
 
+// 项目经理会话的记号（pm-session）：用户敲这五条团队命令之一才成为项目经理会话；at-status 只读、不让会话变成项目经理会话。
+test('接线：记号记录器的 matcher 放进来的命令恰好是五条带插件名的团队命令——at-status、裸名、别的插件的 at 都不放', () => {
+  const r = registrations().find((x) => x.check === 'pm-session')
+  assert.ok(r, 'hooks.json 里没有 pm-session 的注册')
+  const want = ['poundlock:at', 'poundlock:at-tweak', 'poundlock:at-resume', 'poundlock:at-init', 'poundlock:at-skills']
+  const names = [...want, 'poundlock:at-status', 'at', 'at-init', 'other:at', 'x:poundlock:at', 'poundlock:at ', 'poundlock:at-skillsx']
+  assert.deepEqual(names.filter((n) => new RegExp(r.matcher).test(n)), want, r.matcher)
+})
+
 test('接线：每个检查项恰好注册一次', () => {
   const counts = {}
   for (const r of registrations()) counts[r.check] = (counts[r.check] ?? 0) + 1
