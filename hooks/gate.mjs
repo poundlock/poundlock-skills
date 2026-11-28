@@ -2197,12 +2197,12 @@ function withApprovalsLock(runDir, body) {
 }
 
 // 记号文件的原子写（pm-session、pm-compact 与自检清标记共用，调用方在 withFileLock 里）：门禁读记号（standingFor）不拿锁，原地截断再写的那一瞬间别的会话
-// 会读到空文件、被当成团队之外的人。先写同目录下的临时文件再 rename 盖过去；rename 不成就删掉临时文件、把错抛给调用方。临时文件的叶名不是
-// 任何门禁专属文件的名字（control-files.mjs 的 leafName）。
+// 会读到空文件、被当成团队之外的人。先写同目录下的临时文件再 rename 盖过去；写临时文件或 rename 不成（含写到一半抛错）就删掉临时文件、把错抛给
+// 调用方。临时文件的叶名不是任何门禁专属文件的名字（control-files.mjs 的 leafName）。
 function writeMarksAtomic(file, marks) {
   const tmp = `${file}.${process.pid}.tmp`
-  writeFileSync(tmp, marksText(marks))
   try {
+    writeFileSync(tmp, marksText(marks))
     renameSync(tmp, file)
   } catch (e) {
     try {

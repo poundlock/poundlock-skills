@@ -1,12 +1,14 @@
 // 检查项 pm-tools：项目经理会话的主线程里拒掉五样绕得开门禁的工具；别的会话、子代理一律放行、一个字都不写。
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { run, decisionOf } from './helpers/gate-runner.mjs'
 import { markPm } from './helpers/pm-mark.mjs'
 import { CHECKS } from '../hooks/lib/checks.mjs'
+import { PM_SESSIONS_FILE } from '../hooks/lib/control-files.mjs'
+import { systemMessage } from '../hooks/lib/fail-open.mjs'
 import { BLOCKED_TOOLS, blockedToolReason, unjudgedNote } from '../hooks/lib/pm-session.mjs'
 
 const SID = 's-pm'
@@ -107,7 +109,25 @@ test('读不到 tool_name 时放行（failClosed 为假）：不拒、exit 0，�
     const out = gate(dir, { hook_event_name: 'PreToolUse', session_id: SID })
     assert.equal(out.status, 0)
     assert.ok(!denied(out), out.stdout)
+    assert.deepEqual(JSON.parse(out.stdout), { systemMessage: systemMessage('input', { check: 'pm-tools' }) })
   })
+})
+
+// 记号文件读不出来时谁都不靠记号当项目经理：原来记过号的会话也一样，五样工具放行、一个字都不写（文件坏着的这段时间它们不被拦，代价记在 docs/107 §2.3）。
+test('记号文件读不出来时：不带 agent_type 的主线程五样工具都放行，两个流都空', () => {
+  withProject(
+    (dir) => {
+      mkdirSync(join(dir, '.poundlock'), { recursive: true })
+      writeFileSync(join(dir, '.poundlock', PM_SESSIONS_FILE), 'x')
+      for (const tool of BLOCKED_TOOLS) {
+        const out = gate(dir, input(tool))
+        assert.equal(out.status, 0, tool)
+        assert.equal(out.stdout, '', tool)
+        assert.equal(out.stderr, '', tool)
+      }
+    },
+    { marked: false },
+  )
 })
 
 test('登记：CHECKS[pm-tools].toolNames 与 BLOCKED_TOOLS 逐项相等，事件 PreToolUse，failClosed 为假', () => {

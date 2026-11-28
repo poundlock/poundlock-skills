@@ -39,8 +39,13 @@ const RUNTIME_PROSE = () => [
   'stages.produces.md',
 ]
 // 每轮提醒（UserPromptSubmit 上那条 echo）与 statusMessage 也进模型或用户看得到的地方；另外三份是模型照着读的配置。
-// settings.json 默认不在（插件不再默认接管）；有人加回来时照样扫。
-const CONFIGS = ['hooks/hooks.json', 'stages.json', 'roster.json', 'settings.json'].filter((rel) => existsSync(join(ROOT, rel)))
+// settings.json 默认不在（插件不再默认接管）；有人加回来时照样扫。只对它宽容：另外三份读不到就该红，不许被过滤掉。
+const REQUIRED_CONFIGS = ['hooks/hooks.json', 'stages.json', 'roster.json']
+const CONFIGS = [...REQUIRED_CONFIGS, ...['settings.json'].filter((rel) => existsSync(join(ROOT, rel)))]
+
+test('锚：模型照着读的三份配置都在——只有 settings.json 可以不在', () => {
+  for (const rel of REQUIRED_CONFIGS) assert.ok(existsSync(join(ROOT, rel)), `${rel} 不在`)
+})
 const HOOK_CODE = () => files('hooks', (n) => n.endsWith('.mjs'))
 
 // 门禁回传、拒绝理由、留痕都是代码里的字符串：只看代码行（整行注释跳过，行尾「 // 」之后的注释也跳过）。

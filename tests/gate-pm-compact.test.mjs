@@ -164,6 +164,40 @@ test('清标记改名不成：自检照样拒、带「在线」、说那一句�
   })
 })
 
+test('清标记写临时文件写到一半崩掉：自检照样拒、带「在线」、说那一句，stderr 留一行，不留临时文件；记号文件原样、标记还在', () => {
+  withProject((dir) => {
+    markPm(dir, 's-1')
+    run('pm-compact', compact('s-1'), GATE, dir)
+    const before = bytesAt(dir)
+    const env = { ...hermeticEnv(), POUNDLOCK_TEST_THROW: 'write-partial:.tmp' }
+    const input = pre(dir, 'Write', { file_path: join(dir, '.poundlock', 'gate-check'), content: 'x' }, 's-1')
+    const out = run('writepath', input, GATE, dir, env, { nodeArgs: ['-r', INJECT] })
+    const reason = reasonOf(out)
+    assert.equal(decisionOf(out.stdout)?.permissionDecision, 'deny')
+    assert.ok(reason.includes(GATE_CHECK_ONLINE), reason)
+    assert.ok(reason.includes(REREAD_HEAD), reason)
+    assert.match(out.stderr, /pm-compact/)
+    assert.equal(bytesAt(dir), before)
+    noLeftovers(dir)
+  })
+})
+
+// 带 at-pm 身份的会话：角色正文在它的系统提示里，压缩不丢——自检不说压缩那一句、不碰标记（标记即使在，也只属于靠记号认的那种会话）。
+test('自检：标记在时，带 at-pm 身份的同一个会话自检，不说压缩那一句、标记不被清', () => {
+  withProject((dir) => {
+    markPm(dir, 's-1')
+    run('pm-compact', compact('s-1'), GATE, dir)
+    const input = { ...pre(dir, 'Write', { file_path: join(dir, '.poundlock', 'gate-check'), content: 'x' }, 's-1'), agent_type: 'poundlock:at-pm' }
+    const out = run('writepath', input, GATE, dir)
+    const reason = reasonOf(out)
+    assert.equal(decisionOf(out.stdout)?.permissionDecision, 'deny')
+    assert.ok(reason.includes(GATE_CHECK_ONLINE), reason)
+    assert.ok(!reason.includes(REREAD_HEAD), reason)
+    assert.equal(needsReread(marksAt(dir), 's-1'), true)
+    noLeftovers(dir)
+  })
+})
+
 test('自检：记号文件读不出来时没有标记可言，回答不变（不抛、不 exit 2）', () => {
   withProject((dir) => {
     mkdirSync(join(dir, '.poundlock'), { recursive: true })

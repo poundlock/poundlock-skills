@@ -88,7 +88,7 @@ async function refuse(msg) {
   const spec = await specOf(CHECK)
   const input = readInput()
   // 失败策略表本身读不到时（checks.mjs 就是坏掉的那个），按 hook 输入自报的事件取安全方向：
-  // PreToolUse 上的检查项除 readiness 外都是 fail closed，readiness 多拒一次也是安全方向；
+  // PreToolUse 上的检查项多数是 fail closed，这里一律按它拒；readiness、handback、pm-tools 是 fail open，对它们是多拒一次、不会放过什么；
   // 其它事件上的检查项全是 fail open。这是「表读不到时怎么办」，不是表的第二份拷贝。
   // 输入读得出、却既没有 hook_event_name 也没有 tool_name：一定不是工具事件（PreToolUse 的输入总带 tool_name），不按 PreToolUse 拒——
   // UserPromptSubmit 上写一份拒绝 JSON 会原样进模型上下文（M3z 复核 platform-4）。输入读不出来时照旧取 PreToolUse 这个安全方向。

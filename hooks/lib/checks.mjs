@@ -51,7 +51,7 @@ export const CHECKS = {
   completion: { event: 'UserPromptSubmit', toolNames: null, failClosed: false, speaks: true },
   // M4o（docs/50，审查第 20 条修法 A）：原话记录。/poundlock:at 展开时（UserPromptExpansion）把用户写在命令后面的那段话记进项目一级的
   // .poundlock/user-words.json（hooks/lib/user-words.mjs）。不是门禁：不拦任何东西——这个事件上 exit 2 会把用户的命令拦掉；stdout 一个字都
-  // 不写（hookOutput 对它恒给空）。matcher：生命周期事件上带 matcher 的两项之一（另一项是下面的 session-notice），只放本插件的 at 这一条命令——锚定，不锚定的「poundlock:at」
+  // 不写（hookOutput 对它恒给空）。matcher：生命周期事件上带 matcher 的几项之一（另外几项是下面的 session-notice、pm-session、pm-compact），只放本插件的 at、at-tweak 两条命令——锚定，不锚定的「poundlock:at」
   // 会被平台当正则、连 at-init、at-resume 一起放进来（docs/50 §1）；插件名与 decide.mjs 的 PLUGIN_PREFIX 对得上（tests/plugin-name-sync.test.mjs）。
   // records：记录器记的是什么，失败时的说法按它分——这里记不下的是原话，不是批准。
   // 单个微调：/poundlock:at-tweak 的原话同样记（记录里写明是哪条命令；建微调的一趟要它）。

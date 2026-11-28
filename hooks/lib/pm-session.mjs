@@ -1,4 +1,4 @@
-// 项目经理会话的记号与身份判定：纯函数，不读文件、不写文件、不碰进程。
+// 项目经理会话的记号与身份判定：不写文件、不碰进程，除 inPoundlock 之外不读文件系统（它经 norm() 解析链接与 8.3 短名，要读）。
 //
 // 新开的会话是普通会话；用户敲团队命令（MARK_COMMANDS）才成为项目经理会话，记录器把会话 id 记进
 // .poundlock/pm-sessions.json（门禁专属文件）。门禁按这份记号认谁是项目经理，认不出来的主线程就是团队之外的人。
@@ -12,7 +12,7 @@ import { inline } from './trusted.mjs'
 // 用户敲了就让这个会话成为项目经理会话的命令（裸名，不带插件前缀）。
 export const MARK_COMMANDS = ['at', 'at-tweak', 'at-resume', 'at-init', 'at-skills']
 
-// 非项目经理的会话里一律拒的工具：能绕开门禁认身份的几样。
+// 项目经理会话里一律拒的工具：能不经派发门禁起或续子代理、或者换工作树的几样（门禁的检查项 pm-tools）。清单的单一真源，不声称封闭。
 export const BLOCKED_TOOLS = ['Skill', 'SendMessage', 'ListAgents', 'EnterWorktree', 'Workflow']
 
 export const NOT_PM_HEAD = 'poundlock：这个会话不是项目经理会话'
@@ -127,14 +127,14 @@ export function standingOf({ input, roster, marks }) {
 // 指向同一个目录。各平台都这样比：POSIX 上多拒一个字面叫「.poundlock.」的目录无妨。盘符那一段（C:）截完是 c，不影响。
 const segName = (seg) => seg.split(':')[0].replace(/[. ]+$/, '').toLowerCase()
 
-function endsUnder(parts) {
+function hasPoundlockSegment(parts) {
   return parts.some((seg) => segName(seg) === '.poundlock')
 }
 
 /** 这条路径在不在某个 .poundlock 目录之下（含它自己）：字面路径与物理路径任一命中就算，每一段规范化之后再比（不分大小写、流后缀与结尾的点、空格不算），穿越折掉之后再看。 */
 export function inPoundlock(filePath) {
   if (typeof filePath !== 'string' || !filePath) return false
-  return endsUnder(resolve(filePath).split(sep)) || endsUnder(norm(filePath).split('/'))
+  return hasPoundlockSegment(resolve(filePath).split(sep)) || hasPoundlockSegment(norm(filePath).split('/'))
 }
 
 const ASK_USER =
@@ -207,7 +207,7 @@ const BLOCKED_EXIT = {
   Workflow: '团队的流程由项目经理沿阶段链派发，不跑别的工作流。',
 }
 
-/** 项目经理会话与团队角色里被拒的工具。 */
+/** 项目经理会话里被拒的工具（pm-tools）的拒绝理由；团队角色拿不到这几样，靠的是各自的 tools: 行，不经这里。 */
 export function blockedToolReason(toolName) {
   const exit = typeof toolName === 'string' && has(BLOCKED_EXIT, toolName) ? BLOCKED_EXIT[toolName] : '这个工具不在团队的工具面里，换团队开放的工具做。'
   return `poundlock：团队的会话里不开放 ${inline(toolName)} 工具。${exit}`

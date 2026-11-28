@@ -935,6 +935,13 @@ const SCENARIOS = [
     anchor: (text) => text === '',
   },
   {
+    // 上一个场景喂不到 unknown-stage 那一行之后，这里补回来：agent_type 是数组时不是团队之外的人（判不出身份的调用者交给原来的代码），
+    // 照样走到那一行，收件人（载荷）进 stderr。把那一处的 inline 去掉，这里红。
+    name: 'unknown-stage：收件人是载荷（hook 输入的 agent_type 是数组）',
+    state: (s) => ({ ...s, stage: 'SX' }),
+    calls: (_, P) => [['deliverable', returned('poundlock:at-product', [P])]],
+  },
+  {
     name: 'hook 输入的 agent_type',
     calls: ({ p }, P) => [
       ['writepath', write(P, join(p, 'src', 'server', 'a.ts'))],
