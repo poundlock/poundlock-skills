@@ -88,7 +88,7 @@ import { exoticPath, norm, underDir } from './lib/path-norm.mjs'
 import { isPlainObject, isStageChain, isVerifyStage, participantsOf, isRolePatternStage, expandProduces, productsOfStage, stageRoles, producerOfName, verifyStageOf } from './lib/stages.mjs'
 import { inline, quote } from './lib/trusted.mjs'
 import { installTrace } from './lib/trace.mjs'
-import { OUTSIDER_CHECKS, identityNotice, markOf, marksText, outsiderReason, roleFileNote, outsiderVerdict, readMarks, standingOf, unjudgedNote, withMark } from './lib/pm-session.mjs'
+import { OUTSIDER_CHECKS, blockedToolReason, identityNotice, markOf, marksText, outsiderReason, roleFileNote, outsiderVerdict, readMarks, standingOf, unjudgedNote, withMark } from './lib/pm-session.mjs'
 import { USER_WORDS_FILE, WORDS_FIX, bindDecision, blankAtSession, bookText, briefAnswer, briefNotice, finishBinding, matchedSection1, pendingRecord, readWords, readWordsBook, withWords, wordsFor,section1Mismatch, wordsMismatchText, wordsOf } from './lib/user-words.mjs'
 import { GATE_CHECK_PATH, gateCheckReason, isGateCheck, selfCheckIdentity } from './lib/gate-check.mjs'
 import {
@@ -2498,6 +2498,14 @@ function main() {
   if (OUTSIDER_CHECKS.includes(CHECK)) {
     STANDING = standingFor(input)
     if (CHECK === 'delegation' || CHECK === 'writepath') DENY_NOTE = unjudgedNote(STANDING.unjudged)
+  }
+
+  // 项目经理会话的主线程不开放绕得开门禁的几样工具（pm-tools）：是项目经理就拒，别的会话、子代理放行、一个字都不写。
+  if (CHECK === 'pm-tools') {
+    const standing = standingFor(input)
+    if (!standing.pm) process.exit(0)
+    DENY_NOTE = unjudgedNote(standing.unjudged)
+    denyAndExit(blockedToolReason(input.tool_name), spec.event)
   }
 
   if (CHECK === 'delegation') {

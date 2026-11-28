@@ -445,6 +445,15 @@ const SCENARIOS = [
     }),
     shape: { status: 0, stdout: 'empty', stderr: 'empty' },
   },
+  {
+    name: 'pm-tools：没记号的主线程用 Skill，静默放行',
+    check: 'pm-tools',
+    setup: () => ({
+      ...cleanDir(),
+      input: { hook_event_name: 'PreToolUse', tool_name: 'Skill', tool_input: {}, session_id: 's' },
+    }),
+    shape: { status: 0, stdout: 'empty', stderr: 'empty' },
+  },
   // 项目经理会话的记号：只取不写文件的一格——记下记号会写 .poundlock/pm-sessions.json，那是记录器的本分。at-status 不记，静默。
   {
     name: 'pm-session：展开的是 /poundlock:at-status，不记、静默',

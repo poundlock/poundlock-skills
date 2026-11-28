@@ -61,6 +61,9 @@ export const CHECKS = {
   // 它与 pm-session 可以发受信回传（不发 systemMessage）；user-words 照旧一个字都不写。matcher 与插件名同步（tests/plugin-name-sync.test.mjs）。
   // 单个微调：/poundlock:at-tweak 起的也是一趟，同样要说。
   'session-notice': { event: 'UserPromptExpansion', toolNames: null, matcher: '^poundlock:(at|at-resume|at-status|at-tweak)$', failClosed: false, speaks: true },
+  // 项目经理会话里不开放绕得开门禁的几样工具：只拒项目经理会话的主线程，别的会话、子代理放行。toolNames 与 hooks/lib/pm-session.mjs 的
+  // BLOCKED_TOOLS 逐项相同（这里不能 import，hooks/boot.mjs 要在旧 Node 上读它；tests/gate-pm-tools.test.mjs 钉着两边相等）。
+  'pm-tools': { event: 'PreToolUse', toolNames: ['Skill', 'SendMessage', 'ListAgents', 'EnterWorktree', 'Workflow'], failClosed: false },
   // 项目经理会话的记号（hooks/lib/pm-session.mjs）：用户敲五条团队命令之一时，把这个会话记进项目的 .poundlock/pm-sessions.json（门禁专属），用
   // additionalContext 回传【身份】。门禁按这份记号认谁是项目经理。不是门禁：不拦任何东西（这个事件上 exit 2 会把用户的命令拦掉）。at-status 只读，
   // 不让会话变成项目经理会话。records：失败时的说法是「这个会话没有记成项目经理会话」。matcher 与 MARK_COMMANDS、插件名对得上。

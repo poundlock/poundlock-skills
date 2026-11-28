@@ -76,6 +76,7 @@ const INPUTS = {
   completion: { hook_event_name: 'UserPromptSubmit', prompt: 'x' },
   'user-words': { hook_event_name: 'UserPromptExpansion', expansion_type: 'slash_command', command_name: 'poundlock:at', command_args: 'x', session_id: 's' },
   'session-notice': { hook_event_name: 'UserPromptExpansion', expansion_type: 'slash_command', command_name: 'poundlock:at', command_args: 'x', session_id: 's' },
+  'pm-tools': { hook_event_name: 'PreToolUse', tool_name: 'Skill', tool_input: {}, session_id: 's' },
   'pm-session': { hook_event_name: 'UserPromptExpansion', expansion_type: 'slash_command', command_name: 'poundlock:at', command_args: 'x', session_id: 's' },
 }
 
