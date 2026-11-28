@@ -9,9 +9,11 @@ import assert from 'node:assert/strict'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
-import { run, runAsync, GATE } from './helpers/gate-runner.mjs'
+import { run, runAsync, decisionOf, GATE } from './helpers/gate-runner.mjs'
+import { makeRun } from './fixtures/make-run.mjs'
+import { markPm } from './helpers/pm-mark.mjs'
 import { IDENTITY_TAG, readMarks } from '../hooks/lib/pm-session.mjs'
-import { PM_SESSIONS_FILE } from '../hooks/lib/control-files.mjs'
+import { DELIVERED_FILE, GATE_FILES, PM_SESSIONS_FILE, PROJECT_GATE_FILES } from '../hooks/lib/control-files.mjs'
 
 const SLASH = String.fromCharCode(92)
 const ROLE_FILE = `${resolve(dirname(GATE), '..').split(SLASH).join('/')}/agents/at-pm.md`
@@ -191,4 +193,37 @@ test('pm-session：记号文件原子写——记下、重复敲、另一个会�
     assert.ok(r.stderr.includes('没有记成项目经理会话'), r.stderr)
     assert.deepEqual(leftovers(dir), [])
   })
+})
+
+// 门禁专属文件被写时的理由按文件说来历与出路：交付快照那一句只属于 delivered.json（user-words.json 犯过落到它的错，记号文件也犯过）。
+// 清单从 GATE_FILES 与 PROJECT_GATE_FILES 派生，以后加一份门禁专属文件、忘了给它一支理由，这条就红。
+test('门禁专属文件：除 delivered.json 外谁的拒绝理由都不是交付快照那一句；记号文件的理由说它是项目经理会话的记号、出路是请用户敲团队命令', () => {
+  const d = makeRun({ stage: 'S2' })
+  try {
+    markPm(d.projectDir, 's-9')
+    const SNAPSHOT = '交付快照'
+    const targets = [
+      ...GATE_FILES.map((g) => join(d.projectDir, '.poundlock', ...g.split('/').map((seg) => (seg === '*' ? 'r1' : seg)))),
+      ...PROJECT_GATE_FILES.map((name) => join(d.projectDir, '.poundlock', name)),
+    ]
+    assert.ok(targets.some((f) => f.endsWith(PM_SESSIONS_FILE)))
+    for (const file of targets) {
+      for (const tool of ['Write', 'Edit']) {
+        const ti = tool === 'Write' ? { file_path: file, content: 'x' } : { file_path: file, old_string: 'a', new_string: 'b' }
+        const out = run('writepath', { hook_event_name: 'PreToolUse', tool_name: tool, tool_input: ti, session_id: 's-9' }, GATE, d.projectDir)
+        const decision = decisionOf(out.stdout)
+        assert.equal(decision?.permissionDecision, 'deny', `${tool} ${file}`)
+        const reason = decision.permissionDecisionReason
+        if (file.endsWith(DELIVERED_FILE)) assert.ok(reason.includes(SNAPSHOT), reason)
+        else assert.ok(!reason.includes(SNAPSHOT), `${tool} ${file}：${reason}`)
+        if (file.endsWith(PM_SESSIONS_FILE)) {
+          assert.ok(reason.includes('项目经理会话'), reason)
+          assert.ok(reason.includes('/poundlock:at'), reason)
+        }
+      }
+    }
+  } finally {
+    rmSync(d.projectDir, { recursive: true, force: true })
+    rmSync(d.pluginDir, { recursive: true, force: true })
+  }
 })

@@ -98,7 +98,8 @@ const standing = (outsider, pm, kind = null, unjudged = null) => ({ outsider, pm
 
 /**
  * 这次调用的发起者在团队里是什么位置。
- *   outsider：团队之外的人（kind：unmarked 没记过号的主线程、replaced 被换掉身份的主会话、subagent 花名册外的子代理）；
+ *   outsider：团队之外的人（kind：unmarked 没记过号的主线程、replaced 被换掉身份的主会话、subagent 花名册外的子代理，
+ *     以及没记号的会话里带 agent_id、不带 agent_type 的调用者）；
  *   pm：项目经理；
  *   unjudged：判不出来时说明为什么（没有会话 id 时按项目经理，记号文件读不出来时谁都不靠记号当项目经理）。
  * 认不出的调用者与花名册里的团队角色两样都不归这里管，回两个假。
@@ -108,11 +109,13 @@ export function standingOf({ input, roster, marks }) {
   const raw = input?.agent_type
   const hasAgentId = nonEmptyString(input?.agent_id)
   if (raw === undefined || raw === null) {
-    if (hasAgentId) return standing(false, false)
-    if (!nonEmptyString(input?.session_id)) return standing(false, true, null, 'no-session-id')
-    if (!marks?.ok) return standing(true, false, 'unmarked', 'marks-unreadable')
-    if (has(marks.sessions, input.session_id)) return standing(false, true)
-    return standing(true, false, 'unmarked')
+    // 带 agent_id 的（CLI 的内部分叉带主线程的 agent_type 加自己的 agent_id，主线程不带 agent_type 时就是这个形状）不是主线程本身，
+    // 按所在会话的记号认：记过号、没有会话 id 交给原来的代码（pm 仍为假）；没记号、记号文件读不出来是团队之外的人。
+    const outsiderKind = hasAgentId ? 'subagent' : 'unmarked'
+    if (!nonEmptyString(input?.session_id)) return hasAgentId ? standing(false, false) : standing(false, true, null, 'no-session-id')
+    if (!marks?.ok) return standing(true, false, outsiderKind, 'marks-unreadable')
+    if (has(marks.sessions, input.session_id)) return standing(false, !hasAgentId)
+    return standing(true, false, outsiderKind)
   }
   const bare = stripPluginPrefix(raw)
   if (bare === PM_ROLE) return standing(false, !hasAgentId)

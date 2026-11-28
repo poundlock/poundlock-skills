@@ -226,15 +226,13 @@ function standingFor(input) {
     try {
       return standingOf({ input, roster: loadRoster(), marks: { ok: false } })
     } catch {
-      // 最后一层兜底（现实中走不到）与设计 §5.7 同方向：记号判不出来时谁都不靠记号当项目经理——没有身份、不带 agent_id、带会话 id 的主线程
-      // 按团队之外的人待；别的输入（带身份的、子代理、没有会话 id 的）交给原来的代码。
-      const unmarkedMain =
-        (input?.agent_type === undefined || input?.agent_type === null) &&
-        !(typeof input?.agent_id === 'string' && input.agent_id !== '') &&
-        typeof input?.session_id === 'string' &&
-        input.session_id !== ''
-      return unmarkedMain
-        ? { outsider: true, pm: false, kind: 'unmarked', unjudged: 'marks-unreadable' }
+      // 最后一层兜底（现实中走不到）与设计 §5.7 同方向：记号判不出来时谁都不靠记号当项目经理——没有身份、带会话 id 的调用者按团队之外的人待
+      // （不带 agent_id 的是没记号的主线程，带 agent_id 的是那个会话里的分叉，与 standingOf 同一个口径）；别的输入（带身份的、没有会话 id 的）交给原来的代码。
+      const noType = input?.agent_type === undefined || input?.agent_type === null
+      const withSession = typeof input?.session_id === 'string' && input.session_id !== ''
+      const withAgentId = typeof input?.agent_id === 'string' && input.agent_id !== ''
+      return noType && withSession
+        ? { outsider: true, pm: false, kind: withAgentId ? 'subagent' : 'unmarked', unjudged: 'marks-unreadable' }
         : { outsider: false, pm: false, kind: null, unjudged: null }
     }
   }
@@ -2136,6 +2134,9 @@ function gateFileReason(checked, exotic) {
           : leafIs(OWNER_FILE)
             ? '这是门禁记下的这一趟归哪个会话（建它的那个会话，或者用户经「在这个会话接手」接过去的那个会话），不用、也不许改；要换会话，照 ' +
               '/poundlock:at-resume 第 1 节「别的会话的一趟」问用户。'
+          : leafIs(PM_SESSIONS_FILE)
+            ? '这是门禁记的项目经理会话记号（用户在哪个会话里敲过团队命令，哪个会话就是项目经理会话），不用、也不许改。它读不出来或者少了哪个会话，' +
+              '请用户在要当项目经理的会话里敲一条团队命令（比如 /poundlock:at-resume），门禁会记上这个会话，坏了的文件会被重建。'
             : '这是门禁自己拍的交付快照，PM 推进或回退之后由门禁照磁盘重拍，不用、也不许改。'
   return (
     `poundlock 门禁：不得写 ${inline(checked)}——${exotic ? `${exotic}；它可能就是门禁专属文件。` : ''}${what}` +

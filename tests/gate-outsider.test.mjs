@@ -1,5 +1,5 @@
 // 团队之外的人——门禁子进程那一层（设计 §5.1、§5.4、§5.6、§5.7）：没记过号的普通会话的主线程（N）、被换成花名册外 agent 的主会话（R）、
-// 花名册外的子代理（A）走一条不依赖运行上下文的判定。四种项目状态都跑一遍，结果相同：
+// 花名册外的子代理（A）、没记号的会话里带 agent_id 不带 agent_type 的分叉（F）走一条不依赖运行上下文的判定。四种项目状态都跑一遍，结果相同：
 //   甲，跑过 at-init、没有 run；乙，一趟读得出的 run；丙，state.json 写坏的 run；丁，乙加上别的会话开着的一趟微调、它认领了 src/a.js。
 // 判定本身（standingOf、inPoundlock、outsiderReason、unjudgedNote）的单测在 tests/pm-session.test.mjs。
 import { test } from 'node:test'
@@ -27,7 +27,9 @@ const PROJECT = { paths: { 'at-backend': ['src/'], 'at-frontend': ['web/'] }, av
 const N = {}
 const R = { agent_type: 'general-purpose' }
 const A = { agent_type: 'general-purpose', agent_id: 'a-9' }
-const WHO = { N, R, A }
+// CLI 的内部分叉在不带 agent_type 的会话里的形状：只带它自己的 agent_id。会话没记号时按团队之外的人待（kind subagent）。
+const F = { agent_id: 'a-8' }
+const WHO = { N, R, A, F }
 const pre = (tool_name, tool_input, who) => ({ hook_event_name: 'PreToolUse', tool_name, tool_input, session_id: 's-9', ...who })
 const post = (tool_name, tool_input, tool_response, who) => ({ hook_event_name: 'PostToolUse', tool_name, tool_input, tool_response, session_id: 's-9', ...who })
 
@@ -87,7 +89,7 @@ function withState(name, body) {
   }
 }
 
-function eachCase(body, whoNames = ['N', 'R', 'A']) {
+function eachCase(body, whoNames = ['N', 'R', 'A', 'F']) {
   for (const s of Object.keys(STATES)) {
     for (const w of whoNames) withState(s, (p) => body(p, WHO[w], `${s}×${w}`))
   }
@@ -293,6 +295,19 @@ test('乙里记过号的普通会话主线程当项目经理：派 Explore 被�
     assert.equal(denied(gc), true)
     assert.ok(reasonOf(gc).includes(GATE_CHECK_ONLINE))
     assert.equal(unjudgedNote(null), '')
+  })
+})
+
+test('乙里记过号的会话：带 agent_id、不带 agent_type 的分叉照旧走原来的代码，不以团队之外的人的固定串被拒', () => {
+  withState('乙', (p) => {
+    markPm(p, 's-9')
+    const outside = (out) => denied(out) && (reasonOf(out).startsWith(NOT_PM_HEAD) || reasonOf(out).startsWith(OUTSIDE_HEAD))
+    for (const out of [agent(p, 'poundlock:at-product', F), write(p, join(p, '.poundlock', 'project.json'), F), write(p, join(p, '.poundlock', 'notes.md'), F)]) {
+      assert.equal(outside(out), false, reasonOf(out))
+    }
+    const gc = write(p, join(p, '.poundlock', 'gate-check'), F)
+    assert.equal(denied(gc), true)
+    assert.ok(reasonOf(gc).includes(GATE_CHECK_ONLINE), reasonOf(gc))
   })
 })
 

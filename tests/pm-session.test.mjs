@@ -46,6 +46,18 @@ test('被换掉的主会话、花名册外的子代理是团队之外的人；�
   assert.deepEqual(standingOf({ input: main(), roster: {}, marks: marks() }), LEGACY)
 })
 
+// CLI 的内部分叉带的是主线程的 agent_type 加它自己的 agent_id；主线程不带 agent_type 时，分叉就是这个形状——按所在会话的记号认。
+test('带 agent_id、不带 agent_type 的调用者按所在会话的记号认：记过号或没有会话 id 交给原来的代码，没记号、读不出来是团队之外的人', () => {
+  const fork = (over = {}) => main({ agent_id: 'a-1', ...over })
+  assert.deepEqual(S(fork(), marks('s-1')), LEGACY)
+  assert.deepEqual(S(fork({ agent_type: null }), marks('s-1')), LEGACY)
+  assert.deepEqual(S(fork({ session_id: undefined })), LEGACY)
+  assert.deepEqual(S(fork({ session_id: '' }), { ok: false }), LEGACY)
+  assert.deepEqual(S(fork(), marks('s-2')), { outsider: true, pm: false, kind: 'subagent', unjudged: null })
+  assert.deepEqual(S(fork({ session_id: 'constructor' })), { outsider: true, pm: false, kind: 'subagent', unjudged: null })
+  assert.deepEqual(S(fork(), { ok: false }), { outsider: true, pm: false, kind: 'subagent', unjudged: 'marks-unreadable' })
+})
+
 test('记号文件：不在是一个项目经理会话都没有，读不懂是读不出来', () => {
   assert.deepEqual(readMarks(null), { ok: true, sessions: {} })
   assert.deepEqual(readMarks(marksText(marks('s-1'))), marks('s-1'))
