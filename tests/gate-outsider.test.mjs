@@ -6,6 +6,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { existsSync, mkdirSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { makeRun } from './fixtures/make-run.mjs'
 import { run, decisionOf, GATE } from './helpers/gate-runner.mjs'
 import { markPm } from './helpers/pm-mark.mjs'
@@ -333,6 +334,26 @@ test('乙里记号文件读不出来：不带 agent_type 的主线程当团队�
     const out = agent(p, 'poundlock:at-backend', N)
     assert.equal(denied(out), true)
     assert.ok(reasonOf(out).startsWith(NOT_PM_HEAD) && reasonOf(out).endsWith(unjudgedNote('marks-unreadable')), reasonOf(out))
+  })
+})
+
+test('乙里记过号的主线程（项目经理会话）自检：理由含「在线」，也含仓库根的 agents/at-pm.md 的绝对路径', () => {
+  withState('乙', (p) => {
+    markPm(p, 's-9')
+    const gc = write(p, join(p, '.poundlock', 'gate-check'), N)
+    assert.equal(denied(gc), true)
+    assert.ok(reasonOf(gc).includes(GATE_CHECK_ONLINE))
+    const root = join(fileURLToPath(new URL('..', import.meta.url))).split(String.fromCharCode(92)).join('/').replace(new RegExp(String.fromCharCode(47) + '+$'), '')
+    assert.ok(reasonOf(gc).includes(root + '/agents/at-pm.md'), reasonOf(gc))
+  })
+})
+
+test('乙里带 poundlock:at-pm 身份的自检：理由含「在线」，不含 agents/at-pm.md（角色正文在它的系统提示里）', () => {
+  withState('乙', (p) => {
+    const gc = write(p, join(p, '.poundlock', 'gate-check'), { agent_type: 'poundlock:at-pm' })
+    assert.equal(denied(gc), true)
+    assert.ok(reasonOf(gc).includes(GATE_CHECK_ONLINE))
+    assert.ok(!reasonOf(gc).includes('agents/at-pm.md'), reasonOf(gc))
   })
 })
 

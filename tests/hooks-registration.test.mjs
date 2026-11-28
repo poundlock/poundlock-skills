@@ -350,6 +350,9 @@ test('自检提醒：说了什么时候、做什么、更早的结果不算数',
   assert.match(REMINDER_TEXT, /\bgate self-check\b/)
   assert.match(REMINDER_TEXT, /\brole file\b/)
   assert.match(REMINDER_TEXT, /Earlier results do not count/)
+  assert.match(REMINDER_TEXT, /only for the poundlock project manager session/)
+  assert.match(REMINDER_TEXT, /any other session ignores it/)
+  assert.match(REMINDER_TEXT, /Write \.poundlock\/gate-check/)
 })
 
 // 按平台的实际选择去跑：Windows 上找得到 Git Bash 用 bash，找不到退到 PowerShell（从不用 cmd.exe，

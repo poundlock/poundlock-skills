@@ -88,7 +88,7 @@ import { exoticPath, norm, underDir } from './lib/path-norm.mjs'
 import { isPlainObject, isStageChain, isVerifyStage, participantsOf, isRolePatternStage, expandProduces, productsOfStage, stageRoles, producerOfName, verifyStageOf } from './lib/stages.mjs'
 import { inline, quote } from './lib/trusted.mjs'
 import { installTrace } from './lib/trace.mjs'
-import { OUTSIDER_CHECKS, identityNotice, markOf, marksText, outsiderReason, outsiderVerdict, readMarks, standingOf, unjudgedNote, withMark } from './lib/pm-session.mjs'
+import { OUTSIDER_CHECKS, identityNotice, markOf, marksText, outsiderReason, roleFileNote, outsiderVerdict, readMarks, standingOf, unjudgedNote, withMark } from './lib/pm-session.mjs'
 import { USER_WORDS_FILE, WORDS_FIX, bindDecision, blankAtSession, bookText, briefAnswer, briefNotice, finishBinding, matchedSection1, pendingRecord, readWords, readWordsBook, withWords, wordsFor,section1Mismatch, wordsMismatchText, wordsOf } from './lib/user-words.mjs'
 import { GATE_CHECK_PATH, gateCheckReason, isGateCheck, selfCheckIdentity } from './lib/gate-check.mjs'
 import {
@@ -2652,7 +2652,13 @@ function main() {
     // 团队之外的人（设计 §5.6）：门禁在线，但只对项目经理会话回答「在线」。
     if (isGateCheck(checked)) {
       denyAndExit(
-        (STANDING.outsider ? outsiderReason({ kind: STANDING.kind, action: 'self-check' }) : gateCheckReason() + selfCheckTail(input, checked)) + selfCheckIdentity(input),
+        (STANDING.outsider
+          ? outsiderReason({ kind: STANDING.kind, action: 'self-check' })
+          : gateCheckReason() +
+            selfCheckTail(input, checked) +
+            // 靠记号或判不出来认的项目经理会话（没有 at-pm 身份）：角色正文是命令读进对话的，压缩之后可能不在眼前，在这里指路。
+            (STANDING.pm && (input?.agent_type === undefined || input?.agent_type === null) ? roleFileNote({ pluginRoot: ROOT }) : '')) +
+        selfCheckIdentity(input),
         spec.event,
       )
     }
