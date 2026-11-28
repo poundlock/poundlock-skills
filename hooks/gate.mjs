@@ -2692,7 +2692,7 @@ function main() {
     //
     // 注意：这条豁免解决不了自举死锁——见下面 ctx.kind 的注释。带
     // agent_type 的调用不算这里的"主线程"，哪怕值恰好是 at-pm：
-    // settings.json 的 agent 键把 at-pm 钉成主线程 agent 时，主线程的
+    // 会话带 at-pm 身份起（--agent poundlock:at-pm，或者升级之前开着的会话）时，主线程的
     // hook 输入照样带 agent_type（docs/05-M0-结论.md「次要事实」），这种
     // 配置下 at-pm 会作为一个有名有姓的角色继续往下走 per-role 判定，
     // 不享受这条豁免（Task 4 复审 1）。
@@ -2751,8 +2751,8 @@ function main() {
         process.exit(0)
       }
       // 全分支评审 I2：'unreadable' 对子代理继续 fail closed，但 PM 要放行。
-      // 上面 role === MAIN 那条豁免盖不住这种情形——settings.json 的 agent 键
-      // 把 at-pm 钉成主线程时，主会话自己的调用带 agent_type（原始值是全名 "poundlock:at-pm"，docs/22），落不进
+      // 上面 role === MAIN 那条豁免盖不住这种情形——会话带 at-pm 身份起
+      // （--agent poundlock:at-pm，或者升级之前开着的会话）时，主会话自己的调用带 agent_type（原始值是全名 "poundlock:at-pm"，docs/22），落不进
       // MAIN。而这里的 deny 发生在看路径之前，拒的是这个会话的**每一次**
       // Edit/Write；agents/at-pm.md 现在有 Bash（M1c 设计 §1.1 的上界要求——M4b 订正：那条「上界」的前提，主线程的
       // tools: 封顶子代理的工具，P4 实测不成立；M4b 裁定保留，理由是跑构建与测试（docs/36 §2.9）。这条
@@ -4310,7 +4310,7 @@ function main() {
     // M3n：SubagentStop 带着 PM 的身份时，H5b 不表态——那不是一个被派出去的角色在收尾。
     // 实测（docs/22 §3）：CLI 自己起的内部分叉（agent_summary、prompt_suggestion、compact……）
     // 停下时也发 SubagentStop，而它们带的 agent_type 是**主线程**的身份，不是父代理的；
-    // 本插件用 settings.json 的 agent 键把主线程钉成 at-pm，于是它们一律是 "poundlock:at-pm"。
+    // 主线程带 at-pm 身份起的会话（--agent poundlock:at-pm，或者升级之前开着的会话）里，它们一律是 "poundlock:at-pm"。
     // at-pm 是 S1 / S4 / S8 的产者：没有这一行时，H5b 在这几段、PM 的产物落盘之前会对每一个
     // 分叉 exit 2（docs/22 §5 是实物：一个写进度摘要的分叉被要求交出 04-dispatch.md）。
     // 这一行的前提有两半：

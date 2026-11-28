@@ -17,7 +17,7 @@ export const MAIN = '__main__'
 // 「一律拒绝」，而所有测试仍然是绿的。
 export const PLUGIN_PREFIX = 'poundlock:'
 
-// 项目经理的裸名：主会话（插件 settings.json 的 agent），也是唯一的契约写者（exemptFromPaths）。
+// 项目经理的裸名：带 at-pm 身份起的主线程（--agent poundlock:at-pm）剥掉前缀后的名字，也是唯一的契约写者（exemptFromPaths）。
 export const PM_ROLE = 'at-pm'
 
 export function stripPluginPrefix(name) {

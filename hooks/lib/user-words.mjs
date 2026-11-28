@@ -34,7 +34,7 @@ import { normalizeLabel } from './budget.mjs'
 
 export { USER_WORDS_FILE }
 
-// 认的命令：本插件的 at（插件名从 PLUGIN_PREFIX 取，与 settings.json 的 agent 同一个真源）。
+// 认的命令：本插件的 at（插件名从 PLUGIN_PREFIX 取，那是插件名的单一真源）。
 export const AT_COMMAND = `${PLUGIN_PREFIX}at`
 // 需求稿的规范标签（正文、README 与判据都从这里取）。
 export const BRIEF_LABEL = '照这份需求开始'

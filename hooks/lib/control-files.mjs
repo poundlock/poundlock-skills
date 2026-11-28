@@ -13,7 +13,7 @@
 //   CONTROL_FILES 改动本身的通用对账，清单改名/增删大多数情况下不会让它变色。
 //
 // 为什么控制文件不走「角色认领产物」那套判据（完整论证见 docs/09 账一，这里只记
-// 要点）：被 settings.json 钉成主线程的 at-pm 不是 callerOf 判定的 MAIN，稳态下它
+// 要点）：带 at-pm 身份起的主线程（--agent poundlock:at-pm）不是 callerOf 判定的 MAIN，稳态下它
 // 是一个受完整 per-role 隔离约束的普通角色，写不了 state.json——而 §4.2 ③ 的计数、
 // /at-resume、/at-init 都要它写。反过来把整个 .poundlock/ 放给 PM 又太宽：PM 会
 // 因此能在 run 目录下凭空造出 01-prd.md，而 artifactExists 在 runDir 下解析、H2 拿

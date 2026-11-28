@@ -36,7 +36,7 @@ import { CONTRACT_FILE } from './contract-hash.mjs'
 const CONTRACT = CONTRACT_FILE
 
 // 谁算"PM/主线程"，因而对 00-contract.md 没有约束：真正的主线程（没有
-// agent_type）、以及被 settings.json 的 agent 键钉成主线程的 at-pm——
+// agent_type）、以及带 at-pm 身份起的主线程（下面说的「钉住」；今天来自 --agent poundlock:at-pm）——
 // 本仓库自己的 settings.json 就是 {"agent": "at-pm"}，钉住时该会话自己的
 // 工具调用会带裸的 agent_type: 'at-pm'（M0 实测「次要事实」，
 // docs/05-M0-结论.md 第 193 行），不是真正意义上"没有 agent_type"，但语义
@@ -52,6 +52,8 @@ const CONTRACT = CONTRACT_FILE
 // agent_type: 'at-pm'」两处事实都要改：settings.json 现在写插件全名 "poundlock:at-pm"（裸名时，项目或用户层
 // 同名的 at-pm.md 会抢先当上主会话，P8）；钉住的 PM 在 hook 输入里的原始 agent_type 一直是全名（docs/22），
 // 裸 'at-pm' 是剥掉前缀之后的值。callerOf 两种都认，结论不变。
+// 再订正：插件根后来不再有 settings.json，主线程不再被插件默认钉成 at-pm；带 at-pm 身份的主线程只来自
+// --agent poundlock:at-pm 与升级之前开着的会话，hook 输入照旧带全名，结论不变。
 //
 // 为什么可以把 at-pm 和 MAIN 同等对待（规格依据）：§5.3 原话是"契约唯一
 // 写者是用户（经 PM 转写）"——PM 就是那个被授权写契约的人，钉住配置下
