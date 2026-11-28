@@ -64,6 +64,36 @@ export function markOf(input) {
   return { sessionId: input.session_id, command }
 }
 
+/** 上下文压缩时平台发的 SessionStart（来源 compact，会话 id 不变）：回会话 id；别的来源、没有会话 id、带身份的会话（角色正文在系统提示里，压缩不丢）回 null。 */
+export function compactOf(input) {
+  if (input?.source !== 'compact') return null
+  if (!nonEmptyString(input.session_id)) return null
+  if (input.agent_type !== undefined && input.agent_type !== null) return null
+  return { sessionId: input.session_id }
+}
+
+/** 这个会话在记号里是不是带着「要重读角色正文」的标记。 */
+export function needsReread(marks, sessionId) {
+  if (!marks?.ok || !has(marks.sessions, sessionId)) return false
+  const entry = marks.sessions[sessionId]
+  return isPlainObject(entry) && entry.reread === true
+}
+
+/**
+ * 给记过号的会话记上（on 为真）或清掉（on 为假，去掉这个键、不写 false）「要重读」的标记：返回新的 marks；
+ * 这个会话没记过号、marks 读不出来、标记本来就是这个值，回 null（不用写）。
+ */
+export function withReread(marks, sessionId, on) {
+  if (!marks?.ok || !has(marks.sessions, sessionId)) return null
+  const entry = marks.sessions[sessionId]
+  if (!isPlainObject(entry)) return null
+  if (needsReread(marks, sessionId) === Boolean(on)) return null
+  const next = { ...entry }
+  if (on) next.reread = true
+  else delete next.reread
+  return { ok: true, sessions: { ...marks.sessions, [sessionId]: next } }
+}
+
 const standing = (outsider, pm, kind = null, unjudged = null) => ({ outsider, pm, kind, unjudged })
 
 /**
@@ -186,8 +216,17 @@ function placeholderLine(pluginRoot) {
   return `角色正文里的占位符 ${'$' + '{CLAUDE_PLUGIN_ROOT}'} 指的就是 ${inline(fold(pluginRoot))}。`
 }
 
-/** 角色正文不在眼前时（比如上下文被压缩之后）的补读提示。 */
-export function roleFileNote({ pluginRoot }) {
+// 压缩之后那一句的开头：门禁在这个会话压缩过之后的第一次自检上说它，说过一次就清掉标记。
+export const REREAD_HEAD = '这个会话的上下文压缩过'
+
+/** 补读角色正文的提示。must 为真是上下文压缩过之后：不带条件，要它现在先读全文；否则是「眼前没有就先读」。 */
+export function roleFileNote({ pluginRoot, must = false }) {
+  if (must) {
+    return (
+      `${REREAD_HEAD}，项目经理的角色正文已经不在眼前，压缩摘要不是它。现在先读 ${inline(roleFilePath(pluginRoot))} 全文，读完再做别的。` +
+      placeholderLine(pluginRoot)
+    )
+  }
   return (
     `项目经理的角色正文在 ${inline(roleFilePath(pluginRoot))}，眼前没有它的全文就先读它，再接着做。` +
     placeholderLine(pluginRoot)

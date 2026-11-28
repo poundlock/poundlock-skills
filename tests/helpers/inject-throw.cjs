@@ -7,6 +7,7 @@
 //   normalize      String.prototype.normalize 一调就抛——返工批准的两个记录器认标签时经过它（M3z）；
 //   read:<后缀>     readFileSync 读路径以这个后缀结尾（分隔符统一成 /）的文件就抛——H6 拍回退快照时逐份读产物（M3y），
 //                  一份读不出来要落「不核」、不能让整次判定 fail closed；
+//   rename:<后缀>   renameSync 的源路径以这个后缀结尾（分隔符统一成 /）时就抛——记号文件的原子写（临时文件再改名）改名不成的那一格；
 //   stat:<CODE>:<后缀>  statSync 对以这个后缀结尾的路径抛带 code 的错（例 stat:EACCES:06-test.md）——H6 把 ENOENT、ENOTDIR
 //                  之外的 stat 错误归为「在、但读不出来」，这一条在 Windows 上造不出真的 EACCES。
 // 写成 -r 的 .cjs 而不是 --import 的 .mjs：--import 要 Node 18.18 起才有（最低版本作业跑 16.9）。
@@ -58,6 +59,15 @@ for (const mode of modes) {
         err.code = m[1]
         throw err
       }
+      return original.apply(this, arguments)
+    }
+    require('module').syncBuiltinESMExports()
+  } else if (mode.startsWith('rename:')) {
+    const suffix = mode.slice('rename:'.length)
+    const fs = require('fs')
+    const original = fs.renameSync
+    fs.renameSync = function (p) {
+      if (String(p).split('\\').join('/').endsWith(suffix)) throw new Error('injected: renameSync')
       return original.apply(this, arguments)
     }
     require('module').syncBuiltinESMExports()

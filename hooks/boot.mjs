@@ -55,6 +55,8 @@ if (atLeast(HAVE, MIN_NODE)) {
       pmNote:
         '检查项加载失败，这个会话没有记成项目经理会话，记号记不下（记号记录器不拦任何东西）。重装或更新 poundlock 插件，' +
         '再请用户敲一次团队命令。',
+      compactNote:
+        '检查项加载失败，这次压缩没有记下，「要重读」的标记记不下（压缩记录器不拦任何东西），压缩之后门禁不会要求项目经理重读角色正文。重装或更新 poundlock 插件。',
     })
   })
 } else {
@@ -75,6 +77,8 @@ if (atLeast(HAVE, MIN_NODE)) {
     pmNote:
       '检查项没有运行（Node 太旧），这个会话没有记成项目经理会话，记号记不下（记号记录器不拦任何东西）。升级 Node 到 ' + MIN_NODE +
       ' 或更新，再请用户敲一次团队命令。',
+    compactNote:
+      '检查项没有运行（Node 太旧），这次压缩没有记下，「要重读」的标记记不下（压缩记录器不拦任何东西），压缩之后门禁不会要求项目经理重读角色正文。升级 Node 到 ' + MIN_NODE + ' 或更新。',
   })
 }
 
@@ -115,6 +119,7 @@ async function refuse(msg) {
   if (spec && spec.recorder === true) {
     if (spec.records === 'user-words') note = msg.wordsNote
     else if (spec.records === 'pm-session') note = msg.pmNote
+    else if (spec.records === 'pm-compact') note = msg.compactNote
     else note = msg.recorderNote
   }
   process.stderr.write('poundlock ' + CHECK + ' ' + note + '\n')

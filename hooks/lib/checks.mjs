@@ -68,6 +68,10 @@ export const CHECKS = {
   // additionalContext 回传【身份】。门禁按这份记号认谁是项目经理。不是门禁：不拦任何东西（这个事件上 exit 2 会把用户的命令拦掉）。at-status 只读，
   // 不让会话变成项目经理会话。records：失败时的说法是「这个会话没有记成项目经理会话」。matcher 与 MARK_COMMANDS、插件名对得上。
   'pm-session': { event: 'UserPromptExpansion', toolNames: null, matcher: '^poundlock:(at|at-tweak|at-resume|at-init|at-skills)$', failClosed: false, recorder: true, records: 'pm-session', speaks: true },
+  // 上下文压缩之后要项目经理重读角色正文（hooks/lib/pm-session.mjs）：压缩时平台发的 SessionStart（来源 compact，会话 id 不变）上，给记过号的会话记一个
+  // 「要重读」的标记；带标记的会话下一次门禁自检，拒绝理由里补读那一句换成不带条件的，说过一次就清掉标记。不是门禁：不写 stdout、不拦任何东西。
+  // records：失败时的说法是「这次压缩没有记下」。
+  'pm-compact': { event: 'SessionStart', toolNames: null, matcher: '^compact$', failClosed: false, recorder: true, records: 'pm-compact' },
 }
 
 export const KNOWN_CHECKS = new Set(Object.keys(CHECKS))

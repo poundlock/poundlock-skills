@@ -102,3 +102,10 @@ test('crashNotice：记号记录器崩溃——这个会话没有记成项目经
   assert.ok(text.includes('没有记成项目经理会话') && text.includes('再敲一次团队命令'), text)
   assert.ok(!text.includes('批准') && !text.includes('放行'), text)
 })
+
+// 压缩记录器（pm-compact）崩了：说这次压缩没有记下、压缩之后门禁不会要求重读，不说放行、不叫用户再批准。
+test('crashNotice：压缩记录器崩溃——这次压缩没有记下', () => {
+  const text = crashNotice('pm-compact', new Error('boom'), true, 'pm-compact')
+  assert.ok(text.includes('这次压缩没有记下') && text.includes('不会要求项目经理重读'), text)
+  assert.ok(!text.includes('批准') && !text.includes('放行'), text)
+})

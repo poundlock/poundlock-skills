@@ -2,8 +2,8 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import {
-  BLOCKED_TOOLS, IDENTITY_TAG, MARK_COMMANDS, NOT_PM_HEAD, OUTSIDE_HEAD, OUTSIDER_CHECKS,
-  blockedToolReason, identityNotice, inPoundlock, markOf, marksText, outsiderReason, outsiderVerdict, readMarks, roleFileNote, standingOf, unjudgedNote, withMark,
+  BLOCKED_TOOLS, IDENTITY_TAG, MARK_COMMANDS, NOT_PM_HEAD, OUTSIDE_HEAD, OUTSIDER_CHECKS, REREAD_HEAD,
+  blockedToolReason, compactOf, identityNotice, needsReread, inPoundlock, markOf, marksText, outsiderReason, outsiderVerdict, readMarks, roleFileNote, standingOf, unjudgedNote, withMark, withReread,
 } from '../hooks/lib/pm-session.mjs'
 import { GATE_CHECK_ONLINE } from '../hooks/lib/gate-check.mjs'
 import { isGateFile, PM_SESSIONS_FILE } from '../hooks/lib/control-files.mjs'
@@ -146,4 +146,42 @@ test('outsiderVerdict：不是团队之外的人回 null；派花名册里的名
     assert.deepEqual(outsiderVerdict({ check, standing: out, roster, target: 'at-backend', filePath: '/p/.poundlock/state.json' }), { allow: true }, check)
   }
   assert.deepEqual([...OUTSIDER_CHECKS].sort(), ['approval-ask', 'approval-prompt', 'completion', 'contract', 'delegation', 'deliverable', 'ledger', 'readiness', 'rework', 'writepath'])
+})
+
+test('压缩：只认 SessionStart 来源是 compact、不带身份的会话', () => {
+  const c = (over = {}) => ({ hook_event_name: 'SessionStart', source: 'compact', session_id: 's-1', ...over })
+  assert.deepEqual(compactOf(c()), { sessionId: 's-1' })
+  assert.deepEqual(compactOf(c({ agent_type: null })), { sessionId: 's-1' })
+  for (const input of [c({ source: 'resume' }), c({ source: 'startup' }), c({ source: 'clear' }), c({ session_id: '' }), c({ session_id: 7 }), c({ agent_type: 'poundlock:at-pm' }), {}, null, undefined]) {
+    assert.equal(compactOf(input), null, JSON.stringify(input))
+  }
+})
+
+test('要重读的标记：只给记过号的会话记，记过不重复，清掉之后没有这个键', () => {
+  const m = marks('s-1')
+  assert.equal(needsReread(m, 's-1'), false)
+  assert.equal(withReread(m, 's-2', true), null)
+  assert.equal(withReread(m, 's-1', false), null)
+  const on = withReread(m, 's-1', true)
+  assert.equal(needsReread(on, 's-1'), true)
+  assert.equal(on.sessions['s-1'].command, 'at')
+  assert.equal(needsReread(m, 's-1'), false)
+  assert.equal(withReread(on, 's-1', true), null)
+  assert.deepEqual(readMarks(marksText(on)), on)
+  const off = withReread(on, 's-1', false)
+  assert.equal(needsReread(off, 's-1'), false)
+  assert.equal('reread' in off.sessions['s-1'], false)
+  assert.equal(needsReread({ ok: false }, 's-1'), false)
+  assert.equal(withReread({ ok: false }, 's-1', true), null)
+  assert.equal(needsReread(marks(), 'constructor'), false)
+})
+
+test('压缩之后那一句不带条件', () => {
+  const must = roleFileNote({ pluginRoot: '/plug', must: true })
+  assert.ok(must.startsWith(REREAD_HEAD), must)
+  assert.match(must, /\/plug\/agents\/at-pm\.md/)
+  assert.match(must, /CLAUDE_PLUGIN_ROOT/)
+  assert.doesNotMatch(must, /眼前没有/)
+  assert.ok(!roleFileNote({ pluginRoot: '/plug' }).includes(REREAD_HEAD))
+  assert.match(roleFileNote({ pluginRoot: '/plug' }), /眼前没有/)
 })

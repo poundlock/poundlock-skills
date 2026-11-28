@@ -89,7 +89,7 @@ export function denyOutput(reason, event) {
  * @param {string} check 崩溃时的检查项名（CHECK，如 'deliverable'）
  * @param {Error} err main() 内部抛出的异常
  * @param {boolean} [recorder] 这个检查项是不是记录器（checks.mjs 的 recorder，调用方传）
- * @param {string} [records] 记录器记的是什么（checks.mjs 的 records）：'user-words' 是原话记录（M4o，docs/50），'pm-session' 是项目经理会话的记号，别的是返工批准的记录器
+ * @param {string} [records] 记录器记的是什么（checks.mjs 的 records）：'user-words' 是原话记录（M4o，docs/50），'pm-session' 是项目经理会话的记号，'pm-compact' 是压缩的记录，别的是返工批准的记录器
  * @returns {string} 要写进 stderr 的那一行（含结尾换行）
  */
 export function crashNotice(check, err, recorder = false, records = null) {
@@ -99,6 +99,13 @@ export function crashNotice(check, err, recorder = false, records = null) {
     return (
       `poundlock ${check} 检查项在判定过程中异常崩溃（${quote(err?.message ?? err, { max: 120 })}），这次 /poundlock:at 后面的原话没有记下` +
       `（它是原话记录器，不拦任何东西），这一趟契约第 1 节不跟它核。\n`
+    )
+  }
+  // 压缩记录器（pm-compact）崩了的后果是这次压缩没有记下：压缩之后门禁不会要求项目经理重读角色正文。
+  if (recorder === true && records === 'pm-compact') {
+    return (
+      `poundlock ${check} 检查项在判定过程中异常崩溃（${quote(err?.message ?? err, { max: 120 })}），这次压缩没有记下` +
+      `（它是压缩记录器，不拦任何东西）。压缩之后门禁不会要求项目经理重读角色正文。\n`
     )
   }
   // 项目经理会话的记号（pm-session）崩了的后果是这个会话没有记成项目经理会话：用户再敲一次团队命令就行。

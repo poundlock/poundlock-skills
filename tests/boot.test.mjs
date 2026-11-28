@@ -78,6 +78,7 @@ const INPUTS = {
   'session-notice': { hook_event_name: 'UserPromptExpansion', expansion_type: 'slash_command', command_name: 'poundlock:at', command_args: 'x', session_id: 's' },
   'pm-tools': { hook_event_name: 'PreToolUse', tool_name: 'Skill', tool_input: {}, session_id: 's' },
   'pm-session': { hook_event_name: 'UserPromptExpansion', expansion_type: 'slash_command', command_name: 'poundlock:at', command_args: 'x', session_id: 's' },
+  'pm-compact': { hook_event_name: 'SessionStart', source: 'compact', session_id: 's' },
 }
 
 test('前置：INPUTS 覆盖 checks.mjs 里的每一个检查项——否则下面的逐项断言在空转', () => {
@@ -122,6 +123,8 @@ for (const [label, damage] of [
         if (CHECKS[check].records === 'user-words') assert.ok(head.includes('原话') && !head.includes('批准'), `${check} 的首行：${head}`)
         // 项目经理会话的记号记不下的是记号：首行说这个会话没有记成项目经理会话，不叫用户「再批准一次」。
         if (CHECKS[check].records === 'pm-session') assert.ok(head.includes('没有记成项目经理会话') && !head.includes('批准'), `${check} 的首行：${head}`)
+        // 压缩记录器记不下的是压缩：首行说这次压缩没有记下，不叫用户「再批准一次」。
+        if (CHECKS[check].records === 'pm-compact') assert.ok(head.includes('这次压缩没有记下') && !head.includes('批准'), `${check} 的首行：${head}`)
         assert.ok(head.includes(outcome) && head.includes('加载失败'), `${check} 的首行：${head}`)
       }
     })
@@ -287,6 +290,8 @@ for (const v of TOO_OLD) {
         if (CHECKS[check].records === 'user-words') assert.ok(head.includes('原话') && !head.includes('批准'), `${check} 的首行：${head}`)
         // 项目经理会话的记号记不下的是记号：首行说这个会话没有记成项目经理会话，不叫用户「再批准一次」。
         if (CHECKS[check].records === 'pm-session') assert.ok(head.includes('没有记成项目经理会话') && !head.includes('批准'), `${check} 的首行：${head}`)
+        // 压缩记录器记不下的是压缩：首行说这次压缩没有记下，不叫用户「再批准一次」。
+        if (CHECKS[check].records === 'pm-compact') assert.ok(head.includes('这次压缩没有记下') && !head.includes('批准'), `${check} 的首行：${head}`)
         assert.ok(head.includes(outcome) && head.includes('Node 太旧'), `${check} 的首行：${head}`)
       }
     })

@@ -255,6 +255,23 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "^compact$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/hooks/boot.mjs",
+              "pm-compact"
+            ],
+            "timeout": 30,
+            "statusMessage": "记下上下文压缩…"
+          }
+        ]
+      }
     ]
   }
 }

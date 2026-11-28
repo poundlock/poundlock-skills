@@ -88,7 +88,7 @@ import { exoticPath, norm, underDir } from './lib/path-norm.mjs'
 import { isPlainObject, isStageChain, isVerifyStage, participantsOf, isRolePatternStage, expandProduces, productsOfStage, stageRoles, producerOfName, verifyStageOf } from './lib/stages.mjs'
 import { inline, quote } from './lib/trusted.mjs'
 import { installTrace } from './lib/trace.mjs'
-import { OUTSIDER_CHECKS, blockedToolReason, identityNotice, markOf, marksText, outsiderReason, roleFileNote, outsiderVerdict, readMarks, standingOf, unjudgedNote, withMark } from './lib/pm-session.mjs'
+import { OUTSIDER_CHECKS, blockedToolReason, compactOf, identityNotice, markOf, marksText, needsReread, outsiderReason, roleFileNote, outsiderVerdict, readMarks, standingOf, unjudgedNote, withMark, withReread } from './lib/pm-session.mjs'
 import { USER_WORDS_FILE, WORDS_FIX, bindDecision, blankAtSession, bookText, briefAnswer, briefNotice, finishBinding, matchedSection1, pendingRecord, readWords, readWordsBook, withWords, wordsFor,section1Mismatch, wordsMismatchText, wordsOf } from './lib/user-words.mjs'
 import { GATE_CHECK_PATH, gateCheckReason, isGateCheck, selfCheckIdentity } from './lib/gate-check.mjs'
 import {
@@ -237,6 +237,36 @@ function standingFor(input) {
         ? { outsider: true, pm: false, kind: 'unmarked', unjudged: 'marks-unreadable' }
         : { outsider: false, pm: false, kind: null, unjudged: null }
     }
+  }
+}
+
+// 项目经理会话自检时：它的记号带着「要重读」的标记就回 true，并把标记清掉（锁里重读一遍文件再改，不拿早先读到的那份写回去，免得盖掉别的会话刚记的号）。
+// 清不掉只往 stderr 留一行，照样回 true——自检的回答不受它影响；这条路绝不抛。读不出来、没有标记都回 false。
+function takeReread(sessionId) {
+  try {
+    const poundlockDir = join(ROOT_PROJECT, '.poundlock')
+    const file = join(poundlockDir, PM_SESSIONS_FILE)
+    // 先不拿锁看一眼：绝大多数自检没有标记，不为它们建锁文件。
+    if (!needsReread(readMarks(readFileSync(file)), sessionId)) return false
+    return withFileLock(poundlockDir, PM_SESSIONS_FILE, () => {
+      let marks
+      try {
+        marks = readMarks(readFileSync(file))
+      } catch {
+        return false
+      }
+      const next = withReread(marks, sessionId, false)
+      if (!next) return false
+      try {
+        writeMarksAtomic(file, next)
+      } catch (e) {
+        process.stderr.write(`poundlock pm-compact：自检说过重读角色正文这一句，但标记没有清掉（${quote(e?.message ?? e, { max: 120 })}），下一次自检会再说一遍。
+`)
+      }
+      return true
+    })
+  } catch {
+    return false
   }
 }
 
@@ -608,7 +638,9 @@ function inputUnreadable(spec, what) {
         ? '这次的原话没有记下'
         : spec.records === 'pm-session'
           ? '这个会话没有记成项目经理会话'
-          : '这次的回答没有记下'
+          : spec.records === 'pm-compact'
+            ? '这次压缩没有记下'
+            : '这次的回答没有记下'
       : '没有做校验、放行'
   process.stderr.write(`poundlock ${CHECK}：读不出这次的 hook 输入（${what}），${outcome}。\n`)
   emitHookJson(spec.event, userFacing(spec.event) ? { systemMessage: systemMessage('input', { check: CHECK }) } : {})
@@ -2163,6 +2195,24 @@ function withApprovalsLock(runDir, body) {
   return withFileLock(runDir, APPROVALS_FILE, body)
 }
 
+// 记号文件的原子写（pm-session、pm-compact 与自检清标记共用，调用方在 withFileLock 里）：门禁读记号（standingFor）不拿锁，原地截断再写的那一瞬间别的会话
+// 会读到空文件、被当成团队之外的人。先写同目录下的临时文件再 rename 盖过去；rename 不成就删掉临时文件、把错抛给调用方。临时文件的叶名不是
+// 任何门禁专属文件的名字（control-files.mjs 的 leafName）。
+function writeMarksAtomic(file, marks) {
+  const tmp = `${file}.${process.pid}.tmp`
+  writeFileSync(tmp, marksText(marks))
+  try {
+    renameSync(tmp, file)
+  } catch (e) {
+    try {
+      unlinkSync(tmp)
+    } catch {
+      // 删不掉只是留一份临时文件，照样走「写不进」。
+    }
+    throw e
+  }
+}
+
 // 一把按文件名起的锁（<dir>/<name>.lock，O_EXCL 建、用完删；拿不到锁时最多等约 5 秒，超过 5 秒没人删的当成死锁清掉）。拿不到也照跑 body——
 // 锁只防并行的几个门禁进程互相覆盖，不是正确性的前提。批准记录、项目一级的原话记录各用一把。
 function withFileLock(dir, name, body) {
@@ -2665,7 +2715,13 @@ function main() {
           : gateCheckReason() +
             selfCheckTail(input, checked) +
             // 靠记号或判不出来认的项目经理会话（没有 at-pm 身份）：角色正文是命令读进对话的，压缩之后可能不在眼前，在这里指路。
-            (STANDING.pm && (input?.agent_type === undefined || input?.agent_type === null) ? roleFileNote({ pluginRoot: ROOT }) : '')) +
+            (STANDING.pm && (input?.agent_type === undefined || input?.agent_type === null)
+              ? roleFileNote({
+                  pluginRoot: ROOT,
+                  // 压缩过的会话（pm-compact 记的标记）：这一次说不带条件的那一句，说过就清标记；清标记在拒绝之前做，清不掉也照拒。
+                  must: typeof input?.session_id === 'string' && input.session_id !== '' && takeReread(input.session_id),
+                })
+              : '')) +
         selfCheckIdentity(input),
         spec.event,
       )
@@ -3955,6 +4011,31 @@ function main() {
     emitHookJson(spec.event, { contexts })
   }
 
+  if (CHECK === 'pm-compact') {
+    // 上下文压缩之后要项目经理重读角色正文（hooks/lib/pm-session.mjs）：压缩时平台发的 SessionStart（来源 compact，会话 id 不变）上，给记过号的会话在
+    // .poundlock/pm-sessions.json 里记一个「要重读」的标记；带标记的会话下一次门禁自检说不带条件的那一句、说过就清掉（writepath 分支）。
+    // 记号文件不在、读不出来时什么都不做（不建、不重建：重建是敲团队命令那个记录器的事）。不写 stdout、不拦任何东西、永远 exit 0；写不进只留一行 stderr。
+    const compacted = compactOf(input)
+    if (!compacted) process.exit(0)
+    const file = join(ROOT_PROJECT, '.poundlock', PM_SESSIONS_FILE)
+    try {
+      withFileLock(join(ROOT_PROJECT, '.poundlock'), PM_SESSIONS_FILE, () => {
+        let bytes
+        try {
+          bytes = readFileSync(file)
+        } catch {
+          return
+        }
+        const next = withReread(readMarks(bytes), compacted.sessionId, true)
+        if (next) writeMarksAtomic(file, next)
+      })
+    } catch (e) {
+      process.stderr.write(`poundlock pm-compact：这次压缩没有记下（${quote(e?.message ?? e, { max: 120 })}），压缩之后门禁不会要求项目经理重读角色正文。
+`)
+    }
+    process.exit(0)
+  }
+
   if (CHECK === 'pm-session') {
     // 项目经理会话的记号（hooks/lib/pm-session.mjs）：用户敲五条团队命令之一时，把这个会话记进项目的 .poundlock/pm-sessions.json（门禁专属），回传【身份】。
     // 判不判、记什么、回传怎么说都在 pm-session.mjs，这里只做 I/O。不拦任何东西：这个事件上 exit 2 会把用户的命令拦掉。.poundlock 不在就建（at-init 之前
@@ -3981,20 +4062,7 @@ function main() {
         }
         const next = withMark(marks, mark.sessionId, { at: new Date().toISOString(), command: mark.command })
         if (!next) return false
-        // 原子写：门禁读记号（standingFor）不拿锁，原地截断再写的那一瞬间别的会话会读到空文件、被当成团队之外的人。先写同目录下的临时文件再
-        // rename 盖过去；rename 不成就删掉临时文件、抛给外面那条「写不进」的路。临时文件的叶名不是任何门禁专属文件的名字（control-files.mjs 的 leafName）。
-        const tmp = `${file}.${process.pid}.tmp`
-        writeFileSync(tmp, marksText(next))
-        try {
-          renameSync(tmp, file)
-        } catch (e) {
-          try {
-            unlinkSync(tmp)
-          } catch {
-            // 删不掉只是留一份临时文件，照样走「写不进」。
-          }
-          throw e
-        }
+        writeMarksAtomic(file, next)
         return true
       })
     } catch (e) {

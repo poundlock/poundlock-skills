@@ -464,6 +464,16 @@ const SCENARIOS = [
     }),
     shape: { status: 0, stdout: 'empty', stderr: 'empty' },
   },
+  // 压缩的记录：只取不写文件的一格——来源是 resume 的 SessionStart 不记、静默。记下「要重读」是记录器的本分。
+  {
+    name: 'pm-compact：来源是 resume，不记、静默',
+    check: 'pm-compact',
+    setup: () => ({
+      ...fromRun({ runId: 'r1', stage: 'S2' }),
+      input: { hook_event_name: 'SessionStart', source: 'resume', session_id: 's' },
+    }),
+    shape: { status: 0, stdout: 'empty', stderr: 'empty' },
+  },
 ]
 
 function runBoth(sc) {
