@@ -83,10 +83,11 @@ export function selfCheckIdentity(input, action = '自检') {
 // Git Bash 时 shell 形式退到 PowerShell 5.1，中文会乱码；不含单引号：整句靠单引号括住。
 export const REMINDER_EVENT = 'UserPromptSubmit'
 export const REMINDER_TEXT =
-  'poundlock reminder: this line is only for the poundlock project manager session (a session where the user ' +
-  'ran a /poundlock:at* command); any other session ignores it. Project manager: before the first Agent ' +
+  'poundlock reminder: this line is only for the poundlock project manager session (one where the user ran ' +
+  '/poundlock:at, at-tweak, at-resume, at-init or at-skills, or one started with --agent poundlock:at-pm; ' +
+  '/poundlock:at-status does not count); any other session ignores it. Project manager: before the first Agent ' +
   'dispatch or the first write under .poundlock in this turn, run the gate self-check from your role file. ' +
   'If the role file is no longer in your context, Write .poundlock/gate-check with any text first: the refusal ' +
-  'says where the role file is; read it in full. Earlier results do not count: this session may have been ' +
-  'resumed in another process.'
+  'says where the role file is; read it in full. If that write is not refused, the gate is not running: stop and ' +
+  'tell the user. Earlier results do not count: this session may have been resumed in another process.'
 export const REMINDER_COMMAND = `echo '${REMINDER_TEXT}'`

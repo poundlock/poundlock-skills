@@ -846,6 +846,15 @@ test('五条记号命令的正文以同一段「先读角色正文」开头，at
   assert.ok(!afterFrontmatter(textOf('at-status.md')).includes('agents/at-pm.md'))
 })
 
+// at-status 不记号：普通会话敲了它也还是普通会话。开头要说清这一点和出路，免得模型读完自认项目经理、在下一轮去自检。
+test('at-status 开头说清它只读、不让这个会话成为项目经理会话，要接着做团队的事请用户敲 /poundlock:at-resume', () => {
+  const opening = afterFrontmatter(textOf('at-status.md')).trimStart().split('\n\n')[0]
+  assert.match(opening, /只读不写/)
+  assert.match(opening, /不会让这个会话成为项目经理会话/)
+  assert.ok(opening.includes('`/poundlock:at-resume`'), opening)
+  assert.ok(!opening.includes('你是 AT-PM'), opening)
+})
+
 test('角色正文认得「不是项目经理会话」那一支，点名了门禁拦的工具', () => {
   const role = readFileSync(url('agents/at-pm.md'), 'utf8')
   assert.ok(role.includes(NOT_PM_HEAD))

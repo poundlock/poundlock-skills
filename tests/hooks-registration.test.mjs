@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname } from 'node:path'
 import { CHECKS, KNOWN_CHECKS } from '../hooks/lib/checks.mjs'
 import { REMINDER_EVENT, REMINDER_TEXT, REMINDER_COMMAND } from '../hooks/lib/gate-check.mjs'
+import { MARK_COMMANDS } from '../hooks/lib/pm-session.mjs'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 
@@ -353,6 +354,23 @@ test('自检提醒：说了什么时候、做什么、更早的结果不算数',
   assert.match(REMINDER_TEXT, /only for the poundlock project manager session/)
   assert.match(REMINDER_TEXT, /any other session ignores it/)
   assert.match(REMINDER_TEXT, /Write \.poundlock\/gate-check/)
+})
+
+// 「谁是项目经理会话」要与记号的口径一致：五条记号命令逐个点名，带 --agent poundlock:at-pm 起的会话也算，at-status 不记号、不算。
+// 只写「/poundlock:at* 命令」的话，敲过 at-status 的普通会话会自认项目经理；漏了 --agent 起的会话，它会照「别的会话忽略」跳过自检。
+test('自检提醒：点名五条记号命令与 at-pm 起的会话，写明 /poundlock:at-status 不算', () => {
+  for (const c of MARK_COMMANDS) {
+    assert.ok(new RegExp(`(^|[ (,/])(poundlock:)?${c}([ ,);]|$)`).test(REMINDER_TEXT), `没点名 ${c}：${REMINDER_TEXT}`)
+  }
+  assert.match(REMINDER_TEXT, /\/poundlock:at[ ,]/)
+  assert.match(REMINDER_TEXT, /--agent poundlock:at-pm/)
+  assert.match(REMINDER_TEXT, /\/poundlock:at-status does not count/)
+  assert.doesNotMatch(REMINDER_TEXT, /at\*/)
+})
+
+// 压缩之后又赶上门禁没在跑时，模型眼前只有这一句：要说清写入没被拒意味着什么、该做什么。
+test('自检提醒：写入没有被拒就是门禁没在跑，停下告诉用户', () => {
+  assert.match(REMINDER_TEXT, /If that write is not refused, the gate is not running: stop and tell the user/)
 })
 
 // 按平台的实际选择去跑：Windows 上找得到 Git Bash 用 bash，找不到退到 PowerShell（从不用 cmd.exe，
