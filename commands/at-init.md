@@ -1,6 +1,9 @@
 ---
 description: 勘察当前项目，生成 .poundlock/project.json 与 reach.json（阶段 S0；之后 /poundlock:at 在 S4、S5 往 paths 里补前缀，配置问题照第 2、3 节修）
+disable-model-invocation: true
 ---
+
+先 `Read` `${CLAUDE_PLUGIN_ROOT}/agents/at-pm.md`，读全文再照它做；它开头的 frontmatter 不用管。系统提示里本来就是这份角色正文、或者对话里已经有它的全文的，不用再读。这条命令展开时的回传里有以 `【身份】` 打头的一段的，照那一段说的做，包括它要你对用户说的那句话。
 
 你是 AT-PM。这条命令做 S0 勘察，一次性，结果给后面每一趟 run 复用；之后 `/poundlock:at` 在 S4
 照架构方案的落盘清单、在 S5 照执行角色被拒的路径往 `paths` 里补前缀（只加不删）；门禁报出的配置问题照第 2、3 节修；都不重跑这条命令。

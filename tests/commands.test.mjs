@@ -7,6 +7,7 @@ import { PLUGIN_PREFIX } from '../hooks/lib/decide.mjs'
 import { TRUSTED_PREFIX } from '../hooks/lib/trusted.mjs'
 import { producedNames, expandProduces, stageRolesInRun, participantsOf } from '../hooks/lib/stages.mjs'
 import { isStageDone, ESCALATION_KINDS } from '../hooks/lib/state.mjs'
+import { MARK_COMMANDS, IDENTITY_TAG, NOT_PM_HEAD, BLOCKED_TOOLS } from '../hooks/lib/pm-session.mjs'
 import { COMMAND_NAMES } from './helpers/command-names.mjs'
 import { ROLES_WITHOUT_PATHS } from './helpers/roles-without-paths.mjs'
 
@@ -825,4 +826,28 @@ test('commands/at-init.md 必须逐个点名禁止给「不认领路径的角色
         '「在 run 目录之外拒你的每一次写入」，正文是插件自带的、改不了那一趟的 project.json（裁定「paths 禁令要有守卫」）。',
     )
   }
+})
+
+// 敲命令才成为项目经理：六条命令不让模型自己调，五条记号命令开头叫模型先读角色正文，角色正文认得「不是项目经理会话」那一支。
+const afterFrontmatter = (text) => text.split('\n---\n').slice(1).join('\n---\n')
+
+test('六条命令都不让模型自己调', () => {
+  for (const name of [...MARK_COMMANDS, 'at-status']) {
+    assert.match(textOf(`${name}.md`).split('\n---\n')[0], /^disable-model-invocation: true$/m, name)
+  }
+})
+
+test('五条记号命令的正文以同一段「先读角色正文」开头，at-status 没有', () => {
+  const opening = (name) => afterFrontmatter(textOf(`${name}.md`)).trimStart().split('\n\n')[0]
+  const first = opening('at')
+  assert.ok(first.includes('${CLAUDE_PLUGIN_ROOT}/agents/at-pm.md'), first)
+  assert.ok(first.includes(IDENTITY_TAG), first)
+  for (const name of MARK_COMMANDS) assert.equal(opening(name), first, name)
+  assert.ok(!afterFrontmatter(textOf('at-status.md')).includes('agents/at-pm.md'))
+})
+
+test('角色正文认得「不是项目经理会话」那一支，点名了门禁拦的工具', () => {
+  const role = readFileSync(url('agents/at-pm.md'), 'utf8')
+  assert.ok(role.includes(NOT_PM_HEAD))
+  for (const t of BLOCKED_TOOLS) assert.ok(role.includes('`' + t + '`'), t)
 })
