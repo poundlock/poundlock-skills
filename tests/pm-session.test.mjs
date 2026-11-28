@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import {
   BLOCKED_TOOLS, IDENTITY_TAG, MARK_COMMANDS, NOT_PM_HEAD, OUTSIDE_HEAD,
-  blockedToolReason, identityNotice, inPoundlock, markOf, marksText, outsiderReason, readMarks, roleFileNote, standingOf, withMark,
+  blockedToolReason, identityNotice, inPoundlock, markOf, marksText, outsiderReason, readMarks, roleFileNote, standingOf, unjudgedNote, withMark,
 } from '../hooks/lib/pm-session.mjs'
 import { GATE_CHECK_ONLINE } from '../hooks/lib/gate-check.mjs'
 import { isGateFile, PM_SESSIONS_FILE } from '../hooks/lib/control-files.mjs'
@@ -22,10 +22,12 @@ test('不带 agent_type 的主线程：记过号是项目经理，没记过是�
   assert.deepEqual(S(main({ session_id: 'constructor' }), marks()), { outsider: true, pm: false, kind: 'unmarked', unjudged: null })
 })
 
-test('判不出来时当项目经理', () => {
+test('没有会话 id 当项目经理；记号文件读不出来谁都不靠记号当项目经理', () => {
   assert.deepEqual(S({}), { ...PM, unjudged: 'no-session-id' })
   assert.deepEqual(S(main({ session_id: '' })), { ...PM, unjudged: 'no-session-id' })
-  assert.deepEqual(S(main(), { ok: false }), { ...PM, unjudged: 'marks-unreadable' })
+  assert.deepEqual(S(main(), { ok: false }), { outsider: true, pm: false, kind: 'unmarked', unjudged: 'marks-unreadable' })
+  // 带 at-pm 身份的不看记号
+  assert.deepEqual(S(main({ agent_type: 'poundlock:at-pm' }), { ok: false }), PM)
 })
 
 test('上一版的状态：带 at-pm 身份的主线程没有记号也是项目经理', () => {
@@ -82,6 +84,34 @@ test('文案：打头的固定串、出路、自检那一支不带在线', () =>
   assert.match(first, /对用户说一句/)
   assert.doesNotMatch(identityNotice({ pluginRoot: '/plug', first: false }), /对用户说一句/)
   assert.match(roleFileNote({ pluginRoot: '/plug' }), /\/plug\/agents\/at-pm\.md/)
+})
+
+test('unjudgedNote：两种说法各不相同，读不出来那句说怎么办', () => {
+  assert.equal(unjudgedNote(null), '')
+  const a = unjudgedNote('no-session-id')
+  const b = unjudgedNote('marks-unreadable')
+  assert.ok(a && b && a !== b)
+  assert.match(b, /重新敲/)
+  assert.equal(unjudgedNote('constructor'), '')
+})
+
+test('路径里的反斜杠折成正斜杠', () => {
+  const root = 'C:' + String.fromCharCode(92) + 'plug'
+  for (const text of [identityNotice({ pluginRoot: root, first: false }), roleFileNote({ pluginRoot: root })]) {
+    assert.ok(text.includes('C:/plug/agents/at-pm.md'))
+    assert.ok(!text.includes(String.fromCharCode(92)))
+  }
+})
+
+test('调用方给的键撞上原型链上的名字时，不取到函数或对象', () => {
+  for (const key of ['constructor', '__proto__', 'toString']) {
+    for (const text of [blockedToolReason(key), outsiderReason({ kind: 'unmarked', action: key })]) {
+      for (const bad of ['function', '[object', '[native code]']) assert.ok(!text.includes(bad), key + ' ' + bad)
+    }
+  }
+  const m = { ok: true, sessions: {} }
+  assert.equal(S(main({ session_id: '__proto__' }), m).outsider, true)
+  assert.equal(S(main({ session_id: '__proto__' }), withMark(m, '__proto__', { at: 't', command: 'at' })).pm, true)
 })
 
 test('记号文件是门禁专属文件', () => {

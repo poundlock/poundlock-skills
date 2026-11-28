@@ -70,7 +70,7 @@ const standing = (outsider, pm, kind = null, unjudged = null) => ({ outsider, pm
  * 这次调用的发起者在团队里是什么位置。
  *   outsider：团队之外的人（kind：unmarked 没记过号的主线程、replaced 被换掉身份的主会话、subagent 花名册外的子代理）；
  *   pm：项目经理；
- *   unjudged：判不出来、按项目经理放行时说明为什么（没有会话 id、记号文件读不出来）。
+ *   unjudged：判不出来时说明为什么（没有会话 id 时按项目经理，记号文件读不出来时谁都不靠记号当项目经理）。
  * 认不出的调用者与花名册里的团队角色两样都不归这里管，回两个假。
  */
 export function standingOf({ input, roster, marks }) {
@@ -80,7 +80,7 @@ export function standingOf({ input, roster, marks }) {
   if (raw === undefined || raw === null) {
     if (hasAgentId) return standing(false, false)
     if (!nonEmptyString(input?.session_id)) return standing(false, true, null, 'no-session-id')
-    if (!marks?.ok) return standing(false, true, null, 'marks-unreadable')
+    if (!marks?.ok) return standing(true, false, 'unmarked', 'marks-unreadable')
     if (has(marks.sessions, input.session_id)) return standing(false, true)
     return standing(true, false, 'unmarked')
   }
@@ -117,7 +117,7 @@ export function outsiderReason({ kind, action, target }) {
   const what =
     action === 'self-check'
       ? '门禁在跑，但只对项目经理会话回答在线，所以这一次不给自检的结果。'
-      : `${(ACTION_TEXT[action] ?? ACTION_TEXT.write)(target)}被拒绝：团队的派发与对 .poundlock 的写入只属于项目经理会话。`
+      : `${(typeof action === 'string' && has(ACTION_TEXT, action) ? ACTION_TEXT[action] : ACTION_TEXT.write)(target)}被拒绝：团队的派发与对 .poundlock 的写入只属于项目经理会话。`
   let tail
   if (unmarked) tail = ASK_USER
   else if (kind === 'subagent') tail = '你不是团队的角色：停下，把要做的事回报给派你的人，由它决定。'
@@ -126,15 +126,14 @@ export function outsiderReason({ kind, action, target }) {
 }
 
 const NOTICE = {
-  ok: '',
   'no-session-id': '门禁这一次没有拿到会话 id，判不出这个会话是不是项目经理会话，按项目经理放行。',
-  'marks-unreadable': '门禁读不出记录项目经理会话的文件（.poundlock/pm-sessions.json），判不出这个会话是不是项目经理会话，按项目经理放行。',
+  'marks-unreadable': '门禁读不出记录项目经理会话的文件（.poundlock/pm-sessions.json），所以现在没有会话靠记号当项目经理。请用户重新敲一次团队命令（比如 `/poundlock:at <需求>`），那份文件会被重建。',
 }
 
-/** 判不出来而放行时说给项目经理的一句；判得出来（null）是空串。 */
+/** 判不出来时说的一句；判得出来（null）是空串。 */
 export function unjudgedNote(unjudged) {
-  if (unjudged === null || unjudged === undefined) return NOTICE.ok
-  return NOTICE[unjudged] ?? ''
+  if (typeof unjudged !== 'string' || !has(NOTICE, unjudged)) return ''
+  return NOTICE[unjudged]
 }
 
 const BLOCKED_EXIT = {
@@ -147,7 +146,7 @@ const BLOCKED_EXIT = {
 
 /** 项目经理会话与团队角色里被拒的工具。 */
 export function blockedToolReason(toolName) {
-  const exit = BLOCKED_EXIT[toolName] ?? ''
+  const exit = typeof toolName === 'string' && has(BLOCKED_EXIT, toolName) ? BLOCKED_EXIT[toolName] : '这个工具不在团队的工具面里，换团队开放的工具做。'
   return `poundlock：团队的会话里不开放 ${inline(toolName)} 工具。${exit}`
 }
 
