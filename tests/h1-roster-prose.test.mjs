@@ -41,15 +41,15 @@ const ZH_TEAMS =
 const EN_TEAMS =
   '> **Agent teams teammates are not supported.** With agent teams (experimental) on, team roles must still be dispatched as subagents: a ' +
   'dispatch with a `name` starts a teammate, whose stop the gates cannot see, so the dispatch whitelist refuses it.'
+// 插件不再默认接管主会话之后（docs/107）：设置里的 agent 键不再是「盖掉插件默认的项目经理」，而是让会话带着别的身份、敲团队命令也当不成项目经理。
 const ZH_AGENT =
-  '> **设置里的 `agent` 会盖掉项目经理。** 用户、项目或本地设置里写了别的 `agent`（或者起会话时带了别的 `--agent`），主会话就不是 `poundlock:at-pm`，团队跑不起来（门禁' +
-  '会说出来）：去掉那一项设置，或者起会话时加 `--agent poundlock:at-pm`。'
+  '> **设置里的 `agent` 键会让会话当不成项目经理。** 用户、项目或本地设置里写了 `agent` 键（或者起会话时带了别的 `--agent`），会话的身份就是那个 agent，' +
+  '敲团队命令也成不了项目经理会话，团队跑不起来（门禁会说出来）：去掉那一项设置，或者起会话时改带 `--agent poundlock:at-pm`。'
 const EN_AGENT =
-  '> **An `agent` in your settings overrides the project manager.** If user, project or local settings name another `agent` (or the session ' +
-  'was started with another `--agent`), the main ' +
-  'session is not `poundlock:at-pm` and the team cannot run (the gates say so): remove that setting, or start the session ' +
-  'with `--agent poundlock:at-pm`.'
-test('M4i 第 42、22 条：README 两半的已知边界——不支持 teammate；设置里的 agent 会盖掉项目经理与出路', () => {
+  '> **An `agent` key in your settings keeps a session from becoming the project manager.** If user, project or local settings set an `agent` key ' +
+  '(or the session was started with another `--agent`), the session takes that agent\'s identity, a team command does not make it a project manager ' +
+  'session, and the team cannot run (the gates say so): remove that setting, or start the session with `--agent poundlock:at-pm` instead.'
+test('M4i 第 42、22 条：README 两半的已知边界——不支持 teammate；设置里的 agent 键让会话当不成项目经理，以及出路', () => {
   const zh = section(ZH, '## 已知边界')
   const en = section(EN, '## Known Limitations')
   assert.ok(has(zh, ZH_TEAMS), '中文半缺 teammate 那一条')

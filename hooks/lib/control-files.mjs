@@ -13,7 +13,7 @@
 //   CONTROL_FILES 改动本身的通用对账，清单改名/增删大多数情况下不会让它变色。
 //
 // 为什么控制文件不走「角色认领产物」那套判据（完整论证见 docs/09 账一，这里只记
-// 要点）：被 settings.json 钉成主线程的 at-pm 不是 callerOf 判定的 MAIN，稳态下它
+// 要点）：带 at-pm 身份起的主线程（--agent poundlock:at-pm）不是 callerOf 判定的 MAIN，稳态下它
 // 是一个受完整 per-role 隔离约束的普通角色，写不了 state.json——而 §4.2 ③ 的计数、
 // /at-resume、/at-init 都要它写。反过来把整个 .poundlock/ 放给 PM 又太宽：PM 会
 // 因此能在 run 目录下凭空造出 01-prd.md，而 artifactExists 在 runDir 下解析、H2 拿
@@ -97,7 +97,9 @@ export function mayBeStateFile(filePath) {
 //   - runs/*/claims.jsonl（并行微调，hooks/lib/claims.mjs）：这一趟微调认领了哪些项目文件——子代理第一次写一个项目文件时账本记。改得了它，
 //     一趟微调就能悄悄放掉认领、让另一趟覆盖它正在改的文件。
 export const GATE_FILES = ['runs/*/approvals.jsonl', 'runs/*/claims.jsonl', 'runs/*/contract-base.json', 'runs/*/delivered.json', 'runs/*/dispatches.jsonl', 'runs/*/owner.json', 'runs/*/user-words.json']
-export const PROJECT_GATE_FILES = ['user-words.json']
+// pm-sessions.json（hooks/lib/pm-session.mjs）：哪些会话是项目经理会话——用户敲团队命令时记录器记。改得了它，一个普通会话就能自己变成项目经理。
+export const PM_SESSIONS_FILE = 'pm-sessions.json'
+export const PROJECT_GATE_FILES = ['user-words.json', PM_SESSIONS_FILE]
 export const APPROVALS_FILE = 'approvals.jsonl'
 export const CLAIMS_FILE = 'claims.jsonl'
 export const DELIVERED_FILE = 'delivered.json'

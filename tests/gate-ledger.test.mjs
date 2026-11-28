@@ -7,6 +7,7 @@ import assert from 'node:assert/strict'
 import { mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { run, GATE } from './helpers/gate-runner.mjs'
+import { markPm } from './helpers/pm-mark.mjs'
 import { makeRun } from './fixtures/make-run.mjs'
 import { dispatchLine, stopLine } from '../hooks/lib/completion.mjs'
 import { sha256OfContract } from '../hooks/lib/contract-hash.mjs'
@@ -711,6 +712,8 @@ const writeState = (projectDir, agentType = 'at-pm') => {
   // session_id：真实的 hook 输入总带着它；不带时账本会为「读不到会话 id、这一趟不记归属」留一行痕，与这里要核的那几行痕无关。
   const input = { tool_name: 'Write', session_id: 's-ledger', tool_input: { file_path: stateJsonOf(projectDir) } }
   if (agentType !== null) input.agent_type = agentType
+  // 不带 agent_type 的主线程记过号才是项目经理（跑命令才成为项目经理那份设计 §5.1）。
+  else markPm(projectDir, 's-ledger')
   return run('ledger', input, GATE, projectDir)
 }
 

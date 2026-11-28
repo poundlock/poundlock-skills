@@ -445,6 +445,35 @@ const SCENARIOS = [
     }),
     shape: { status: 0, stdout: 'empty', stderr: 'empty' },
   },
+  {
+    name: 'pm-tools：没记号的主线程用 Skill，静默放行',
+    check: 'pm-tools',
+    setup: () => ({
+      ...cleanDir(),
+      input: { hook_event_name: 'PreToolUse', tool_name: 'Skill', tool_input: {}, session_id: 's' },
+    }),
+    shape: { status: 0, stdout: 'empty', stderr: 'empty' },
+  },
+  // 项目经理会话的记号：只取不写文件的一格——记下记号会写 .poundlock/pm-sessions.json，那是记录器的本分。at-status 不记，静默。
+  {
+    name: 'pm-session：展开的是 /poundlock:at-status，不记、静默',
+    check: 'pm-session',
+    setup: () => ({
+      ...fromRun({ runId: 'r1', stage: 'S2' }),
+      input: { hook_event_name: 'UserPromptExpansion', expansion_type: 'slash_command', command_name: 'poundlock:at-status', command_args: '', session_id: 's' },
+    }),
+    shape: { status: 0, stdout: 'empty', stderr: 'empty' },
+  },
+  // 压缩的记录：只取不写文件的一格——来源是 resume 的 SessionStart 不记、静默。记下「要重读」是记录器的本分。
+  {
+    name: 'pm-compact：来源是 resume，不记、静默',
+    check: 'pm-compact',
+    setup: () => ({
+      ...fromRun({ runId: 'r1', stage: 'S2' }),
+      input: { hook_event_name: 'SessionStart', source: 'resume', session_id: 's' },
+    }),
+    shape: { status: 0, stdout: 'empty', stderr: 'empty' },
+  },
 ]
 
 function runBoth(sc) {

@@ -31,7 +31,7 @@
 //                       hooks/gate.mjs 的 writepath 分支）。
 //                       不区分的后果是自举死锁：建第一个 run 之前
 //                       .poundlock 还不存在，ok 必然是 false；如果笼统
-//                       fail closed，从主线程（或被 settings.json 钉成
+//                       fail closed，从主线程（或带 --agent 起成
 //                       主线程的具名角色，比如 at-pm）写
 //                       .poundlock/project.json 这个自举动作本身永远
 //                       做不成，第一个 run 永远建不出来，门禁把自己锁在

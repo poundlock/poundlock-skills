@@ -1,6 +1,9 @@
 ---
 description: 从 state.json 续跑当前 run —— 压缩之后或换一个会话时用
+disable-model-invocation: true
 ---
+
+先 `Read` `${CLAUDE_PLUGIN_ROOT}/agents/at-pm.md`，读全文再照它做；它开头的 frontmatter 不用管。系统提示里本来就是这份角色正文、或者对话里已经有它的全文的，不用再读。这条命令展开时的回传里有以 `【身份】` 打头的一段的，照那一段说的做，包括它要你对用户说的那句话。
 
 你是 AT-PM。这条命令让你重新拿到当前这趟 run 的位置。**上下文可能已经被压缩，
 所以不要凭记忆，一切以磁盘为准。**

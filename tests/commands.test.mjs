@@ -7,6 +7,7 @@ import { PLUGIN_PREFIX } from '../hooks/lib/decide.mjs'
 import { TRUSTED_PREFIX } from '../hooks/lib/trusted.mjs'
 import { producedNames, expandProduces, stageRolesInRun, participantsOf } from '../hooks/lib/stages.mjs'
 import { isStageDone, ESCALATION_KINDS } from '../hooks/lib/state.mjs'
+import { MARK_COMMANDS, IDENTITY_TAG, NOT_PM_HEAD, BLOCKED_TOOLS, REREAD_HEAD } from '../hooks/lib/pm-session.mjs'
 import { COMMAND_NAMES } from './helpers/command-names.mjs'
 import { ROLES_WITHOUT_PATHS } from './helpers/roles-without-paths.mjs'
 
@@ -825,4 +826,59 @@ test('commands/at-init.md 必须逐个点名禁止给「不认领路径的角色
         '「在 run 目录之外拒你的每一次写入」，正文是插件自带的、改不了那一趟的 project.json（裁定「paths 禁令要有守卫」）。',
     )
   }
+})
+
+// 敲命令才成为项目经理：六条命令不让模型自己调，五条记号命令开头叫模型先读角色正文，角色正文认得「不是项目经理会话」那一支。
+const afterFrontmatter = (text) => text.split('\n---\n').slice(1).join('\n---\n')
+
+test('六条命令都不让模型自己调', () => {
+  for (const name of [...MARK_COMMANDS, 'at-status']) {
+    assert.match(textOf(`${name}.md`).split('\n---\n')[0], /^disable-model-invocation: true$/m, name)
+  }
+})
+
+test('五条记号命令的正文以同一段「先读角色正文」开头，at-status 没有', () => {
+  const opening = (name) => afterFrontmatter(textOf(`${name}.md`)).trimStart().split('\n\n')[0]
+  const first = opening('at')
+  assert.ok(first.includes('${CLAUDE_PLUGIN_ROOT}/agents/at-pm.md'), first)
+  assert.ok(first.includes(IDENTITY_TAG), first)
+  for (const name of MARK_COMMANDS) assert.equal(opening(name), first, name)
+  assert.ok(!afterFrontmatter(textOf('at-status.md')).includes('agents/at-pm.md'))
+})
+
+// at-status 不记号：普通会话敲了它也还是普通会话。开头要说清这一点和出路，免得模型读完自认项目经理、在下一轮去自检。
+test('at-status 开头说清它只读、不让这个会话成为项目经理会话，要接着做团队的事请用户敲 /poundlock:at-resume', () => {
+  const opening = afterFrontmatter(textOf('at-status.md')).trimStart().split('\n\n')[0]
+  assert.match(opening, /只读不写/)
+  assert.match(opening, /不会让这个会话成为项目经理会话/)
+  assert.ok(opening.includes('`/poundlock:at-resume`'), opening)
+  assert.ok(!opening.includes('你是 AT-PM'), opening)
+})
+
+// 自检的第 1、3 支各取「怎么判」那张单子里的一条（到下一个顶格编号止）。第 3 支也在每轮提醒下触发，那时没有「这条命令」；
+// 用户刚敲完命令就拿到它的，是记号没记上，要给核什么、不让用户无限重敲。第 1 支要认得压缩之后那一句。
+function selfCheckBranch(n) {
+  const role = readFileSync(url('agents/at-pm.md'), 'utf8')
+  const start = role.indexOf(`\n${n}. `)
+  assert.ok(start >= 0, `自检没有第 ${n} 支`)
+  const next = role.slice(start + 1).search(/\n(\d+\. |\n)/)
+  return role.slice(start + 1, next < 0 ? undefined : start + 1 + next)
+}
+
+test('角色正文自检：第 3 支对两种触发都成立，刚敲完命令就拿到它时给核什么、不让用户一直重敲；第 1 支认得压缩之后那一句', () => {
+  const third = selfCheckBranch(3)
+  assert.ok(third.includes(NOT_PM_HEAD), third)
+  assert.ok(!third.includes('这条命令不再往下做'), third)
+  assert.ok(third.includes('`claude --version`'), third)
+  assert.ok(third.includes('不要让用户一直重敲'), third)
+  const first = selfCheckBranch(1)
+  assert.ok(first.includes('poundlock 门禁自检：在线'), first)
+  assert.ok(first.includes(REREAD_HEAD), first)
+  assert.ok(first.includes('先读全文'), first)
+})
+
+test('角色正文认得「不是项目经理会话」那一支，点名了门禁拦的工具', () => {
+  const role = readFileSync(url('agents/at-pm.md'), 'utf8')
+  assert.ok(role.includes(NOT_PM_HEAD))
+  for (const t of BLOCKED_TOOLS) assert.ok(role.includes('`' + t + '`'), t)
 })

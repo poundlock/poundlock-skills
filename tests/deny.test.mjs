@@ -95,3 +95,17 @@ test('M4k crashNotice：批准记录器崩溃——说它是批准记录器、�
   const text = crashNotice('approval-ask', new Error('boom'), true)
   assert.ok(text.includes('批准记录器') && text.includes('照现状交付') && !text.includes('返工批准的记录器'), text)
 })
+
+// 项目经理会话的记号（pm-session）崩了：说这个会话没有记成项目经理会话、请用户再敲一次团队命令，不说放行、不叫用户再批准。
+test('crashNotice：记号记录器崩溃——这个会话没有记成项目经理会话，再敲一次团队命令', () => {
+  const text = crashNotice('pm-session', new Error('boom'), true, 'pm-session')
+  assert.ok(text.includes('没有记成项目经理会话') && text.includes('再敲一次团队命令'), text)
+  assert.ok(!text.includes('批准') && !text.includes('放行'), text)
+})
+
+// 压缩记录器（pm-compact）崩了：说这次压缩没有记下、压缩之后门禁不会要求重读，不说放行、不叫用户再批准。
+test('crashNotice：压缩记录器崩溃——这次压缩没有记下', () => {
+  const text = crashNotice('pm-compact', new Error('boom'), true, 'pm-compact')
+  assert.ok(text.includes('这次压缩没有记下') && text.includes('不会要求项目经理重读'), text)
+  assert.ok(!text.includes('批准') && !text.includes('放行'), text)
+})

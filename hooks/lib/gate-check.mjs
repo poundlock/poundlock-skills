@@ -59,9 +59,9 @@ export function gateCheckReason({ version = process.version, execPath = process.
 /**
  * M4i（docs/44，审查第 22 条）：主会话被设置里别的 agent 或启动时的 --agent 换掉时——hook 输入带 agent_type、不是项目经理、没有 agent_id
  * （子代理才带 agent_id；M10 实测）——自检照样回「在线」，可这样跑不了团队：门禁不把它当项目经理，写控制文件被拒。接在自检的拒绝理由
- * 后面（action 是「自检」），也接在 H1、H3、H4 的拒绝理由后面（「派发」「写入」）；别的调用者（含认不出的）返回空串。还没有 run 时
- * H3 对谁都放行（/poundlock:at-init 自举靠它）：M10d 里被换掉的主会话写 project.json 成功了；M10f 里它先写 run 的 state.json 成功，
- * 再写 current-run 时 runs 下已经非空、指针不在，门禁判读不出运行上下文、拒了——所以说的是「建 run、记 state.json」会被拒。复核（docs/44 §8）：以「注意：」开头——命令正文对
+ * 后面（action 是「自检」），也接在 H1、H3、H4 的拒绝理由后面（「派发」「写入」）；别的调用者（含认不出的）返回空串。被换成花名册外 agent 的
+ * 主会话是团队之外的人（跑命令才成为项目经理那份设计 §5.4）：派团队角色、写 .poundlock 之下一律拒，这一句接在那几条拒绝理由后面。
+ * 出路是现行的两条：不带别的 --agent 起会话再敲团队命令（记号，§5.2），或者以 at-pm 身份起会话。复核（docs/44 §8）：以「注意：」开头——命令正文对
  * 「另外，」开头的追加句另有约定（收尾时转告、不就地修），这一句要它停下；不说「派发不归花名册管」（换成团队里别的角色时是假话）。
  * agent_type 来自设置里的名字，磁盘上谁都写得进，过 quote（docs/27 §2.1）。
  */
@@ -71,8 +71,8 @@ export function selfCheckIdentity(input, action = '自检') {
   if (typeof input?.agent_id === 'string' && input.agent_id !== '') return ''
   return (
     `注意：发起这次${action}的是 ${quote(raw)}，不是 poundlock 的项目经理（${PLUGIN_PREFIX}at-pm）——设置里的 agent 或者启动时的 --agent 换掉了主会话。` +
-    '这样跑不了这支团队：门禁不把你当项目经理，建 run、记 state.json 这些项目经理的写入会被拒。停下来告诉用户：去掉设置里的那一项 agent、' +
-    `起会话时不带别的 --agent，或者直接用 claude --agent ${PLUGIN_PREFIX}at-pm 起会话。`
+    '这样跑不了这支团队：门禁不把你当项目经理，建 run、记 state.json 这些项目经理的写入会被拒。停下来告诉用户：去掉设置里的那一项 agent，' +
+    `不带别的 --agent 起一个会话、在里面敲团队命令（比如 /${PLUGIN_PREFIX}at <需求>），或者用 claude --agent ${PLUGIN_PREFIX}at-pm 起会话。`
   )
 }
 
@@ -83,7 +83,11 @@ export function selfCheckIdentity(input, action = '自检') {
 // Git Bash 时 shell 形式退到 PowerShell 5.1，中文会乱码；不含单引号：整句靠单引号括住。
 export const REMINDER_EVENT = 'UserPromptSubmit'
 export const REMINDER_TEXT =
-  'poundlock reminder: before the first Agent dispatch or the first write under .poundlock in this turn, ' +
-  'run the gate self-check from your role file. Earlier results do not count: this session may have been ' +
-  'resumed in another process.'
+  'poundlock reminder: this line is only for the poundlock project manager session (one where the user ran ' +
+  '/poundlock:at, at-tweak, at-resume, at-init or at-skills, or one started with --agent poundlock:at-pm; ' +
+  '/poundlock:at-status does not count); any other session ignores it. Project manager: before the first Agent ' +
+  'dispatch or the first write under .poundlock in this turn, run the gate self-check from your role file. ' +
+  'If the role file is no longer in your context, Write .poundlock/gate-check with any text first: the refusal ' +
+  'says where the role file is; read it in full. If that write is not refused, the gate is not running: stop and ' +
+  'tell the user. Earlier results do not count: this session may have been resumed in another process.'
 export const REMINDER_COMMAND = `echo '${REMINDER_TEXT}'`

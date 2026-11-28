@@ -65,7 +65,7 @@ import { GATE_FILES, PROJECT_GATE_FILES, leafName, mayBeGateFile, isGateFile, ma
 
 test('M3z 门禁专属文件清单是闭集合', () => {
   assert.deepEqual([...GATE_FILES].sort(), ['runs/*/approvals.jsonl', 'runs/*/claims.jsonl', 'runs/*/contract-base.json', 'runs/*/delivered.json', 'runs/*/dispatches.jsonl', 'runs/*/owner.json', 'runs/*/user-words.json'])
-  assert.deepEqual([...PROJECT_GATE_FILES].sort(), ['user-words.json'])
+  assert.deepEqual([...PROJECT_GATE_FILES].sort(), ['pm-sessions.json', 'user-words.json'])
 })
 
 test('mayBeGateFile 认得清单里的每一个叶名（加一份门禁专属文件时预筛跟着认，带流后缀、结尾带点的写法才会被拒）', () => {

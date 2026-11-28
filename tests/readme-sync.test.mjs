@@ -33,7 +33,7 @@ import { toolsDeclarationOf } from './helpers/agent-tools.mjs'
 import { EXPECTED_AGENTS } from './helpers/expected-agents.mjs'
 import { ROLES_WITHOUT_PATHS } from './helpers/roles-without-paths.mjs'
 import { COMMAND_NAMES } from './helpers/command-names.mjs'
-import { stripPluginPrefix } from '../hooks/lib/decide.mjs'
+import { PM_ROLE } from '../hooks/lib/decide.mjs'
 
 const url = (p) => new URL(`../${p}`, import.meta.url)
 const readFile = (p) => readFileSync(url(p), 'utf8')
@@ -191,7 +191,7 @@ test('README.zh-CN.md 已经并进 README.md，不再单独存在', () => {
 // ⚠️ 这里有一个字面量（`at-outsider`），而本仓库对字面量清单的纪律是「从数据
 // 派生，不硬编码」。它留在这里的代价由下面两条兜住：
 //   - 「清单里的名字都真的存在」——清单停在旧值（比如替身改了名）时红；
-//   - 「交叉核」——产品角色集合同时要等于 `settings.json` 的 `agent` 加上
+//   - 「交叉核」——产品角色集合同时要等于项目经理（`decide.mjs` 的 `PM_ROLE`）加上
 //     `templates/project.json` 的 `available_roles`。**两条互相独立的派生对不上
 //     就红**，所以往 `agents/` 里加一个真角色而忘了把它写进班底，不会静默。
 const TEST_DOUBLE_ROLES = ['at-outsider']
@@ -208,13 +208,12 @@ test('前置条件：TEST_DOUBLE_ROLES 里的每个名字都真的在 agents/ �
   )
 })
 
-test('交叉核：产品角色 = settings.json 的 agent + templates/project.json 的 available_roles', () => {
-  const settings = JSON.parse(read('settings.json'))
+test('交叉核：产品角色 = 项目经理（PM_ROLE）+ templates/project.json 的 available_roles', () => {
   const project = JSON.parse(read('templates/project.json'))
   assert.deepEqual(
     [...PRODUCT_ROLES].sort(),
-    // M4b：settings.json 的 agent 写插件全名（docs/36），比之前剥掉前缀——与门禁共用同一份剥前缀规则。
-    [...new Set([stripPluginPrefix(settings.agent), ...project.available_roles])].sort(),
+    // 项目经理的名字取门禁认的那一个（decide.mjs 的 PM_ROLE）；插件根不再有 settings.json。
+    [...new Set([PM_ROLE, ...project.available_roles])].sort(),
     'agents/ 减去测试替身，与「主会话角色 + 可用班底」两个真源算出来的对不上——' +
       '往 agents/ 里加了真角色却没写进 available_roles，或者反过来。先确认哪一侧漏了，' +
       '再决定对外那句角色数要不要跟着改。\n' +
@@ -352,8 +351,10 @@ test('前置条件：agents/at-pm.md 的 tools: 解得出非空的工具名清�
   )
 })
 
-// M4b（docs/36，审查第 29 条）：at-pm 那一段还要写明主会话拿不到什么——插件把主会话钉成 at-pm，用户在普通会话里能用的
-// MCP 工具与网页搜索、抓取，装了插件的项目里主会话都没有（P2 实测：探针 MCP 服务器连上了，工具被白名单滤掉）。
+// M4b（docs/36，审查第 29 条）：at-pm 那一段还要写明带 at-pm 身份起的会话拿不到什么——用户在普通会话里能用的
+// MCP 工具与网页搜索、抓取，at-pm 的 tools: 里都没有（P2 实测：探针 MCP 服务器连上了，工具被白名单滤掉）。
+// 插件不再默认接管主会话之后（docs/107），敲命令成为项目经理的会话保留全部工具；拿不到这些的只剩 --agent poundlock:at-pm 起的会话，
+// README 那一段写的就是它，这条照旧拿 at-pm 的 tools: 核。
 // 钉法是**双向**的：那句话在不在，要等于 at-pm 的 tools: 里有没有这些工具。只查「写没写」的话，哪天给 at-pm 加了 WebFetch、
 // README 工具清单也同步补上，「拿不到 WebFetch」就成了假话却照样绿——把风险说小的那一侧（上面那段注释说的同一族）。
 // 这几个名字不加反引号：加了会被 toolTokensIn 算进 at-pm 的工具面。按句判（中文按「。；」切，英文按句点、分号切），
@@ -423,7 +424,7 @@ test('自检：claimsNo() 只认否定管得到的名字——同一小句、否
 })
 
 for (const f of [README_EN, README_ZH]) {
-  test(`M4b ${f} 的 at-pm 那一段写明主会话拿不到 MCP 与网页工具——与 agents/at-pm.md 的 tools: 双向一致（两组分开判）`, () => {
+  test(`M4b ${f} 的 at-pm 那一段写明带 --agent 起的项目经理拿不到 MCP 与网页工具——与 agents/at-pm.md 的 tools: 双向一致（两组分开判）`, () => {
     const p = atPmParagraph(read(f))
     // 文档核对（docs/36 §3.2）：两小句分开判。「它拿不到」对 at-pm 自己的 tools:；「团队里其余角色也拿不到」对其余团队角色（agents/ 减去
     // 测试替身与 at-pm）。原来两样都按全体的并集判：给某个叶子角色加网页工具时，失败文案把它说成 at-pm，而且要转绿只能删掉 at-pm 那句真话。
@@ -1757,8 +1758,8 @@ function fencedPluginCommands(text) {
 
 const README_M4E = {
   warning: [
-    '> **Install with `--scope local`.** If `install` runs without it, or you pick the default first option in the `/plugin` panel, you get a user-scope install: every new session on this machine, in every project, starts with the project manager as its main session. If that happened, run `claude plugin uninstall poundlock@poundlock` (no `--scope` — that removes the user-scope copy) and reinstall as above. `marketplace add` without it only registers the marketplace at user level and takes over no session.',
-    '> **安装命令要带 `--scope local`。** `install` 不带它、或者在 `/plugin` 面板里选了默认的第一项，装的是 user 作用域：这台机器上此后开的每一个新会话、不分项目，主会话都会变成项目经理。装错了就执行 `claude plugin uninstall poundlock@poundlock`（不带 `--scope`，卸的就是 user 作用域那一份），再照上面重装。`marketplace add` 不带它，只是把市场登记在 user 一层，不接管会话。',
+    '> **Install with `--scope local`.** If `install` runs without it, or you pick the default first option in the `/plugin` panel, you get a user-scope install: every session on this machine, in every project, then carries the gates\' hooks and an extra reminder line each turn, and the team commands work in any project. If that happened, run `claude plugin uninstall poundlock@poundlock` (no `--scope` — that removes the user-scope copy) and reinstall as above. `marketplace add` without it only registers the marketplace at user level and installs nothing.',
+    '> **安装命令要带 `--scope local`。** `install` 不带它、或者在 `/plugin` 面板里选了默认的第一项，装的是 user 作用域：这台机器上此后开的每一个会话、不分项目，都挂着门禁的 hook，每一轮多一行提醒，哪个项目里都敲得出团队命令。装错了就执行 `claude plugin uninstall poundlock@poundlock`（不带 `--scope`，卸的就是 user 作用域那一份），再照上面重装。`marketplace add` 不带它，只是把市场登记在 user 一层，不装插件。',
   ],
   git4win: [
     '- **On native Windows, Git for Windows.** The roles run commands only through `Bash` (Git Bash); without it Claude Code offers only PowerShell, so the roles cannot install, build or test, and the project manager stops and tells you.',
@@ -1782,7 +1783,7 @@ const HALVES = [
   [README_ZH, 1],
 ]
 
-test('M4e 第 23 条：两半的安装一节都警告 install 要带 --scope local，给出误装之后不带 --scope 的卸载命令，并说清 marketplace add 不接管会话', () => {
+test('M4e 第 23 条：两半的安装一节都警告 install 要带 --scope local，给出误装之后不带 --scope 的卸载命令，并说清 marketplace add 只登记市场、不装插件', () => {
   for (const [half, k] of HALVES) {
     const s = installSectionOf(read(half), pairOf('## Installation')[k]) ?? ''
     assert.ok(hasSentence(s, README_M4E.warning[k]), `${half} 的安装一节缺作用域警告（整句）`)

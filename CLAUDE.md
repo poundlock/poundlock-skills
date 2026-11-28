@@ -4,13 +4,14 @@
 这个仓库是产品 poundlock 的组件 plugin（类型 plugin），由 Wellyard 管理。产品层面的事（组件表、环境、决定）写在主仓库 poundlock 的 CLAUDE.md；IP、端口、登录用户名这类敏感的环境信息只写在那里，不写进这个仓库：它以后可能开源。
 <!-- /wellyard:component -->
 
-poundlock：一个 Claude Code 插件，十角色的软件开发团队。项目经理（`at-pm`）就是主会话，沿阶段链 `S1`→`S8` 分层派发，执行顺序由 hook 门禁强制，业务验收独立成线。默认分支 `main`。
+poundlock：一个 Claude Code 插件，十角色的软件开发团队。新开的会话是普通会话，用户敲一条团队命令，这个会话才成为项目经理（`at-pm`）会话，沿阶段链 `S1`→`S8` 分层派发，执行顺序由 hook 门禁强制，业务验收独立成线。默认分支 `main`。
 
 这份文件只记读代码和 git 历史推不出来的事。拿它当线索；与实时的 Git、测试或文件状态冲突时，以实时证据为准。
 
 ## 环境要求
 
 - 零 npm 依赖，不建 `package.json`。运行时的前提只有 PATH 上的 Node，下限是 `hooks/boot.mjs` 的 `MIN_NODE`；门禁用的是 Claude Code 启动时 PATH 上的那个 Node。
+- Claude Code 的下限以 `docs/00-现行参考.md` §2 那一行为准（门禁拿不到可靠的 CLI 版本，代码里没有真源）；README 两半与 `agents/at-pm.md` 的排查清单由判据对着它核。成为项目经理整个押在 `UserPromptExpansion` 上，改下限先在那个版本上补实测（`docs/107` §1 的做法）。
 - 推送 GitHub 要本机 `gh` 已登录；凭据在系统 keyring 里，不进仓库。仓库地址、安装命令里的地址、只在某台电脑上成立的事，都记在主仓库 `CLAUDE.md` 的「环境」一节。
 - `POUNDLOCK_GATE_TRACE`（可选）：等于 `1` 时每道门禁每次 `exit 0` 往 stderr 留一行痕，默认关。`--bg` 会话必须经 `--settings` 的 `env` 传入，在 shell 里 export 传不到 hook（实测）。判读见 `docs/00-现行参考.md` §1，来历在 `docs/21`。
 - `CLAUDE_PLUGIN_ROOT` 由 CLI 注入，插件内部路径都从它解析，不用手动设。
@@ -82,11 +83,11 @@ node --test
 
 - **任何角色都不授予 `Skill` / `SendMessage` / `ListAgents`。** frontmatter 的 `skills:` 键是另一回事，允许，一律写全名 `poundlock:at-*`（裸名会被用户或项目层的同名 skill 抢先，实测在 `docs/97` §3）。插件自带的 skill 不得声明 `context: fork`。外部的设计方法只改写进自己的 skill（`at-ui-craft`，声明在 `THIRD_PARTY_NOTICES.md`），不跨插件引用（`docs/97` §1）。
 - **`at-outsider` 永远不进任何角色的 `Agent(...)` 宇宙，也不进任何 `can_delegate_to`。**
-- **主线程的 `tools:` 只封顶派发宇宙与主会话自己的工具面，不封顶子代理的工具**：每个角色拿自己 `tools:` 里的工具（实测），禁授的三样靠每一份自己的 `tools:` 行（`tests/tool-surface.test.mjs`）。`at-pm` 拿不到用户的 MCP 与网页工具，README 两半写着。验证段的产者（主会话除外）不持 `Edit`——摩擦，不是屏障。插件 `settings.json` 的 `agent` 写全名 `poundlock:at-pm`（裸名会被项目或用户层同名的 `at-pm.md` 抢先当上主会话，`tests/plugin-name-sync.test.mjs`）。门禁按剥前缀的名字认 PM，不收紧。`docs/36`。
+- **`at-pm.md` 的 `tools:` 只在带 `--agent poundlock:at-pm` 起的会话里封顶主会话的工具面与派发宇宙，任何时候都不封顶子代理的工具**：每个角色拿自己 `tools:` 里的工具（实测），禁授的三样靠每一份自己的 `tools:` 行（`tests/tool-surface.test.mjs`）。就地成为项目经理的会话保留全部工具，绕得开门禁的几样由门禁拦（见下面「敲命令才成为项目经理」）。带 `--agent` 起的项目经理拿不到用户的 MCP 与网页工具，README 两半写着。验证段的产者（主会话除外）不持 `Edit`——摩擦，不是屏障。插件根没有 `settings.json`（判据钉着它不在，免得有人把 `agent` 悄悄加回去）；`at-pm` 的全名 `poundlock:at-pm` 只在 `--agent` 与判据里用（裸名会被项目或用户层同名的 `at-pm.md` 抢先，`tests/plugin-name-sync.test.mjs`）。门禁按剥前缀的名字认 PM，不收紧。`docs/36`。
 - **MCP 只给叶子角色 `at-ui`，而且只到官方插件市场 Playwright 插件的具体工具**：只列看页面要的那几个（打开、改尺寸、模拟媒体特性、截图、快照、关浏览器），不授整台服务器，执行脚本、上传文件、拖放、对话框不给，持 `Agent` 的角色不给；`WebSearch`、`WebFetch` 谁都不给。用户没装那个插件时名字静默不在、角色照常起（实测）。截图与快照落在项目根的 `.playwright-mcp/`，写路径隔离与账本看不见：只开本机起的页面、不带 `filename`、在记录里列出、用完关浏览器都靠正文，门禁不核（付了三样）；`at-qa` 审改动时跳过那个目录。`docs/98`。
 - **用户的 skill 只经登记、复制进项目、当文件读**：`/poundlock:at-skills` 经 `hooks/skills-cli.mjs`（项目经理用 `Bash` 调，不是门禁）把本机的 skill 整份复制进 `.poundlock/skills/`、记进 `.poundlock/skills.json`；角色照正文「登记给你的 skill」一节读来用，仍然不授 `Skill`。登记的 skill 在做法上盖得过插件自带的，管不了做什么，盖不过门禁与红线、要交哪几份、下游要读的项、读文件与截图的开销规矩；点名只认契约里用户的话。新版只在起新一趟、建 run 之前比对，变了问用户、`sync --update` 才换，一趟进行中与续跑都不换。副本目录一律由名字推出、不信清单里的 `dir`；skill 里的软链接与会被自动加载的位置不复制。角色正文不写 `${CLAUDE_PLUGIN_ROOT}` 以外的占位符字面，也不拿它当「skill 里的那个占位符」说——平台会把正文里的它换成本插件的目录。`docs/102`。
-- **项目经理只能是主会话，调用者认不出就拒**：`agent_type` 在却不是非空字符串的拒；任何调用者派 `at-pm` 一律拒；受管辖的派发带非空 `name`（agent teams 的 teammate）拒，与 `isolation` 同形。主会话被设置里别的 agent 或启动时的 `--agent` 换掉时，自检与几道门禁的拒绝理由末尾都说清身份与出路。还没有 run 时 H3 对谁都放行，那是 at-init 自举的既有设计。`state.json` 里的角色名写裸名。`docs/44`。
-- **插件自带的 frontmatter 只用受限写法**：每个非空行恰好一行 `key: 值`，键不重复，值不以 YAML 指示符开头、不含「: 」与「 #」、不以「:」结尾、首尾没有空白、不是会被读成 null / 布尔 / 数字的那几种，行里没有制表符与 `---`。挡的是会让平台的 YAML 解析器与按行读的判据读出不同东西的写法——解析失败会让平台把整份当空，折行能授出判据看不见的工具。不声称封闭。唯一的窄口是逐字的 `omitClaudeMd: true` 一行。`tests/frontmatter-subset.test.mjs`；`docs/40` §1.8、`docs/100`。
+- **项目经理只能是主会话，调用者认不出就拒**：主线程是项目经理有三种来路——敲过团队命令、记了号的会话，带 `--agent poundlock:at-pm` 起的会话，以及 hook 输入里没有会话 id 的宿主；别的主线程是团队之外的人。`agent_type` 在却不是非空字符串的拒；任何调用者派 `at-pm` 一律拒；受管辖的派发带非空 `name`（agent teams 的 teammate）拒，与 `isolation` 同形。主会话被设置里别的 agent 或启动时的 `--agent` 换掉时，它是团队之外的人，自检与几道门禁的拒绝理由末尾都说清身份与出路。还没有 run 时 H3 对项目经理与团队角色放行，那是 at-init 自举的既有设计；团队之外的人照旧写不了 `.poundlock/`。`state.json` 里的角色名写裸名。`docs/44`、`docs/107`。
+- **插件自带的 frontmatter 只用受限写法**：每个非空行恰好一行 `key: 值`，键不重复，值不以 YAML 指示符开头、不含「: 」与「 #」、不以「:」结尾、首尾没有空白、不是会被读成 null / 布尔 / 数字的那几种，行里没有制表符与 `---`。挡的是会让平台的 YAML 解析器与按行读的判据读出不同东西的写法——解析失败会让平台把整份当空，折行能授出判据看不见的工具。不声称封闭。窄口只有两个，各只认逐字的一行：角色的 `omitClaudeMd: true`，六条团队命令的 `disable-model-invocation: true`（模型经 `Skill` 调命令记不上号，也不该在普通会话里列着团队命令，`docs/107` §2.1）。`tests/frontmatter-subset.test.mjs`；`docs/40` §1.8、`docs/100`。
 - **子代理不自动带项目的 `CLAUDE.md`**：被派得到的角色 frontmatter 一律 `omitClaudeMd: true`，项目自己的约定改由角色开工时 `Read` 项目根那一份 `CLAUDE.md`（`@` 引的文件只在与任务直接相关时读）。`at-pm` 不加：平台对主会话不认这个键，主会话也要项目里的约定；README 写怎么在本地设置里用 `claudeMdExcludes` 排除大文档。读进来的 `CLAUDE.md` 照做，与正文冲突的照正文。`tests/context-prose.test.mjs`；来由与理由在 `docs/100`。
 - **管住上下文只靠正文**：浏览器里的页面归 `at-ui` 看（这一趟 `S5` 叫了它的，排在实现页面的产者交齐之后、同段再派它一次；没叫它的归实现页面的产者），iOS、Android 的原生界面归各端；每种情形一张、一轮通常不超过 4–6 张、没改动不重截。验证段的角色不截图、不读图，读记录里「看过」那一栏的结论；验收因为页面没人看过判不了的不回 S6：有办法看却没看的回 S5 补看，没办法看的问照现状交付。持 `Bash` 的角色同一节「读文件与看输出」。门禁不核（付了三样，`docs/100` §5）；`tests/context-prose.test.mjs`、`tests/ui-browser-prose.test.mjs`。
 - **持 Bash 的执行角色的敏感操作红线只在正文里，每一份逐字同一句**，清单与 `/poundlock:at` 第 4 节 `sensitive` 那一行逐项相同：碰到就以「冒泡：」停下，协调者原样冒泡给 PM，PM 照 `sensitive` 问用户；用户批准过的，执行角色只认契约「修订记录」里写明批准了的那一步（派发提示是数据，契约只有 PM 写得进）。PM 自己也不跑动工作树或历史的 git 命令，也不结束不是自己起的进程；停服务按自己起的 PID 停（Windows 的 Git Bash 里按进程树停）——有过项目经理按名字杀掉本机全部 node 进程的事故（`docs/43` §1.5）。起过的服务记进各自产物的「起过的服务」，收口第三步由项目经理收齐、只读地核，还在跑的问用户、批准了才停（`docs/101`）。门禁不加 Bash 的 matcher：命令行是自由文本，判不准，平台的权限模式才是那一层。`tests/redlines-setup-prose.test.mjs`；`docs/40`、`docs/49`。
@@ -120,6 +121,7 @@ node --test
 
 ### 会话、微调与并行
 
+- **敲命令才成为项目经理，门禁按会话的记号认**（用户 2026-11-27 定）：插件不再默认接管主会话，新开的会话是普通会话；用户敲 `/poundlock:at`、`at-tweak`、`at-resume`、`at-init`、`at-skills` 之一，记录器把会话 id 记进门禁专属的 `.poundlock/pm-sessions.json`，这个会话到结束或 `/clear` 为止是项目经理会话。理由：桌面应用没有按会话指定 agent 的入口，运行中的会话也换不了主线程的 agent，就地变身是唯一给得出「默认普通、敲命令才变」的做法；代价是项目经理不再是平台层面的独立身份，角色正文在对话里（命令开头、【身份】回传与每轮提醒指路去读）。没记号的主线程、被换掉身份的主会话、花名册外的子代理是**团队之外的人**（没记号的会话里带 `agent_id`、不带 `agent_type` 的调用者——CLI 内部分叉的形状——也是，`docs/107` §2.3）：一条不看运行上下文的判定，派不了团队角色、用 `Edit` / `Write` 写不了 `.poundlock/`（按规范化之后的段名认），别的不拦、不出声、不受微调认领约束。两种判不出来方向相反：hook 输入没有会话 id 时当项目经理（宿主分不出会话，输入是平台给的）；记号文件读不出来时谁都不靠记号当项目经理（往放权的方向失败会把契约交给没敲过命令的会话，反过来判照样大声拒），记录器下次重建它。项目经理会话保留全部工具，门禁拦 `Skill`、`SendMessage`、`ListAgents`、`EnterWorktree`、`Workflow` 五样（能绕开派发门禁起或续子代理、换工作树；清单的单一真源是 `hooks/lib/pm-session.mjs` 的 `BLOCKED_TOOLS`，不声称封闭）。身份判定的单一真源是同一个模块的 `standingOf`。压缩之后由门禁要求重读角色正文：压缩时（`SessionStart`，来源 `compact`）检查项 `pm-compact` 给记过号的会话记 `reread` 标记，带标记的会话下一次自检，拒绝理由里补读那一句换成不带条件的、说一次就清；门禁不核读没读，标记只影响自检那一句。设计在 `docs/superpowers/specs/2026-11-27-跑命令才成为项目经理-design.md`，探针、裁定与还开着的在 `docs/107`。
 - **一趟只归一个会话，门禁按会话认**：建 run 的那一次由账本记下主人（`runs/<id>/owner.json`，门禁专属）。主线程对有主人、没收口、主人不是自己的一趟——写它的文件、另建一趟、把 `current-run` 从它切走——H3 拒，以它的名义派人 H2 拒；子代理照旧按派发记录认。`/clear` 会换会话 id（`--resume` 与压缩不换），同一个窗口清空之后要接手一次。接手只认 `AskUserQuestion` 里的规范标签，题面里要原样写着那一趟的 run id。没有 `owner.json` 的旧 run 一切照旧。单一真源是 `hooks/lib/owner.mjs`。`docs/103`；这是边看边改微调那份设计（`docs/superpowers/specs/2026-11-05-边看边改微调与会话归属-design.md`）的第一步。
 - **微调是一趟 `mode` 为 `tweak` 的 run，门禁按短链判**（`/poundlock:at-tweak` 起）：`mode` 只认 `"tweak"`，建好之后不许改；写成 `"tweak"` 要有门禁记下的 `/poundlock:at-tweak` 原话记录——不然项目经理写一个 `mode` 就绕开了产品定义与架构。短链是 S1、S4、S5、S6、S8，段号与产物名沿用正常链，没有验收段，收口读测试报告。推出实现段要用户对现在这份契约说过「可以了，收尾」。微调不写 `current-run`。`hooks/lib/tweak.mjs`、`stages.tweak.json`；`docs/104`。
 - **并行微调：门禁每一次先挑这一趟**（`hooks/lib/runpick.mjs`）：子代理按派发记录认回派它的那一趟微调，主线程认这个会话名下没收尾的那一趟，都不是照 `current-run`；`gate.mjs` 里读运行上下文只经 `runCtxFor`。互斥在 H6 建 run 那一次判：`current-run` 指着没收口的完整一趟时不能起微调，有没收尾的微调时不能起完整一趟，一个会话同一时刻只有一趟微调。认领（`claims.mjs`）：子代理第一次写一个项目文件，落盘之后记进这一趟的 `claims.jsonl`，别的没收尾的微调再写它 H3 拒；派发时预先认领不做。放弃收尾（`abandon.mjs`）：用户在 `AskUserQuestion` 里选「放弃这一趟」，之后一次写入记 `closed_at` 与 `abandoned: true`，H6 不核产物。前台派发的派发记录跑完才记（实测），所以认不出时按 hook 输入里的会话 id 认。`docs/105`、`docs/106`。
@@ -162,11 +164,11 @@ node --test
 
 ### Claude Code 平台
 
-- **绝不 `claude plugin enable` / `disable`**：`enable` 接管正在跑的会话，`disable` 不把工具面还回来。插件命令一律写全名 `<插件>@<市场>`；开发机上可能有同名的本机插件，见主仓库 `CLAUDE.md` 的「环境」一节。
-- `claude --resume` 不继承 `--plugin-dir`；local 安装下换了目录续会话，工具限制会整体掉光，而转录里看不出来。
-- **`agents/at-pm.md` 的 `model:` 不是摆设**：命令行里不带 `--model` 时，项目经理就跑在这一行写的模型上，删掉它会无声地掉回用户的默认模型；桌面应用起会话时总带 `--model`，所以在桌面端看不出来。见 `docs/11` §5.36 的订正。
+- **绝不 `claude plugin enable` / `disable`**：会话开着时开关插件的效果靠不住——`disable` 不把工具面还回来（`docs/04` §9 ③）；插件根不再带 `agent` 之后 `enable` 不再把会话接管成项目经理，但已经开着的会话里命令与 hook 跟不跟着开关没量过。插件命令一律写全名 `<插件>@<市场>`；开发机上可能有同名的本机插件，见主仓库 `CLAUDE.md` 的「环境」一节。
+- `claude --resume` 不继承 `--plugin-dir`；local 安装下换了目录续会话，门禁与命令整体掉光（带 `--agent` 起的会话连工具限制一起掉），对话里却还留着项目经理的角色正文，而转录里看不出来。
+- **`agents/at-pm.md` 的 `model:` 不是摆设**：带 `--agent poundlock:at-pm` 起、不带 `--model` 的会话，项目经理就跑在这一行写的模型上，删掉它会无声地掉回用户的默认模型；桌面应用起会话时总带 `--model`，所以在桌面端看不出来。敲命令成为项目经理的会话不看这一行，用会话自己的模型。见 `docs/11` §5.36 的订正。
 - **探针目录放在本工作树下时**，`--settings` 里加 `claudeMdExcludes` 排除本仓库与上一层（主仓库）的 `CLAUDE.md`，不然项目经理把它们整份读一遍（`docs/98` 那两场就是）。要看 hook 的原始输入，另挂一个只追加、不写 stdout、永远 exit 0 的记录钩子——门禁的留痕只有检查项名与退出码；做法在 `docs/99` §2.1。
-- **后台探针用 `claude --bg`，不用 `-p`**：`-p` 下异步派发卡死过（CLI 2.1.276，`docs/13` §5.1），2.1.286 上一个 `-p` 会话跑完过 5 次异步派发（`docs/33` §3），要靠 `-p` 之前先在当前版本上核。SDK 宿主（`-p --input-format stream-json`）的驱动要等后台子代理跑完再关输入：第一次 result 就关，子代理的权限请求会报 `AbortError: Stream closed`，会话等满 600 秒（`CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS`）后把它杀掉（`docs/35` §4）。
+- **后台探针用 `claude --bg`，不用 `-p`**：`-p` 下异步派发卡死过（CLI 2.1.276，`docs/13` §5.1），2.1.286 上一个 `-p` 会话跑完过 5 次异步派发（`docs/33` §3），要靠 `-p` 之前先在当前版本上核。2.1.325 上 `--bg` 起不来：要先在用户设置里接受 `bypassPermissions` 的声明、或在探针目录里交互地接受信任，两样都改用户的配置；不派发的探针改用 `-p`（`docs/107` §1.1）。SDK 宿主（`-p --input-format stream-json`）的驱动要等后台子代理跑完再关输入：第一次 result 就关，子代理的权限请求会报 `AbortError: Stream closed`，会话等满 600 秒（`CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS`）后把它杀掉（`docs/35` §4）。
 - **探针会话要收尾**：对每个会话先 `claude stop` 再 `claude rm`。没 stop 过的会话在 `~/.claude.json` 里留着 `lastGracefulShutdown: false`，会一直挂在桌面应用侧边栏的「Other」下；`claude rm` 只删 `~/.claude/jobs/<id>/`，转录不动。
 - **SubagentStop**（CLI 2.1.286，`docs/37` §1.2）：`stop_hook_active` 被任何 SubagentStop hook 拦过一回之后，这次运行余下的每一回都为真，调工具也不清；续跑上限只数连续的拦截，两次停下之间调过工具就清零——交替调工具的子代理平台不封顶。SubagentStop 放行时递不出任何话给父级。探针插件没进仓库，平台升级后照 `docs/37` §1.2 的做法另搭一个重跑。
 - **派发与完成通知**（CLI 2.1.286，`docs/38` §1.3）：交互模式（终端、`--bg`）下 Agent 工具没有 `run_in_background`，一律后台；只有 `-p`、SDK 宿主能前台派（`PostToolUse` 在子代理跑完之后才到，`status` 是 `completed`）。完成通知每一条在主会话触发一次 UserPromptSubmit，`prompt` 就是那段 `<task-notification>` XML，同一个 task-id 会通知不止一次。嵌套派发的通知按模式路由：交互模式下孙代理的通知回到停车的协调者，`-p` 下协调者还在跑时也送给它——这两种情形主会话都只收到协调者那一条。子代理回报里出现指令形状的字样时，CLI 在最前面插一段 `[harness: …]` 注记。

@@ -13,6 +13,7 @@ import { run, decisionOf, hermeticEnv } from './helpers/gate-runner.mjs'
 import { makeRun } from './fixtures/make-run.mjs'
 import { CHECKS } from '../hooks/lib/checks.mjs'
 import { GATE_CHECK_PATH, GATE_CHECK_ONLINE, isGateCheck, gateCheckReason, selfCheckIdentity } from '../hooks/lib/gate-check.mjs'
+import { OUTSIDE_HEAD } from '../hooks/lib/pm-session.mjs'
 
 const BS = String.fromCharCode(92)
 // 反斜杠只在 Windows 上是分隔符：Linux / macOS 上 `.poundlock\gate-check` 是一个字面名字的文件，本来就不算自检。
@@ -235,25 +236,26 @@ test('H3：.poundlock 是指向别名目录的链接——照样拿到「在线�
 
 // M4i（docs/44，审查第 22 条）：主会话被设置里别的 agent 盖住时（带 agent_type、不是项目经理、没有 agent_id——子代理才带 agent_id），
 // 自检照样回「在线」，可这样跑不了团队：H1 不管它的派发（花名册外的调用者），第一次写 state.json 就被拒。自检的回传里说清身份与出路。
-const IDENTITY_NOTE = "注意：发起这次自检的是 \"my-main\"，不是 poundlock 的项目经理（poundlock:at-pm）——设置里的 agent 或者启动时的 --agent 换掉了主会话。这样跑不了这支团队：门禁不把你当项目经理，建 run、记 state.json 这些项目经理的写入会被拒。停下来告诉用户：去掉设置里的那一项 agent、起会话时不带别的 --agent，或者直接用 claude --agent poundlock:at-pm 起会话。"
+const IDENTITY_NOTE = "注意：发起这次自检的是 \"my-main\"，不是 poundlock 的项目经理（poundlock:at-pm）——设置里的 agent 或者启动时的 --agent 换掉了主会话。这样跑不了这支团队：门禁不把你当项目经理，建 run、记 state.json 这些项目经理的写入会被拒。停下来告诉用户：去掉设置里的那一项 agent，不带别的 --agent 起一个会话、在里面敲团队命令（比如 /poundlock:at <需求>），或者用 claude --agent poundlock:at-pm 起会话。"
 test('M4i 第 22 条：selfCheckIdentity——只对带 agent_type、不是项目经理、没有 agent_id 的调用者说身份', () => {
   assert.equal(selfCheckIdentity({ agent_type: 'my-main' }), IDENTITY_NOTE)
   // 复核（docs/44 §8）：agent_id 是空串的当没有（M08）；--agent 换成团队里别的角色时同样说，而且不说「派发不归花名册管」（低-3）；
   // 写入那一支的动作词（低-8）。
   assert.equal(selfCheckIdentity({ agent_type: 'my-main', agent_id: '' }), IDENTITY_NOTE)
-  assert.equal(selfCheckIdentity({ agent_type: 'poundlock:at-architect' }), "注意：发起这次自检的是 \"poundlock:at-architect\"，不是 poundlock 的项目经理（poundlock:at-pm）——设置里的 agent 或者启动时的 --agent 换掉了主会话。这样跑不了这支团队：门禁不把你当项目经理，建 run、记 state.json 这些项目经理的写入会被拒。停下来告诉用户：去掉设置里的那一项 agent、起会话时不带别的 --agent，或者直接用 claude --agent poundlock:at-pm 起会话。")
-  assert.equal(selfCheckIdentity({ agent_type: 'my-main' }, '写入'), "注意：发起这次写入的是 \"my-main\"，不是 poundlock 的项目经理（poundlock:at-pm）——设置里的 agent 或者启动时的 --agent 换掉了主会话。这样跑不了这支团队：门禁不把你当项目经理，建 run、记 state.json 这些项目经理的写入会被拒。停下来告诉用户：去掉设置里的那一项 agent、起会话时不带别的 --agent，或者直接用 claude --agent poundlock:at-pm 起会话。")
+  assert.equal(selfCheckIdentity({ agent_type: 'poundlock:at-architect' }), "注意：发起这次自检的是 \"poundlock:at-architect\"，不是 poundlock 的项目经理（poundlock:at-pm）——设置里的 agent 或者启动时的 --agent 换掉了主会话。这样跑不了这支团队：门禁不把你当项目经理，建 run、记 state.json 这些项目经理的写入会被拒。停下来告诉用户：去掉设置里的那一项 agent，不带别的 --agent 起一个会话、在里面敲团队命令（比如 /poundlock:at <需求>），或者用 claude --agent poundlock:at-pm 起会话。")
+  assert.equal(selfCheckIdentity({ agent_type: 'my-main' }, '写入'), "注意：发起这次写入的是 \"my-main\"，不是 poundlock 的项目经理（poundlock:at-pm）——设置里的 agent 或者启动时的 --agent 换掉了主会话。这样跑不了这支团队：门禁不把你当项目经理，建 run、记 state.json 这些项目经理的写入会被拒。停下来告诉用户：去掉设置里的那一项 agent，不带别的 --agent 起一个会话、在里面敲团队命令（比如 /poundlock:at <需求>），或者用 claude --agent poundlock:at-pm 起会话。")
   for (const input of [{}, { agent_type: null }, { agent_type: 'poundlock:at-pm' }, { agent_type: 'at-pm' }, { agent_type: 'poundlock:at-backend', agent_id: 'a0000000000000d01' }, { agent_type: '' }, { agent_type: 7 }, { agent_type: '__main__' }]) {
     assert.equal(selfCheckIdentity(input), '', JSON.stringify(input))
   }
 })
 
-test('M4i 第 22 条：门禁子进程——盖住了主会话的别的 agent 来自检，「在线」之后跟着身份那一句', () => {
+// 跑命令才成为项目经理那份设计 §5.4、§5.6：被换成花名册外 agent 的主会话是团队之外的人，自检不回答「在线」，拒绝理由末尾照旧说身份。
+test('M4i 第 22 条：门禁子进程——盖住了主会话的别的 agent 来自检，不给「在线」、理由末尾跟着身份那一句', () => {
   withProject('ok', (p) => {
     const reasonOf = (input) => decisionOf(run('writepath', input, undefined, p).stdout)?.permissionDecisionReason ?? ''
     const target = join(p, '.poundlock', 'gate-check')
     const other = reasonOf(write('my-main', target))
-    assert.ok(other.startsWith(GATE_CHECK_ONLINE) && other.endsWith(IDENTITY_NOTE), other)
+    assert.ok(other.startsWith(OUTSIDE_HEAD) && !other.includes(GATE_CHECK_ONLINE) && other.endsWith(IDENTITY_NOTE), other)
     for (const agent of [undefined, 'poundlock:at-pm']) assert.ok(!reasonOf(write(agent, target)).includes('不是 poundlock 的项目经理'), String(agent))
     const sub = reasonOf({ ...write('poundlock:at-backend', target), agent_id: 'a0000000000000d01' })
     assert.ok(sub.startsWith(GATE_CHECK_ONLINE) && !sub.includes('不是 poundlock 的项目经理'), sub)
@@ -267,9 +269,11 @@ test('M4i 复核：门禁子进程——H1 拒绝被换掉的主会话时，理�
     const dispatch = (agent, target, extra = {}) => ({ hook_event_name: 'PreToolUse', tool_name: 'Agent', ...(agent === undefined ? {} : { agent_type: agent }), tool_input: { subagent_type: target }, ...extra })
     const reasonOf = (input) => decisionOf(run('delegation', input, undefined, p).stdout)?.permissionDecisionReason ?? ''
     const arch = reasonOf(dispatch('poundlock:at-architect', 'poundlock:at-product'))
-    assert.ok(arch.startsWith('角色 at-architect 不得派发给 at-product。') && arch.endsWith("注意：发起这次派发的是 \"poundlock:at-architect\"，不是 poundlock 的项目经理（poundlock:at-pm）——设置里的 agent 或者启动时的 --agent 换掉了主会话。这样跑不了这支团队：门禁不把你当项目经理，建 run、记 state.json 这些项目经理的写入会被拒。停下来告诉用户：去掉设置里的那一项 agent、起会话时不带别的 --agent，或者直接用 claude --agent poundlock:at-pm 起会话。"), arch)
+    assert.ok(arch.startsWith('角色 at-architect 不得派发给 at-product。') && arch.endsWith("注意：发起这次派发的是 \"poundlock:at-architect\"，不是 poundlock 的项目经理（poundlock:at-pm）——设置里的 agent 或者启动时的 --agent 换掉了主会话。这样跑不了这支团队：门禁不把你当项目经理，建 run、记 state.json 这些项目经理的写入会被拒。停下来告诉用户：去掉设置里的那一项 agent，不带别的 --agent 起一个会话、在里面敲团队命令（比如 /poundlock:at <需求>），或者用 claude --agent poundlock:at-pm 起会话。"), arch)
+    // 被换成花名册外 agent 的主会话是团队之外的人（跑命令才成为项目经理那份设计 §5.4）：派花名册里的名字（这里是 at-pm）一律拒，理由末尾照旧说身份。
     const main = reasonOf(dispatch('my-main', 'poundlock:at-pm'))
-    assert.equal(main, "项目经理只能是主会话，at-pm 不能被派成子代理：子代理里的项目经理带着写契约与控制文件的权限，却不是主会话。注意：发起这次派发的是 \"my-main\"，不是 poundlock 的项目经理（poundlock:at-pm）——设置里的 agent 或者启动时的 --agent 换掉了主会话。这样跑不了这支团队：门禁不把你当项目经理，建 run、记 state.json 这些项目经理的写入会被拒。停下来告诉用户：去掉设置里的那一项 agent、起会话时不带别的 --agent，或者直接用 claude --agent poundlock:at-pm 起会话。")
+    assert.ok(main.startsWith(OUTSIDE_HEAD), main)
+    assert.ok(main.endsWith("注意：发起这次派发的是 \"my-main\"，不是 poundlock 的项目经理（poundlock:at-pm）——设置里的 agent 或者启动时的 --agent 换掉了主会话。这样跑不了这支团队：门禁不把你当项目经理，建 run、记 state.json 这些项目经理的写入会被拒。停下来告诉用户：去掉设置里的那一项 agent，不带别的 --agent 起一个会话、在里面敲团队命令（比如 /poundlock:at <需求>），或者用 claude --agent poundlock:at-pm 起会话。"), main)
     for (const input of [dispatch('poundlock:at-architect', 'poundlock:at-product', { agent_id: 'a0000000000000f01' }), dispatch('poundlock:at-pm', 'poundlock:at-backend'), dispatch(undefined, 'poundlock:at-backend'), dispatch('poundlock:', 'poundlock:at-backend')]) {
       const r = reasonOf(input)
       assert.ok(r && !r.includes('注意：发起这次'), r)

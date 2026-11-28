@@ -5,6 +5,7 @@ import assert from 'node:assert/strict'
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { run, decisionOf, GATE } from './helpers/gate-runner.mjs'
+import { markPm } from './helpers/pm-mark.mjs'
 import { makeRun } from './fixtures/make-run.mjs'
 import { reworkFromHistory } from '../hooks/lib/state.mjs'
 
@@ -325,6 +326,7 @@ test('微调停在 S5，用户选「可以了，收尾」：记进 approvals.jso
 
 test('对话里单独发「可以了，收尾」同样记', () => {
   withRun(({ projectDir, runDir }) => {
+    markPm(projectDir, 's-1')
     run('approval-prompt', { hook_event_name: 'UserPromptSubmit', session_id: 's-1', prompt: '可以了，收尾' }, GATE, projectDir)
     assert.match(readFileSync(join(runDir, 'approvals.jsonl'), 'utf8'), /tweak-done/)
   }, S5_RUN)

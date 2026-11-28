@@ -15,7 +15,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { toolsDeclarationOf } from './helpers/agent-tools.mjs'
 import { stageRoles } from '../hooks/lib/stages.mjs'
-import { PLUGIN_PREFIX } from '../hooks/lib/decide.mjs'
+import { PM_ROLE } from '../hooks/lib/decide.mjs'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 const read = (rel) => readFileSync(join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
@@ -24,7 +24,7 @@ const has = (text, s) => stripWs(text).includes(stripWs(s))
 const AGENTS = readdirSync(join(ROOT, 'agents')).filter((f) => f.endsWith('.md')).map((f) => f.slice(0, -3))
 const roster = JSON.parse(read('roster.json'))
 const stages = JSON.parse(read('stages.json'))
-const MAIN_ROLE = JSON.parse(read('settings.json')).agent.slice(PLUGIN_PREFIX.length)
+const MAIN_ROLE = PM_ROLE
 
 const frontmatterOf = (role) => {
   const lines = read(`agents/${role}.md`).split('\n')

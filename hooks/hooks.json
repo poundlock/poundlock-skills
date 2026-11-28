@@ -62,6 +62,21 @@
         ]
       },
       {
+        "matcher": "^(Skill|SendMessage|ListAgents|EnterWorktree|Workflow)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/hooks/boot.mjs",
+              "pm-tools"
+            ],
+            "timeout": 30,
+            "statusMessage": "校验项目经理会话的工具…"
+          }
+        ]
+      },
+      {
         "matcher": "^SubagentHandback$",
         "hooks": [
           {
@@ -160,7 +175,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo 'poundlock reminder: before the first Agent dispatch or the first write under .poundlock in this turn, run the gate self-check from your role file. Earlier results do not count: this session may have been resumed in another process.'",
+            "command": "echo 'poundlock reminder: this line is only for the poundlock project manager session (one where the user ran /poundlock:at, at-tweak, at-resume, at-init or at-skills, or one started with --agent poundlock:at-pm; /poundlock:at-status does not count); any other session ignores it. Project manager: before the first Agent dispatch or the first write under .poundlock in this turn, run the gate self-check from your role file. If the role file is no longer in your context, Write .poundlock/gate-check with any text first: the refusal says where the role file is; read it in full. If that write is not refused, the gate is not running: stop and tell the user. Earlier results do not count: this session may have been resumed in another process.'",
             "timeout": 10
           }
         ]
@@ -222,6 +237,38 @@
             ],
             "timeout": 30,
             "statusMessage": "核对这一趟归哪个会话…"
+          }
+        ]
+      },
+      {
+        "matcher": "^poundlock:(at|at-tweak|at-resume|at-init|at-skills)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/hooks/boot.mjs",
+              "pm-session"
+            ],
+            "timeout": 30,
+            "statusMessage": "记下项目经理会话…"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "^compact$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/hooks/boot.mjs",
+              "pm-compact"
+            ],
+            "timeout": 30,
+            "statusMessage": "记下上下文压缩…"
           }
         ]
       }

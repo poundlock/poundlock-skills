@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url'
 import { join, relative } from 'node:path'
 import { toolsDeclarationOf } from './helpers/agent-tools.mjs'
 import { EXPECTED_AGENTS } from './helpers/expected-agents.mjs'
-import { stripPluginPrefix } from '../hooks/lib/decide.mjs'
+import { PM_ROLE } from '../hooks/lib/decide.mjs'
 import { isVerifyStage, stageRoles } from '../hooks/lib/stages.mjs'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
@@ -270,17 +270,16 @@ test('本插件自带的 skills/**/SKILL.md 不声明 context: fork（当前 0 �
 // 门禁只按 sha 判新旧、认不出「在上一轮那份末尾补一句」（hooks/lib/freshness.mjs 的 VERIFY_REDO）。不给 Edit 让这一招
 // 从一次小编辑变回整份重写——这是**摩擦，不是屏障**：Write 读一遍再整份写回照样做得到，持 Bash 的 at-qa 一行 >> 也
 // 做得到；主会话角色（at-pm，S8 的产者）要用 Edit 追加契约修订块、改 state.json，豁免。所以它对 at-acceptance 是一层摩擦
-// （只能整份写回），对 at-qa 更弱（一行 >>）；「只补一句」门禁认不出，只靠正文的要求。主会话角色从 settings.json 剥前缀取，
+// （只能整份写回），对 at-qa 更弱（一行 >>）；「只补一句」门禁认不出，只靠正文的要求。主会话角色用 decide.mjs 导出的 PM_ROLE，
 // 不写字面量。
 const STAGES = JSON.parse(readFileSync(join(ROOT, 'stages.json'), 'utf8'))
-const SETTINGS = JSON.parse(readFileSync(join(ROOT, 'settings.json'), 'utf8'))
-const MAIN_ROLE = stripPluginPrefix(SETTINGS.agent)
+const MAIN_ROLE = PM_ROLE
 const VERIFY_PRODUCERS = [
   ...new Set(Object.values(STAGES).filter((s) => isVerifyStage(s)).flatMap((s) => stageRoles(s))),
 ].filter((r) => r !== MAIN_ROLE)
 
 test('M4b 前置：验证段里除主会话角色外的产者不为空，每个都有一份 agents/*.md', () => {
-  assert.ok(MAIN_ROLE && AGENT_FILES.includes(`${MAIN_ROLE}.md`), `settings.json 的 agent 剥前缀后是 ${JSON.stringify(MAIN_ROLE)}`)
+  assert.ok(MAIN_ROLE && AGENT_FILES.includes(`${MAIN_ROLE}.md`), `PM_ROLE 是 ${JSON.stringify(MAIN_ROLE)}`)
   assert.ok(VERIFY_PRODUCERS.length > 0, '验证段的产者算出来是空集——下面那条判据在空转')
   for (const r of VERIFY_PRODUCERS) assert.ok(AGENT_FILES.includes(`${r}.md`), r)
 })

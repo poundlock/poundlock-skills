@@ -150,18 +150,19 @@ test('认不出是哪一趟派的团队角色（派发记录里没有、会话�
 })
 
 // 安全审查：只有微调、判 no-run 时，花名册外的调用者（别家插件的子代理）不许写 .poundlock/ 下的文件——微调的 state.json、契约都在那里；项目文件照旧能写。
-test('只有微调、没有 current-run：花名册外的子代理写微调的 state.json、契约，H3 拒（契约 H4 也拒）；写项目文件照旧放行', () => {
+// 跑命令才成为项目经理那份设计 §5.4：花名册外的子代理是团队之外的人，.poundlock 之下由 H3 一律拒，H4 对它不另判。
+test('只有微调、没有 current-run：花名册外的子代理写微调的 state.json、契约，H3 拒（H4 对团队之外的人不另判）；写项目文件照旧放行', () => {
   withProject(TWO(), (p) => {
     const other = { agentType: 'helper:writer', agentId: 'o1', sid: 's-1' }
     assert.equal(denied(write(p, join(p, '.poundlock', 'runs', 't1', 'state.json'), other)), true)
     assert.equal(denied(write(p, join(p, '.poundlock', 'runs', 't1', '00-contract.md'), other)), true)
-    assert.equal(denied(write(p, join(p, '.poundlock', 'runs', 't1', '00-contract.md'), other, { check: 'contract' })), true, 'H4 同样拒')
+    assert.equal(write(p, join(p, '.poundlock', 'runs', 't1', '00-contract.md'), other, { check: 'contract' }).stdout, '', 'H4 不另判')
     assert.equal(denied(write(p, join(p, 'web', 'x.ts'), other)), false)
   })
 })
 
 // 安全审查（第二轮）：运行上下文读得出时也一样——非项目经理写 .poundlock/runs/ 下不是这一趟的 run 目录（别的微调的契约、产物），H3 拒、契约 H4 也拒。
-test('运行上下文读得出时：花名册外的子代理写别的一趟 run 目录里的契约与产物，H3 拒（契约 H4 也拒）；a1 写别的一趟的实现记录也拒', () => {
+test('运行上下文读得出时：花名册外的子代理写别的一趟 run 目录里的契约与产物，H3 拒（H4 对团队之外的人不另判）；a1 写别的一趟的实现记录也拒', () => {
   const opts = TWO()
   opts.pointer = 'f1'
   opts.runs.push({ id: 'f1', mode: 'full', stage: 'S5', owner: 's-9' })
@@ -170,7 +171,7 @@ test('运行上下文读得出时：花名册外的子代理写别的一趟 run 
     for (const name of ['00-contract.md', '04-dispatch.md']) {
       assert.equal(denied(write(p, join(p, '.poundlock', 'runs', 't1', name), other)), true, name)
     }
-    assert.equal(denied(write(p, join(p, '.poundlock', 'runs', 't1', '00-contract.md'), other, { check: 'contract' })), true, 'H4')
+    assert.equal(write(p, join(p, '.poundlock', 'runs', 't1', '00-contract.md'), other, { check: 'contract' }).stdout, '', 'H4 不另判')
     assert.equal(denied(write(p, join(p, '.poundlock', 'runs', 't2', '05-impl', 'at-frontend.md'), { role: 'at-frontend', agentId: 'a1', sid: 's-1' })), true)
     assert.equal(denied(write(p, join(p, '.poundlock', 'runs', 't1', '05-impl', 'at-frontend.md'), { role: 'at-frontend', agentId: 'a1', sid: 's-1' })), false, '自己那一趟的实现记录照写')
   })

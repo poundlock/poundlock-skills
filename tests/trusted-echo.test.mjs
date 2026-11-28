@@ -924,12 +924,22 @@ const SCENARIOS = [
   {
     // M3v 复核（docs/30 §3）：unknown-stage 那一行 stderr 痕迹带着收件人（hook 输入的 agent_type）。上面那个场景的 stage 合法，
     // 走不到它；把这一处的 inline 去掉，全套此前照样全绿。
-    name: 'unknown-stage：收件人是载荷（hook 输入的 agent_type）',
+    // 跑命令才成为项目经理那份设计 §5.4：调用者不在花名册里就是团队之外的人，H5a 对它不出声，这一支载荷喂不到了。锚点改成核它确实一个字都不出——
+    // 哪天分流被拆掉、载荷又走到 unknown-stage 那一行，这里红，再把锚点改回默认的「载荷被读到」。
+    name: 'unknown-stage：收件人是载荷（hook 输入的 agent_type；团队之外的人，H5a 不出声）',
     state: (s) => ({ ...s, stage: 'SX' }),
     calls: (_, P) => [
       ['deliverable', returned('poundlock:at-product', P)],
       ['deliverable', returned('poundlock:at-product', 'poundlock:' + P)],
     ],
+    anchor: (text) => text === '',
+  },
+  {
+    // 上一个场景喂不到 unknown-stage 那一行之后，这里补回来：agent_type 是数组时不是团队之外的人（判不出身份的调用者交给原来的代码），
+    // 照样走到那一行，收件人（载荷）进 stderr。把那一处的 inline 去掉，这里红。
+    name: 'unknown-stage：收件人是载荷（hook 输入的 agent_type 是数组）',
+    state: (s) => ({ ...s, stage: 'SX' }),
+    calls: (_, P) => [['deliverable', returned('poundlock:at-product', [P])]],
   },
   {
     name: 'hook 输入的 agent_type',

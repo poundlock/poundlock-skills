@@ -52,6 +52,11 @@ if (atLeast(HAVE, MIN_NODE)) {
       wordsNote:
         '检查项加载失败，这次 /poundlock:at 后面的原话记不下（原话记录器不拦任何东西），这一趟契约第 1 节不跟它核。' +
         '重装或更新 poundlock 插件。',
+      pmNote:
+        '检查项加载失败，这个会话没有记成项目经理会话，记号记不下（记号记录器不拦任何东西）。重装或更新 poundlock 插件，' +
+        '再请用户敲一次团队命令。',
+      compactNote:
+        '检查项加载失败，这次压缩没有记下，「要重读」的标记记不下（压缩记录器不拦任何东西），压缩之后门禁不会要求项目经理重读角色正文。重装或更新 poundlock 插件。',
     })
   })
 } else {
@@ -69,6 +74,11 @@ if (atLeast(HAVE, MIN_NODE)) {
     wordsNote:
       '检查项没有运行（Node 太旧），这次 /poundlock:at 后面的原话记不下（原话记录器不拦任何东西），这一趟契约第 1 节不跟它核。' +
       '升级 Node 到 ' + MIN_NODE + ' 或更新。',
+    pmNote:
+      '检查项没有运行（Node 太旧），这个会话没有记成项目经理会话，记号记不下（记号记录器不拦任何东西）。升级 Node 到 ' + MIN_NODE +
+      ' 或更新，再请用户敲一次团队命令。',
+    compactNote:
+      '检查项没有运行（Node 太旧），这次压缩没有记下，「要重读」的标记记不下（压缩记录器不拦任何东西），压缩之后门禁不会要求项目经理重读角色正文。升级 Node 到 ' + MIN_NODE + ' 或更新。',
   })
 }
 
@@ -78,7 +88,7 @@ async function refuse(msg) {
   const spec = await specOf(CHECK)
   const input = readInput()
   // 失败策略表本身读不到时（checks.mjs 就是坏掉的那个），按 hook 输入自报的事件取安全方向：
-  // PreToolUse 上的检查项除 readiness 外都是 fail closed，readiness 多拒一次也是安全方向；
+  // PreToolUse 上的检查项多数是 fail closed，这里一律按它拒；readiness、handback、pm-tools 是 fail open，对它们是多拒一次、不会放过什么；
   // 其它事件上的检查项全是 fail open。这是「表读不到时怎么办」，不是表的第二份拷贝。
   // 输入读得出、却既没有 hook_event_name 也没有 tool_name：一定不是工具事件（PreToolUse 的输入总带 tool_name），不按 PreToolUse 拒——
   // UserPromptSubmit 上写一份拒绝 JSON 会原样进模型上下文（M3z 复核 platform-4）。输入读不出来时照旧取 PreToolUse 这个安全方向。
@@ -103,8 +113,15 @@ async function refuse(msg) {
   // 排在后面的话，用户看得见这行灰字，却看不出这次放行了——加载失败时它还排在整段栈之后。原因与补救都在这一句里，
   // 细节（版本、栈）跟在后面。
   // 返工批准的记录器（表里 recorder 为真）不放行任何东西，失败的后果是这次的回答记不下（M3z 复核 platform-5）；原话记录器（records 是
-  // 'user-words'，M4o）失败的后果是这一趟契约第 1 节不跟原话核。
-  const note = spec && spec.recorder === true ? (spec.records === 'user-words' ? msg.wordsNote : msg.recorderNote) : msg.openNote
+  // 'user-words'，M4o）失败的后果是这一趟契约第 1 节不跟原话核；项目经理会话的记号（records 是 'pm-session'）失败的后果是这个会话没有记成
+  // 项目经理会话。
+  let note = msg.openNote
+  if (spec && spec.recorder === true) {
+    if (spec.records === 'user-words') note = msg.wordsNote
+    else if (spec.records === 'pm-session') note = msg.pmNote
+    else if (spec.records === 'pm-compact') note = msg.compactNote
+    else note = msg.recorderNote
+  }
   process.stderr.write('poundlock ' + CHECK + ' ' + note + '\n')
   process.stderr.write(msg.stderrHead + '\n')
   process.exit(1)

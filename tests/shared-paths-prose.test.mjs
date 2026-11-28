@@ -17,6 +17,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { stageRoles } from '../hooks/lib/stages.mjs'
 import { BUBBLE_MARK } from '../hooks/lib/deliverable.mjs'
+import { PM_ROLE } from '../hooks/lib/decide.mjs'
 
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8').replace(/\r\n/g, '\n')
 const flat = (s) => s.replace(/\n[ \t>]*/g, '')
@@ -370,8 +371,7 @@ test('M4b 模板 project.json：根级前缀都归 S5 产者；后端与前端�
 // 写入，被拒的那条路也就不会出现；L3 的实现记录还写着「本轮 Write 成功」。持 Bash 的团队角色（主会话除外）正文写明写文件用
 // Write、Edit。集合从 tools 行派生。
 test('M4b 持 Bash 的团队角色（主会话除外）：写文件用 Write、Edit，不用 Bash', () => {
-  const settings = JSON.parse(read('settings.json'))
-  const main = String(settings.agent).split(':').pop()
+  const main = PM_ROLE
   const bashers = Object.keys(ROSTER)
     .filter((r) => r !== '__main__' && r !== main)
     .filter((r) => /^tools:.*\bBash\b/m.test(read(`agents/${r}.md`)))

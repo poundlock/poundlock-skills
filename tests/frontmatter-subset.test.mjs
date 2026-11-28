@@ -14,7 +14,7 @@
 // 一行一个「key: 值」（折行与块序列）。不声称封闭：平台换了解析器或退路之后的别的差异，这里挡不住。
 // 代价：值里不能写半角「: 」（写全角「：」）。
 //
-// 窄口（docs/100）：`omitClaudeMd: true` 一行。键名带大写、值是布尔，照上面两条本该挡下；平台只认这个拼法（键名不做归一化），
+// 窄口（docs/100）：`omitClaudeMd: true` 与 `disable-model-invocation: true` 两行，各只认逐字的这一个值。下面先说第一行。键名带大写、值是布尔，照上面两条本该挡下；平台只认这个拼法（键名不做归一化），
 // 所以开一个只认这一行的口子，别的键照旧只许小写与连字符、别的布尔照旧挡。平台怎么读它（CLI 2.1.301 读插件 agent 的那一段）：
 // YAML 先解析整份 frontmatter，`true` 读成布尔 true；加载器拿到的值是布尔 true 或字符串 "true" 才开（frontmatter 走「给值补引号再解析」
 // 那条退路时读到的是字符串，照样开），别的一律当没写、不报错。所以值只认逐字的 `true`：`True`、`TRUE` 在 YAML 里也是布尔、平台照开，
@@ -38,8 +38,8 @@ function frontmatterFiles() {
 const BAD_START = /^[-?:,[\]{}#&*!|>'"%@`]/
 // 会被 YAML 读成 null、布尔或数字的朴素标量。
 const TYPED = /^(?:null|Null|NULL|~|true|True|TRUE|false|False|FALSE|yes|Yes|YES|no|No|NO|on|On|ON|off|Off|OFF|[-+]?(?:\d[\d_]*(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?)$/
-// 窄口：这几个键只许写成这一个值（见文件头）。键名不在「小写与连字符」里，值是布尔——都只对这一对放行。
-const NARROW = new Map([['omitClaudeMd', 'true']])
+// 窄口：这几个键只许写成这一个值（见文件头）。值是布尔（`omitClaudeMd` 的键名还带大写）——都只对这一对放行。
+const NARROW = new Map([['omitClaudeMd', 'true'], ['disable-model-invocation', 'true']])
 
 /** 逐条返回这份文件的 frontmatter 不在受限写法里的地方；空数组 = 合规。行尾的 CR 先剥掉（CRLF 的签出照样判）。 */
 function frontmatterProblems(text) {
@@ -127,6 +127,26 @@ test('自检：窄口只认逐字的「omitClaudeMd: true」一行——别的�
     'omit-claude-md: true',
     'background: true',
     'omitClaudeMd: true\nomitClaudeMd: true',
+  ]
+  for (const line of cases) {
+    const bad = GOOD.replace('model: sonnet', `model: sonnet\n${line}`)
+    assert.ok(frontmatterProblems(bad).length > 0, line)
+    assert.ok(frontmatterProblems(bad.split('\n').join('\r\n')).length > 0, line)
+  }
+})
+
+test('自检：第二个窄口只认逐字的「disable-model-invocation: true」一行——别的值、别的拼法、重复都挡；CRLF 上一样', () => {
+  const ok = GOOD.replace('model: sonnet', 'model: sonnet\ndisable-model-invocation: true')
+  assert.deepEqual(frontmatterProblems(ok), [])
+  assert.deepEqual(frontmatterProblems(ok.split('\n').join('\r\n')), [])
+  const cases = [
+    'disable-model-invocation: True',
+    'disable-model-invocation: yes',
+    'disable-model-invocation: false',
+    "disable-model-invocation: 'true'",
+    'disable-model-invocation: true ',
+    'disableModelInvocation: true',
+    'disable-model-invocation: true\ndisable-model-invocation: true',
   ]
   for (const line of cases) {
     const bad = GOOD.replace('model: sonnet', `model: sonnet\n${line}`)
