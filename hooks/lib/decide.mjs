@@ -18,7 +18,7 @@ export const MAIN = '__main__'
 export const PLUGIN_PREFIX = 'poundlock:'
 
 // 项目经理的裸名：主会话（插件 settings.json 的 agent），也是唯一的契约写者（exemptFromPaths）。
-const PM_ROLE = 'at-pm'
+export const PM_ROLE = 'at-pm'
 
 export function stripPluginPrefix(name) {
   if (typeof name !== 'string' || !name.startsWith(PLUGIN_PREFIX)) return name
