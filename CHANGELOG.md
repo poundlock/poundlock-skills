@@ -3,6 +3,7 @@
 每一版一行，最新的在最上面。只改文档、测试的版本挪最后一位，改到插件会加载的文件挪中间一位，任何一位不长到 10（满了进到上一位）。
 每一版都打了对应的 tag（`v` 加版本号）；3.3.1 起每一版还在 GitHub 上发一条 Release，正文就是这里那一行。2.9.0 及更早的各版，照它第一次合进 `main` 的那一次提交的标题整理。
 
+- 9.2.0：新开的会话是普通会话，敲 `/poundlock:at`、`/poundlock:at-tweak`、`/poundlock:at-resume`、`/poundlock:at-init`、`/poundlock:at-skills` 之一，这个会话才成为项目经理会话，到会话结束或 `/clear` 为止——升级之后新开的会话不再自动是项目经理，插件根的 `settings.json` 删了，`claude --agent poundlock:at-pm` 起的会话照旧是项目经理。项目经理会话保留平常的工具（MCP、网页搜索与抓取都在），门禁拦下 `Skill`、`SendMessage`、`ListAgents`、`EnterWorktree`、`Workflow`；普通会话写不了 `.poundlock/`、派不了团队角色，别的照常；六条团队命令不让模型自己调。Claude Code 下限抬到 2.1.325。
 - 9.1.0：文档、代码、描述里不再出现插件以前的名字：带日期的记录、CHANGELOG 里的命令、目录、仓库地址一律按现在的名字写，代码里带着以前名字的变量改成 `poundlockDir` 这类，设计文档改名为 `2026-09-15-poundlock-plugin-design.md`，插件和市场的描述改成「十角色软件开发团队」。用法和行为没有变。
 - 9.0.0：插件和市场都叫 `poundlock`，不兼容之前的名字——安装是 `claude plugin install poundlock@poundlock --scope local`；命令前缀是 `/poundlock:`（例如 `/poundlock:at`），角色全名是 `poundlock:at-*`；项目里的工作目录是 `.poundlock/`，环境变量是 `POUNDLOCK_*`。装过之前版本的要先卸掉再照这个名字装，之前的工作目录不再认。
 - 8.3.0：清单跟上仓库搬家——市场的 owner 从个人账号换成 `poundlock` 组织，插件清单补上仓库地址（`homepage`、`repository`）；发布判据里的夹具仓库名换成 `poundlock/poundlock-skills`。门禁与角色没变。
