@@ -144,6 +144,7 @@ flowchart TB
 ├── project.json         勘察结果：各角色能写的目录、可用角色、构建与测试命令
 ├── reach.json           算上派发之后，各角色实际能写到的地方
 ├── current-run          当前这一趟的 run id
+├── pm-sessions.json     哪些会话是项目经理会话：你在哪个会话里敲过团队命令（门禁自己记）
 ├── user-words.json      你最近一次在 /poundlock:at 后面写的原话，或者批准的需求稿（门禁自己记）
 └── runs/<run_id>/
     ├── 00-contract.md   契约：你的原话与修订记录
@@ -377,6 +378,7 @@ When rework runs out, only the option 「再返工一轮：回到 <stage>」 is 
 ├── project.json         the survey: writable directories per role, available roles, build and test commands
 ├── reach.json           where each role can actually write once dispatch is taken into account
 ├── current-run          the id of the current run
+├── pm-sessions.json     which sessions are project manager sessions: where you ran a team command (recorded by the gates)
 ├── user-words.json      the words you last wrote after /poundlock:at, or the request write-up you approved (recorded by the gates)
 └── runs/<run_id>/
     ├── 00-contract.md   the contract: your words and its revisions
