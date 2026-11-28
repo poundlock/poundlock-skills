@@ -6,7 +6,7 @@
 // 纯函数那一层（markOf、readMarks、withMark、identityNotice）在 tests/pm-session.test.mjs。
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { run, runAsync, GATE } from './helpers/gate-runner.mjs'
@@ -173,5 +173,22 @@ test('pm-session：记号文件写不进（同名的是一个目录）——exit
     assert.equal(r.status, 0, r.stderr)
     assert.equal(r.stdout, '')
     assert.ok(r.stderr.includes('没有记成项目经理会话'), r.stderr)
+  })
+})
+
+test('pm-session：记号文件原子写——记下、重复敲、另一个会话敲、写不进（同名的是目录）之后，.poundlock/ 下都没有遗留的临时文件', () => {
+  const leftovers = (dir) => readdirSync(join(dir, '.poundlock')).filter((n) => n !== PM_SESSIONS_FILE)
+  withProject({ poundlock: true }, (dir) => {
+    run('pm-session', expand('at'), GATE, dir)
+    run('pm-session', expand('at-resume'), GATE, dir)
+    run('pm-session', expand('at', 's-2'), GATE, dir)
+    assert.deepEqual(Object.keys(marksAt(dir).sessions).sort(), ['s-1', 's-2'])
+    assert.deepEqual(leftovers(dir), [])
+  })
+  withProject({ poundlock: true }, (dir) => {
+    mkdirSync(marksPath(dir))
+    const r = run('pm-session', expand('at'), GATE, dir)
+    assert.ok(r.stderr.includes('没有记成项目经理会话'), r.stderr)
+    assert.deepEqual(leftovers(dir), [])
   })
 })

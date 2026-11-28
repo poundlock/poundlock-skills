@@ -65,7 +65,9 @@ test('记号只认用户敲的五条命令、不带身份的会话', () => {
 
 test('.poundlock 之下：按路径形状认，大小写、穿越都认', () => {
   for (const p of ['/p/.poundlock/x', '/p/.POUNDLOCK/runs/r/state.json', '/p/a/../.poundlock/x', '/p/.poundlock']) assert.equal(inPoundlock(p), true, p)
-  for (const p of ['/p/src/x', '/p/src/.poundlock.md', '', undefined]) assert.equal(inPoundlock(p), false, String(p))
+  // Windows 上指向同一个目录的写法：结尾的点与空格、流后缀
+  for (const p of ['/p/.poundlock./x', '/p/.poundlock /x', '/p/.poundlock.. /x', '/p/.poundlock::$INDEX_ALLOCATION/x', '/p/.poundlock:s/x', '/p/.PoundLock./x']) assert.equal(inPoundlock(p), true, p)
+  for (const p of ['/p/src/x', '/p/src/.poundlock.md', '/p/.poundlocks/x', '/p/x.poundlock/y', '', undefined]) assert.equal(inPoundlock(p), false, String(p))
 })
 
 test('文案：打头的固定串、出路、自检那一支不带在线', () => {

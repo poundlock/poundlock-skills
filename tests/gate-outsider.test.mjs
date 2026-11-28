@@ -168,6 +168,8 @@ test('writepath：团队之外的人写 .poundlock 之下（控制文件、产�
       join(p, '.poundlock', 'notes.md'),
       join(p, '.POUNDLOCK', 'notes.md'),
       join(p, 'src') + '/../.poundlock/notes.md',
+      join(p, '.poundlock.', 'notes.md'),
+      join(p, '.poundlock::$INDEX_ALLOCATION', 'notes.md'),
     ]
     for (const f of targets) {
       const out = write(p, f, who)

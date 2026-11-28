@@ -10,7 +10,7 @@
 // 入口只做「该检查项声明的前置校验」，不做统一校验——H1–H5 分布在三种
 // hook 事件上，输入形状不同（规格 §6 注记）。
 
-import { appendFileSync, closeSync, existsSync, fstatSync, mkdirSync, openSync, readFileSync, readSync, readdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
+import { appendFileSync, closeSync, existsSync, fstatSync, mkdirSync, openSync, readFileSync, readSync, readdirSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { basename, dirname, join, relative } from 'node:path'
 import { CHECKS, KNOWN_CHECKS } from './lib/checks.mjs'
@@ -192,6 +192,7 @@ function loadRoster() {
 // "传导链接对了"，纯函数测试证明"契约本身没错"，两层不冲突，答的是不同的
 // 问题。这里只做 I/O：拿到结果、写对应的流、退出，永不返回，调用点之后
 // 不需要再写 exit。
+// DENY_NOTE（判不出身份时那一句）只对经 denyAndExit 出去的拒绝生效：以后在 delegation / writepath 里加别的拒绝出口，要记得接它。
 function denyAndExit(reason, event) {
   const { stream, text, exitCode } = denyOutput(reason + DENY_NOTE, event)
   DECIDED = exitCode
@@ -225,7 +226,16 @@ function standingFor(input) {
     try {
       return standingOf({ input, roster: loadRoster(), marks: { ok: false } })
     } catch {
-      return { outsider: false, pm: false, kind: null, unjudged: null }
+      // 最后一层兜底（现实中走不到）与设计 §5.7 同方向：记号判不出来时谁都不靠记号当项目经理——没有身份、不带 agent_id、带会话 id 的主线程
+      // 按团队之外的人待；别的输入（带身份的、子代理、没有会话 id 的）交给原来的代码。
+      const unmarkedMain =
+        (input?.agent_type === undefined || input?.agent_type === null) &&
+        !(typeof input?.agent_id === 'string' && input.agent_id !== '') &&
+        typeof input?.session_id === 'string' &&
+        input.session_id !== ''
+      return unmarkedMain
+        ? { outsider: true, pm: false, kind: 'unmarked', unjudged: 'marks-unreadable' }
+        : { outsider: false, pm: false, kind: null, unjudged: null }
     }
   }
 }
@@ -3957,7 +3967,20 @@ function main() {
         }
         const next = withMark(marks, mark.sessionId, { at: new Date().toISOString(), command: mark.command })
         if (!next) return false
-        writeFileSync(file, marksText(next))
+        // 原子写：门禁读记号（standingFor）不拿锁，原地截断再写的那一瞬间别的会话会读到空文件、被当成团队之外的人。先写同目录下的临时文件再
+        // rename 盖过去；rename 不成就删掉临时文件、抛给外面那条「写不进」的路。临时文件的叶名不是任何门禁专属文件的名字（control-files.mjs 的 leafName）。
+        const tmp = `${file}.${process.pid}.tmp`
+        writeFileSync(tmp, marksText(next))
+        try {
+          renameSync(tmp, file)
+        } catch (e) {
+          try {
+            unlinkSync(tmp)
+          } catch {
+            // 删不掉只是留一份临时文件，照样走「写不进」。
+          }
+          throw e
+        }
         return true
       })
     } catch (e) {

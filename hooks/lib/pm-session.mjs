@@ -90,11 +90,15 @@ export function standingOf({ input, roster, marks }) {
   return standing(true, false, hasAgentId ? 'subagent' : 'replaced')
 }
 
+// 一段路径规范化之后的名字：截掉第一个冒号及之后（流后缀，如 ::$INDEX_ALLOCATION、:s），去掉结尾的点与空格，转小写——Windows 上这些写法
+// 指向同一个目录。各平台都这样比：POSIX 上多拒一个字面叫「.poundlock.」的目录无妨。盘符那一段（C:）截完是 c，不影响。
+const segName = (seg) => seg.split(':')[0].replace(/[. ]+$/, '').toLowerCase()
+
 function endsUnder(parts) {
-  return parts.some((seg) => seg.toLowerCase() === '.poundlock')
+  return parts.some((seg) => segName(seg) === '.poundlock')
 }
 
-/** 这条路径在不在某个 .poundlock 目录之下（含它自己）：字面路径与物理路径任一命中就算，不分大小写，穿越折掉之后再看。 */
+/** 这条路径在不在某个 .poundlock 目录之下（含它自己）：字面路径与物理路径任一命中就算，每一段规范化之后再比（不分大小写、流后缀与结尾的点、空格不算），穿越折掉之后再看。 */
 export function inPoundlock(filePath) {
   if (typeof filePath !== 'string' || !filePath) return false
   return endsUnder(resolve(filePath).split(sep)) || endsUnder(norm(filePath).split('/'))
@@ -150,7 +154,7 @@ export function outsiderVerdict({ check, standing, roster, target, filePath }) {
 }
 
 const NOTICE = {
-  'no-session-id': '门禁这一次没有拿到会话 id，判不出这个会话是不是项目经理会话，按项目经理放行。',
+  'no-session-id': '门禁这一次没有拿到会话 id，判不出这个会话是不是项目经理会话，按项目经理会话判。',
   'marks-unreadable': '门禁读不出记录项目经理会话的文件（.poundlock/pm-sessions.json），所以现在没有会话靠记号当项目经理。请用户重新敲一次团队命令（比如 `/poundlock:at <需求>`），那份文件会被重建。',
 }
 
