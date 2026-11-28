@@ -86,6 +86,13 @@ test('文案：打头的固定串、出路、自检那一支不带在线', () =>
   const r = (kind, action, target) => outsiderReason({ kind, action, target })
   assert.ok(r('unmarked', 'dispatch', 'at-backend').startsWith(NOT_PM_HEAD))
   assert.match(r('unmarked', 'dispatch', 'at-backend'), /\/poundlock:at /)
+  // 用户刚敲完命令就拿到这一句的，是记号没记上：给核什么，不让用户一直重敲。
+  assert.ok(r('unmarked', 'dispatch', 'at-backend').includes('`claude --version`'))
+  assert.ok(r('unmarked', 'dispatch', 'at-backend').includes('不要让用户一直重敲'))
+  // 点名的目标与后面的「被拒绝」之间有空格。
+  assert.ok(r('unmarked', 'dispatch', 'at-product').includes('at-product 被拒绝：'), r('unmarked', 'dispatch', 'at-product'))
+  assert.ok(r('subagent', 'write', 'a.md').includes('a.md 被拒绝：'), r('subagent', 'write', 'a.md'))
+  assert.ok(r('subagent', 'write').includes('写这个文件被拒绝：'))
   assert.ok(r('subagent', 'write').startsWith(OUTSIDE_HEAD))
   assert.ok(r('replaced', 'write').startsWith(OUTSIDE_HEAD))
   for (const kind of ['unmarked', 'replaced', 'subagent']) assert.ok(!r(kind, 'self-check').includes(GATE_CHECK_ONLINE), kind)

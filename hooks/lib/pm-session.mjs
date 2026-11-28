@@ -140,11 +140,13 @@ export function inPoundlock(filePath) {
 const ASK_USER =
   '这一步模型自己做不了：请用户在这个会话里自己敲 `/poundlock:at <需求>`（也可以是 `/poundlock:at-tweak`、`/poundlock:at-resume`、' +
   '`/poundlock:at-init`、`/poundlock:at-skills`），敲过之后这个会话才是项目经理会话。' +
-  '用户说已经敲过、你还是看到这一句，可能是 Claude Code 版本太旧或记号文件被删了，请用户再敲一次。'
+  '这一轮就是用户刚敲的团队命令、或者用户说已经敲过，你还是看到这一句的，是记号没记上：请用户核 `claude --version` 够不够插件要求的最低版本、' +
+  '项目里的 `.poundlock/` 写不写得进，核过再敲一次；再看到同一句就停下，不要让用户一直重敲。'
 
 const ACTION_TEXT = {
-  dispatch: (target) => `派发 ${inline(target)}`,
-  write: (target) => (target === undefined ? '写这个文件' : `写 ${inline(target)}`),
+  // 点名目标时后面接一个空格，与「被拒绝」隔开。
+  dispatch: (target) => `派发 ${inline(target)} `,
+  write: (target) => (target === undefined ? '写这个文件' : `写 ${inline(target)} `),
 }
 
 /** 团队之外的人被拒时的理由。action：dispatch（派发）、write（写文件）、self-check（门禁自检）。 */

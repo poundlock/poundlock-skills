@@ -109,9 +109,16 @@ test('M4e 复核：执行角色的「Bash 只用来……」与红线的例外�
   }
 })
 
+// 项目经理那一份另写：敲命令成为项目经理的会话在 Windows 桌面端真有 PowerShell 工具，说「那不是你的工具」是假话；改说团队只用 Bash、
+// 清单里有 PowerShell 也不用、红线对它一样成立。被派的角色只拿自己 tools: 里的工具，照旧是 SHELL_NOTE。
+const PM_SHELL_NOTE = '你的工具清单里另有 PowerShell 也不用它，这条红线对它一样成立。'
+
 test('M4e：持 Bash 的角色都知道自己唯一的 shell 是 Bash——环境说明里的 PowerShell 不是它的工具（M5f 里 PM 在 Bash 里调过 Get-FileHash）', () => {
+  assert.ok(BASH_ROLES.includes(`${MAIN}.md`), '项目经理不在持 Bash 的角色里')
   for (const f of BASH_ROLES) {
-    assert.ok(has(bodyOf(f), SHELL_NOTE), `${f} 缺「${SHELL_NOTE}」`)
+    const note = f === `${MAIN}.md` ? PM_SHELL_NOTE : SHELL_NOTE
+    assert.ok(has(bodyOf(f), note), `${f} 缺「${note}」`)
+    if (f === `${MAIN}.md`) assert.ok(has(bodyOf(f), '团队只用 `Bash` 跑命令'), `${f} 缺「团队只用 Bash 跑命令」`)
     assert.ok(has(bodyOf(f), '命令照 POSIX 写'), `${f} 缺「命令照 POSIX 写」`)
   }
 })
